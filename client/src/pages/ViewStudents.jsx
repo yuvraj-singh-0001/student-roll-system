@@ -60,43 +60,33 @@ export default function ViewStudents() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8 mt-6">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-             View All Students
-          </h1>
-          <p className="text-gray-600 mt-2">Total Students: {students.length} | Auto-updating every 10 seconds</p>
+    <div className="min-h-screen admin-bg">
+      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate("/admin")} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition">← Admin</button>
+            <span className="text-slate-300">|</span>
+            <h1 className="text-lg font-bold text-slate-800">View Students</h1>
+          </div>
         </div>
-
-        {/* Controls Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border-t-4 border-purple-500">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            {/* Search */}
-            <div className="w-full sm:flex-1">
-              <input
-                type="text"
-                placeholder="Search by name, roll number, or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-              />
-            </div>
-
-            {/* Buttons */}
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button
-                onClick={fetchStudents}
-                className="flex-1 sm:flex-none py-3 px-6 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition"
-              >
-                 Refresh Now
+      </header>
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 mb-6 animate-fade-in-up">
+          <p className="text-slate-500 text-sm mb-4">Total: {students.length} · Auto-updating every 10s</p>
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+            <input
+              type="text"
+              placeholder="Search by name, roll number, or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition"
+            />
+            <div className="flex gap-2">
+              <button onClick={fetchStudents} className="py-2.5 px-5 bg-slate-700 text-white font-semibold rounded-xl hover:bg-slate-800 transition">
+                Refresh
               </button>
-              <button
-                onClick={() => navigate("/add-student")}
-                className="flex-1 sm:flex-none py-3 px-6 bg-gradient-to-r from-green-500 to-teal-500 text-white font-semibold rounded-lg hover:shadow-lg transition"
-              >
-                 Add Student
+              <button onClick={() => navigate("/admin/add-student")} className="py-2.5 px-5 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition">
+                Add Student
               </button>
             </div>
           </div>
@@ -122,10 +112,10 @@ export default function ViewStudents() {
             </p>
             {students.length === 0 && (
               <button
-                onClick={() => navigate("/add-student")}
-                className="mt-4 py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg hover:shadow-lg transition"
+                onClick={() => navigate("/admin/add-student")}
+                className="mt-4 py-3 px-6 bg-slate-700 text-white font-semibold rounded-xl hover:bg-slate-800 transition"
               >
-                 Add First Student
+                Add first student
               </button>
             )}
           </div>
@@ -180,16 +170,15 @@ export default function ViewStudents() {
           </div>
         )}
 
-        {/* Back Button */}
         <div className="mt-6 text-center">
           <button
-            onClick={() => navigate("/")}
-            className="py-3 px-6 bg-gray-400 text-gray-800 font-semibold rounded-lg hover:bg-gray-500 transition"
+            onClick={() => navigate("/admin")}
+            className="py-2.5 px-5 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition"
           >
-            ← Back to Dashboard
+            ← Admin Panel
           </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
