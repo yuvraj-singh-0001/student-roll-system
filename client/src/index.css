@@ -1,0 +1,14 @@
+/* Tailwind CSS v4 import */
+@import "tailwindcss";
+
+/* Optional: Global base fixes (safe with Tailwind) */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Remove Vite default centering & colors */
+body {
+  margin: 0;
+}
