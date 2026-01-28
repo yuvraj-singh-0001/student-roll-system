@@ -1,17 +1,31 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import SendNotification from "./pages/SendNotification";
+import Home from "./pages/Home";
+import StudentDashboard from "./pages/StudentDashboard";
+import ExamRegister from "./pages/ExamRegister";
+import Exam from "./pages/Exam";
+import ExamResult from "./pages/ExamResult";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminQuestions from "./pages/AdminQuestions";
+import ExamDashboard from "./pages/ExamDashboard";
 import AddStudent from "./pages/AddStudent";
 import ViewStudents from "./pages/ViewStudents";
+import SendNotification from "./pages/SendNotification";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/send-notification" element={<SendNotification />} />
-        <Route path="/add-student" element={<AddStudent />} />
-        <Route path="/view-students" element={<ViewStudents />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/student" element={<StudentDashboard />} />
+        <Route path="/student/register" element={<ExamRegister />} />
+        <Route path="/student/exam" element={<Exam />} />
+        <Route path="/student/result" element={<ExamResult />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/questions" element={<AdminQuestions />} />
+        <Route path="/admin/exam-dashboard" element={<ExamDashboard />} />
+        <Route path="/admin/add-student" element={<AddStudent />} />
+        <Route path="/admin/view-students" element={<ViewStudents />} />
+        <Route path="/admin/send-notification" element={<SendNotification />} />
       </Routes>
     </BrowserRouter>
   );

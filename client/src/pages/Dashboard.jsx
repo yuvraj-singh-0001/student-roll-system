@@ -42,9 +42,31 @@ export default function Dashboard() {
             </button>
 
             <button
-              className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs sm:text-sm font-semibold rounded-lg cursor-not-allowed opacity-60 shadow-md"
+              onClick={() => navigate("/exam/register")}
+              className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-lg transition duration-300 shadow-md transform hover:scale-105 active:scale-95"
             >
-               Reports ( Coming Soon)
+               Exam Register
+            </button>
+
+            <button
+              onClick={() => navigate("/exam")}
+              className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-indigo-500 to-blue-600 text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-lg transition duration-300 shadow-md transform hover:scale-105 active:scale-95"
+            >
+               Give Exam
+            </button>
+
+            <button
+              onClick={() => navigate("/admin/questions")}
+              className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-lg transition duration-300 shadow-md transform hover:scale-105 active:scale-95"
+            >
+               Add Questions (Exam)
+            </button>
+
+            <button
+              onClick={() => navigate("/admin/exam-dashboard")}
+              className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white text-xs sm:text-sm font-semibold rounded-lg hover:shadow-lg transition duration-300 shadow-md transform hover:scale-105 active:scale-95"
+            >
+               Exam Dashboard
             </button>
           </div>
 

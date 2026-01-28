@@ -35,9 +35,8 @@ export default function AddStudent() {
         setSuccess(`✓ Student added! Roll Number: ${response.data.data.rollNumber}`);
         setFormData({ name: "", email: "", course: "" });
         
-        // Redirect after 2 seconds
         setTimeout(() => {
-          navigate("/view-students");
+          navigate("/admin/view-students");
         }, 2000);
       }
     } catch (err) {
@@ -48,75 +47,37 @@ export default function AddStudent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8 mt-6">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-             Add New Student
-          </h1>
-          <p className="text-gray-600 mt-2">Register a new student in the system</p>
+    <div className="min-h-screen admin-bg">
+      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+          <button onClick={() => navigate("/admin")} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition">← Admin</button>
+          <span className="text-slate-300">|</span>
+          <h1 className="text-lg font-bold text-slate-800">Add New Student</h1>
         </div>
-
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border-t-4 border-purple-500">
+      </header>
+      <main className="max-w-2xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-fade-in-up">
+          <div className="h-1 bg-slate-700" />
+          <div className="p-6 sm:p-8">
           {error && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-              ❌ {error}
-            </div>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">{error}</div>
           )}
-
           {success && (
-            <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-              {success}
-            </div>
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm">{success}</div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Field */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Enter student name"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-2">Full name</label>
+              <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter student name" required className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition" />
             </div>
-
-            {/* Email Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Enter email address"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter email" required className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition" />
             </div>
-
-            {/* Course Field */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Course
-              </label>
-              <select
-                name="course"
-                value={formData.course}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-              >
+              <label className="block text-sm font-medium text-slate-700 mb-2">Course</label>
+              <select name="course" value={formData.course} onChange={handleChange} required className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 transition bg-white">
                 <option value="">Select a course</option>
                 <option value="Computer Science">Computer Science</option>
                 <option value="Electronics">Electronics</option>
@@ -125,27 +86,16 @@ export default function AddStudent() {
                 <option value="Electrical">Electrical</option>
               </select>
             </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition duration-300 shadow-md transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? "Adding..." : "✓ Add Student"}
+            <button type="submit" disabled={loading} className="w-full py-3 px-4 bg-slate-700 text-white font-semibold rounded-xl hover:bg-slate-800 transition shadow-md disabled:opacity-70">
+              {loading ? "Adding…" : "Add student"}
             </button>
-
-            {/* Back Button */}
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className="w-full py-3 px-4 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition duration-300"
-            >
-              ← Back to Dashboard
+            <button type="button" onClick={() => navigate("/admin")} className="w-full py-3 px-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition">
+              ← Admin Panel
             </button>
           </form>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
