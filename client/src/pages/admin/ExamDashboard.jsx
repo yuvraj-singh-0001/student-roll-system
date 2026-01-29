@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { analysisApi } from "../api";
+import { analysisApi } from "../../api";
 
 export default function ExamDashboard() {
   const navigate = useNavigate();

@@ -1,12 +1,16 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+// General Imports
 import Home from "./pages/Home";
-import StudentDashboard from "./pages/StudentDashboard";
-import ExamRegister from "./pages/ExamRegister";
-import Exam from "./pages/Exam";
-import ExamResult from "./pages/ExamResult";
+// Student Imports
+import StudentDashboard from "./pages/Student/StudentDashboard";
+import ExamRegister from "./pages/Student/ExamRegister";
+import Exam from "./pages/Student/Exam";
+import ExamResult from "./pages/Student/ExamResult";
+
+// Admin Imports
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminQuestions from "./pages/admin/AdminQuestions";
-import ExamDashboard from "./pages/ExamDashboard";
+import ExamDashboard from "./pages/admin/ExamDashboard";
 import AddStudent from "./pages/admin/AddStudent";
 import ViewStudents from "./pages/admin/ViewStudents";
 import SendNotification from "./pages/admin/SendNotification";

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { questionApi, examApi } from "../api";
+import { questionApi, examApi } from "../../api";
 
 const CONFIDENCE_OPTS = [
   { value: "full", label: "Full Confidence" },
