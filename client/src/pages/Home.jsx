@@ -57,7 +57,7 @@ export default function Home() {
         </button>
       </div>
 
-      <p className="mt-10 text-slate-400 text-xs">
+      <p className="mt-10 text-gray-900 text-xs">
         The True Topper © 2026 · Exam System v1.0
       </p>
     </div>
