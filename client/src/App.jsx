@@ -4,12 +4,12 @@ import StudentDashboard from "./pages/StudentDashboard";
 import ExamRegister from "./pages/ExamRegister";
 import Exam from "./pages/Exam";
 import ExamResult from "./pages/ExamResult";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminQuestions from "./pages/AdminQuestions";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminQuestions from "./pages/admin/AdminQuestions";
 import ExamDashboard from "./pages/ExamDashboard";
-import AddStudent from "./pages/AddStudent";
-import ViewStudents from "./pages/ViewStudents";
-import SendNotification from "./pages/SendNotification";
+import AddStudent from "./pages/admin/AddStudent";
+import ViewStudents from "./pages/admin/ViewStudents";
+import SendNotification from "./pages/admin/SendNotification";
 
 export default function App() {
   return (
