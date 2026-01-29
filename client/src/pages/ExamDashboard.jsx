@@ -7,6 +7,10 @@ export default function ExamDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [studentDetails, setStudentDetails] = useState([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
 
   useEffect(() => {
     fetchDashboard();
@@ -21,6 +25,31 @@ export default function ExamDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchStudentDetails = async (studentId) => {
+    try {
+      setDetailsLoading(true);
+      setDetailsError("");
+      const { data: res } = await analysisApi.studentExamDetails(studentId);
+      if (res.success) {
+        setStudentDetails(res.data);
+      }
+    } catch (e) {
+      setDetailsError(e.response?.data?.message || "Failed to load student details");
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const handleViewDetails = (student) => {
+    setSelectedStudent(student);
+    fetchStudentDetails(student.studentId);
+  };
+
+  const closeDetailsModal = () => {
+    setSelectedStudent(null);
+    setStudentDetails([]);
   };
 
   if (loading) {
@@ -182,6 +211,7 @@ export default function ExamDashboard() {
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Skipped</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Score</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Correct / Wrong</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -193,6 +223,14 @@ export default function ExamDashboard() {
                         <td className="px-4 py-3 text-slate-600">{s.skipped}</td>
                         <td className="px-4 py-3 font-semibold text-slate-800">{s.totalScore}</td>
                         <td className="px-4 py-3 text-slate-600">{s.correct} / {s.wrong}</td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => handleViewDetails(s)}
+                            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition font-medium"
+                          >
+                            View Details
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -204,6 +242,105 @@ export default function ExamDashboard() {
           </div>
         </div>
       </main>
+
+      {selectedStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-slate-700 text-white px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">
+                Exam Details - {selectedStudent.name} ({selectedStudent.studentId})
+              </h2>
+              <button
+                onClick={closeDetailsModal}
+                className="text-2xl font-bold hover:text-slate-200 transition"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-6">
+              {detailsLoading ? (
+                <div className="text-center py-8">
+                  <p className="text-slate-500 animate-pulse">Loading details…</p>
+                </div>
+              ) : detailsError ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                  {detailsError}
+                </div>
+              ) : studentDetails.length > 0 ? (
+                <div className="space-y-4">
+                  {studentDetails.map((detail, idx) => (
+                    <div
+                      key={idx}
+                      className={`border-2 rounded-xl p-4 ${
+                        detail.isCorrect
+                          ? "border-green-300 bg-green-50"
+                          : detail.status === "skipped"
+                          ? "border-amber-300 bg-amber-50"
+                          : "border-red-300 bg-red-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-semibold text-slate-800 text-lg">Question {detail.questionNumber}</p>
+                          <p className="text-slate-600 mt-1">{detail.question}</p>
+                        </div>
+                        <div className="text-right">
+                          <span
+                            className={`px-3 py-1.5 rounded-lg font-semibold text-sm ${
+                              detail.isCorrect
+                                ? "bg-green-200 text-green-800"
+                                : detail.status === "skipped"
+                                ? "bg-amber-200 text-amber-800"
+                                : "bg-red-200 text-red-800"
+                            }`}
+                          >
+                            {detail.status === "skipped" ? "Skipped" : detail.isCorrect ? "✓ Correct" : "✗ Wrong"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 text-sm mt-3 pt-3 border-t border-slate-300">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Student's Answer:</span>
+                          <span className="font-medium text-slate-800">{detail.studentAnswer || "-"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Correct Answer:</span>
+                          <span className="font-medium text-green-700">{detail.correctAnswer}</span>
+                        </div>
+                        {detail.status !== "skipped" && (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">Marks:</span>
+                              <span className="font-medium text-slate-800">{detail.marks}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">Confidence:</span>
+                              <span className="font-medium capitalize text-slate-800">{detail.confidenceLevel || "-"}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-500">No exam attempts found.</div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-200 bg-slate-50 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={closeDetailsModal}
+                className="px-6 py-2 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-800 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

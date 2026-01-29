@@ -138,4 +138,32 @@ async function dashboard(req, res) {
   }
 }
 
-module.exports = { studentWise, questionWise, confidenceWise, dashboard };
+async function studentExamDetails(req, res) {
+  try {
+    const { studentId } = req.params;
+    const attempts = await ExamAttempt.find({ studentId }).lean();
+    const questionIds = [...new Set(attempts.map(a => a.questionNumber))];
+    const questions = await Question.find({ questionNumber: { $in: questionIds } }).lean();
+    const questionMap = Object.fromEntries(questions.map(q => [q.questionNumber, q]));
+    
+    const details = attempts.map(attempt => {
+      const question = questionMap[attempt.questionNumber];
+      return {
+        questionNumber: attempt.questionNumber,
+        question: question?.question || "-",
+        correctAnswer: question?.correctAnswer || "-",
+        studentAnswer: attempt.selectedAnswer || "-",
+        isCorrect: attempt.isCorrect,
+        status: attempt.status,
+        confidenceLevel: attempt.confidenceLevel,
+        marks: attempt.marks,
+      };
+    });
+
+    return res.status(200).json({ success: true, data: details });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+}
+
+module.exports = { studentWise, questionWise, confidenceWise, dashboard, studentExamDetails };

@@ -19,6 +19,7 @@ export const analysisApi = {
   questions: () => API.get("/analysis/questions"),
   confidence: () => API.get("/analysis/confidence"),
   dashboard: () => API.get("/analysis/dashboard"),
+  studentExamDetails: (studentId) => API.get(`/analysis/student-details/${studentId}`),
 };
 
 export default API;
