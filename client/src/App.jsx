@@ -2,8 +2,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // General
 import Home from "./pages/Home";
-
-// Auth
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Payment from "./pages/Payment";
@@ -22,6 +20,9 @@ import AddStudent from "./pages/admin/AddStudent";
 import ViewStudents from "./pages/admin/ViewStudents";
 import SendNotification from "./pages/admin/SendNotification";
 
+// 🔐 Protected wrapper
+import ProtectedRoute from "./protected/ProtectedRoute";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -32,13 +33,41 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/payment" element={<Payment />} />
 
-        {/* Student */}
-        <Route path="/student" element={<StudentDashboard />} />
-        <Route path="/student/register" element={<ExamRegister />} />
-        <Route path="/student/exam" element={<Exam />} />
-        <Route path="/student/result" element={<ExamResult />} />
+        {/* 🔒 Student Protected */}
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute>
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/register"
+          element={
+            <ProtectedRoute>
+              <ExamRegister />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/exam"
+          element={
+            <ProtectedRoute>
+              <Exam />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/result"
+          element={
+            <ProtectedRoute>
+              <ExamResult />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Admin */}
+        {/* Admin (abhi open, baad me protect karenge) */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/questions" element={<AdminQuestions />} />
         <Route path="/admin/exam-dashboard" element={<ExamDashboard />} />

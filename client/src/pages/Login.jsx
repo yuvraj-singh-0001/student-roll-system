@@ -4,7 +4,12 @@ import { loginUser } from "../api";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "" });
+
+  const [form, setForm] = useState({
+    email: "",
+    password: ""
+  });
+
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -13,22 +18,38 @@ export default function Login() {
     setLoading(true);
     setMsg("");
 
-    const res = await loginUser(form);
+    try {
+      const res = await loginUser(form);
 
-    if (res.success) {
+      if (!res || !res.success) {
+        setMsg(res?.message || "Login failed");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ SAVE AUTH DATA
       localStorage.setItem("token", res.token);
       localStorage.setItem("userId", res.user.id);
-      navigate("/payment");
-    } else {
-      setMsg(res.message);
+      localStorage.setItem("isPaid", res.user.isPaid);
+
+      // ✅ REDIRECT LOGIC (MAIN FIX)
+      if (res.user.isPaid) {
+        navigate("/student");     // already paid
+      } else {
+        navigate("/payment");     // payment required
+      }
+
+    } catch (error) {
+      setMsg("Something went wrong. Try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-sm bg-white rounded-xl shadow-lg border border-gray-200">
-        
+
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-200 text-center">
           <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-blue-600 flex items-center justify-center">

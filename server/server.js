@@ -4,10 +4,18 @@ require("dotenv").config();
 
 const connectDB = require("./src/api/config/db");
 const routes = require("./src/routes/router");
-// Initialize Express app
+
 const app = express();
+
+// ✅ FIX: Proper CORS configuration
+app.use(cors({
+  origin: "http://localhost:5173", // Your React app URL
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
-app.use(cors());
 
 // ✅ Connect MongoDB
 connectDB();

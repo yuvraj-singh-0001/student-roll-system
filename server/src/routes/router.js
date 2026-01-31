@@ -8,12 +8,13 @@ const analysisRoutes = require("../controllers/analysis");
 const authRoutes = require("../controllers/auth");
 const paymentRoutes = require("../controllers/payment");
 
+// ✅ REMOVE duplicate auth routes
 router.use("/notification", notificationRoutes);
 router.use("/student", studentRoutes);
 router.use("/question", questionRoutes);
 router.use("/exam", examRoutes);
 router.use("/analysis", analysisRoutes);
-router.use("/auth", authRoutes);
+router.use("/auth", authRoutes); // This is enough
 router.use("/payment", paymentRoutes);
 
 module.exports = router;
