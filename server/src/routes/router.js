@@ -5,11 +5,15 @@ const studentRoutes = require("../controllers/student");
 const questionRoutes = require("../controllers/question");
 const examRoutes = require("../controllers/exam");
 const analysisRoutes = require("../controllers/analysis");
+const authRoutes = require("../controllers/auth");
+const paymentRoutes = require("../controllers/payment");
 
 router.use("/notification", notificationRoutes);
 router.use("/student", studentRoutes);
 router.use("/question", questionRoutes);
 router.use("/exam", examRoutes);
 router.use("/analysis", analysisRoutes);
+router.use("/auth", authRoutes);
+router.use("/payment", paymentRoutes);
 
 module.exports = router;
