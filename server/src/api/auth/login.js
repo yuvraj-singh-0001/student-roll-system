@@ -10,7 +10,7 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Invalid credentials",
       });
     }
 
@@ -18,7 +18,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Invalid credentials",
       });
     }
 
@@ -36,17 +36,16 @@ const login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        isPaid: user.isPaid
-      }
+        isPaid: user.isPaid,
+      },
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Login failed",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
-module.exports =  login ;
+module.exports = login;

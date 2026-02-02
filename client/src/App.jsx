@@ -20,6 +20,9 @@ import AddStudent from "./pages/admin/AddStudent";
 import ViewStudents from "./pages/admin/ViewStudents";
 import SendNotification from "./pages/admin/SendNotification";
 
+// Layout
+import AdminLayout from "./components/adminlayout/sidebar";
+
 // 🔐 Protected wrapper
 import ProtectedRoute from "./protected/ProtectedRoute";
 
@@ -67,14 +70,17 @@ export default function App() {
           }
         />
 
-        {/* Admin (abhi open, baad me protect karenge) */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/questions" element={<AdminQuestions />} />
-        <Route path="/admin/exam-dashboard" element={<ExamDashboard />} />
-        <Route path="/admin/add-student" element={<AddStudent />} />
-        <Route path="/admin/view-students" element={<ViewStudents />} />
-        <Route path="/admin/send-notification" element={<SendNotification />} />
+        {/* Admin – sabhi routes AdminLayout ke andar */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="questions" element={<AdminQuestions />} />
+          <Route path="exam-dashboard" element={<ExamDashboard />} />
+          <Route path="add-student" element={<AddStudent />} />
+          <Route path="view-students" element={<ViewStudents />} />
+          <Route path="send-notification" element={<SendNotification />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
 }
+  

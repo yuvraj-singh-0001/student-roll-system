@@ -96,44 +96,8 @@ export default function AdminQuestions() {
       </div>
 
       <div className="relative z-10">
-        {/* Header */}
-        <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center justify-between h-14">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate("/admin")}
-                  className="group flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-all duration-200"
-                >
-                  <span className="text-lg group-hover:-translate-x-0.5 transition-transform">←</span>
-                  <span>Admin Dashboard</span>
-                </button>
-                <div className="h-4 w-px bg-gray-200"></div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center shadow">
-                    <span className="text-white font-bold text-xs">A</span>
-                  </div>
-                  <div>
-                    <h1 className="text-sm font-bold text-gray-900">Manage Questions</h1>
-                    <p className="text-xs text-gray-500">Add & view exam questions</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg shadow-xs">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium text-gray-700">System Online</span>
-                </div>
-                <div className="px-3 py-1.5 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg shadow-sm">
-                  <div className="text-xs font-medium">
-                    {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+      
+        
 
         <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
           <div className="grid lg:grid-cols-2 gap-6">

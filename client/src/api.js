@@ -3,21 +3,21 @@ import axios from "axios";
 const API = axios.create({
   baseURL: "http://localhost:5000/api",
   headers: {
-    "Content-Type": "application/json"
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 /* ================= AUTH ================= */
 
-// ✅ Tumhare Login.jsx ke liye
 export const loginUser = async (body) => {
   const res = await API.post("/auth/login", body);
+  // { success, message, token, user: { id, name, email, isPaid } }
   return res.data;
 };
 
-// (optional – future use)
 export const registerUser = async (body) => {
   const res = await API.post("/auth/register", body);
+  // { success, message, data: { id, name, email } }
   return res.data;
 };
 
@@ -25,6 +25,7 @@ export const registerUser = async (body) => {
 
 export const fakePay = async (userId) => {
   const res = await API.post("/payment/pay", { userId });
+  // { success, message, user }
   return res.data;
 };
 

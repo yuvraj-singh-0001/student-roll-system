@@ -1,10 +1,6 @@
 const User = require("../../models/User");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 
-/**
- * REGISTER
- */
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -12,7 +8,7 @@ const register = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required"
+        message: "All fields are required",
       });
     }
 
@@ -20,7 +16,7 @@ const register = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "User already exists"
+        message: "User already exists",
       });
     }
 
@@ -29,7 +25,8 @@ const register = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      isPaid: false,
     });
 
     res.status(201).json({
@@ -38,19 +35,16 @@ const register = async (req, res) => {
       data: {
         id: user._id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Registration failed",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
-
-
-module.exports =  register; ;
+module.exports = register;

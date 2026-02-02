@@ -60,38 +60,7 @@ export default function AddStudent() {
 
       <div className="relative z-10 flex flex-col h-full">
         {/* Header - Same Style as Admin Dashboard */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm flex-shrink-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigate("/admin")}
-                  className="group flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-all duration-300"
-                >
-                  <span className="text-lg group-hover:-translate-x-0.5 transition-transform">←</span>
-                  <span>Admin Dashboard</span>
-                </button>
-                <div className="h-6 w-px bg-gray-200"></div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center shadow-lg">
-                    <span className="text-white font-bold text-sm">A</span>
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-bold text-gray-900">Add New Student</h1>
-                    <p className="text-xs text-gray-500">Register student account</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-gray-700">System Online</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+        
 
         <main className="flex-1 overflow-hidden">
           <div className="h-full flex items-center justify-center p-4">

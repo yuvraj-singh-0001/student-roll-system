@@ -31,18 +31,7 @@ export default function SendNotification() {
 
   return (
     <div className="min-h-screen admin-bg">
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-xl mx-auto px-4 py-4 flex items-center gap-3">
-          <button
-            onClick={() => navigate("/admin")}
-            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
-          >
-            ← Admin
-          </button>
-          <span className="text-slate-300">|</span>
-          <h1 className="text-lg font-bold text-slate-800">Send notification</h1>
-        </div>
-      </header>
+      
 
       <main className="max-w-xl mx-auto px-4 py-10">
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-scale-in">

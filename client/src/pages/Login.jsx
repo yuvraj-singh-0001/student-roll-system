@@ -7,7 +7,7 @@ export default function Login() {
 
   const [form, setForm] = useState({
     email: "",
-    password: ""
+    password: "",
   });
 
   const [msg, setMsg] = useState("");
@@ -27,18 +27,17 @@ export default function Login() {
         return;
       }
 
-      // ✅ SAVE AUTH DATA
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("userId", res.user.id);
-      localStorage.setItem("isPaid", res.user.isPaid);
+      const { user, token } = res;
 
-      // ✅ REDIRECT LOGIC (MAIN FIX)
-      if (res.user.isPaid) {
-        navigate("/student");     // already paid
+      localStorage.setItem("token", token);
+      localStorage.setItem("userId", user.id);
+      localStorage.setItem("isPaid", user.isPaid);
+
+      if (user.isPaid) {
+        navigate("/student");
       } else {
-        navigate("/payment");     // payment required
+        navigate("/payment");
       }
-
     } catch (error) {
       setMsg("Something went wrong. Try again.");
     } finally {
@@ -49,8 +48,6 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-sm bg-white rounded-xl shadow-lg border border-gray-200">
-
-        {/* Header */}
         <div className="px-6 py-5 border-b border-gray-200 text-center">
           <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-blue-600 flex items-center justify-center">
             <span className="text-white text-xl">🔐</span>
@@ -58,12 +55,9 @@ export default function Login() {
           <h2 className="text-lg font-semibold text-gray-900">
             Student Login
           </h2>
-          <p className="text-sm text-gray-500">
-            Sign in to continue
-          </p>
+          <p className="text-sm text-gray-500">Sign in to continue</p>
         </div>
 
-        {/* Body */}
         <div className="px-6 py-5">
           {msg && (
             <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
@@ -113,7 +107,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Links */}
           <div className="mt-4 text-center text-sm">
             <button
               onClick={() => navigate("/register")}
@@ -124,7 +117,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-3 border-t border-gray-200 flex justify-between text-sm">
           <button
             onClick={() => navigate("/")}
