@@ -1,6 +1,8 @@
+// ... imports same
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser, registerUser } from "../api";
+import Navbar from "../components/layout/Navbar";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -40,7 +42,6 @@ export default function Home() {
     setMsg("");
   };
 
-  // LOGIN
   const submitLogin = async (e) => {
     e.preventDefault();
     if (!loginForm.email || !loginForm.password) return;
@@ -75,7 +76,6 @@ export default function Home() {
     }
   };
 
-  // REGISTER
   const submitRegister = async (e) => {
     e.preventDefault();
     if (!regForm.name || !regForm.email || !regForm.password) return;
@@ -89,7 +89,7 @@ export default function Home() {
       setMsg(res.message || "");
 
       if (res.success) {
-        const { data } = res; // { id, name, email }
+        const { data } = res;
 
         if (data && data.id) {
           localStorage.setItem("userId", data.id);
@@ -105,11 +105,18 @@ export default function Home() {
     }
   };
 
+  const handleLearnMore = () => {
+    const el = document.getElementById("why-choose");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-[#FFF3C4] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob" />
+        <div className="absolute top-24 left-10 w-72 h-72 bg-[#FFF3C4] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob" />
         <div className="absolute top-40 right-20 w-72 h-72 bg-[#FFE6A3] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000" />
         <div className="absolute -bottom-8 left-40 w-72 h-72 bg-[#FFEBD0] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000" />
       </div>
@@ -130,48 +137,16 @@ export default function Home() {
         ))}
       </div>
 
-      <div className="relative z-10">
-        {/* Header */}
-        <header className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-gray-900 font-bold text-lg">TE</span>
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
-                TestEdu
-              </h1>
-              <div className="w-16 h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full mt-1" />
-            </div>
-          </div>
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Navbar */}
+        <Navbar onStudentLoginClick={() => openCard("login")} />
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => openCard("login")}
-              className="relative px-5 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-all duration-300 group"
-            >
-              <span className="relative z-10">Sign In</span>
-              <span className="absolute inset-0 bg-gradient-to-r from-[#FFF3C4] to-[#FFE6A3] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </button>
-
-            <button
-              onClick={() => navigate("/admin")}
-              className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-black hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              Admin
-            </button>
-          </div>
-        </header>
-
-        {/* HERO + CARD */}
-        <main className="pt-8 pb-20">
-          <div
+        {/* ===== ABOVE THE FOLD: HERO + AUTH CARD ONLY ===== */}
+        <main className="flex-1">
+          <section
             className={`
               max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
-              grid gap-10 items-center mb-16
+              grid gap-10 items-center
               transition-all duration-500
               ${
                 loginOpen
@@ -179,63 +154,51 @@ export default function Home() {
                   : "lg:grid-cols-1 place-items-center"
               }
             `}
+            // height ~ full screen minus navbar so stats niche chalayen
+            style={{ minHeight: "calc(100vh - 70px)" }}
           >
             {/* LEFT text */}
-            <div
-              className={`
-                transition-all duration-500 w-full
-                ${
-                  loginOpen
-                    ? "lg:justify-self-start text-left lg:text-left"
-                    : "justify-self-center text-center lg:text-center"
-                }
-              `}
-            >
-              <div className="mb-6 overflow-hidden">
-                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-4">
+            <div className="transition-all duration-500 w-full justify-self-center text-center">
+              <div className="mb-4 overflow-hidden">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 leading-tight">
                   <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#FFCD2C] via-[#E0AC00] to-[#FFB200] animate-gradient">
-                    Professional
+                    The International Unconventional
                   </span>
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-gray-800 via-gray-900 to-black mt-2">
-                    Exam Platform
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-gray-800 via-gray-900 to-black mt-1">
+                    Olympaids ++
                   </span>
                 </h1>
               </div>
 
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed animate-fade-in">
-                Enterprise-grade examination system with AI-powered analytics,
-                real-time monitoring, and secure proctoring for educational institutions.
+              <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto mb-6 leading-relaxed animate-fade-in">
+                A global platform for creative minds to compete in non-traditional challenges,
+                promoting critical thinking and innovation.
               </p>
 
-              <div
-                className={`
-                  flex flex-wrap gap-4 transition-all duration-500
-                  ${loginOpen ? "justify-start" : "justify-center"}
-                `}
-              >
+              <div className="flex flex-wrap gap-3 justify-center transition-all duration-500">
                 <button
                   onClick={() => openCard("login")}
-                  className="group relative px-8 py-4 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-semibold rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-1 hover:scale-105"
+                  className="group relative px-6 py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 text-sm font-semibold rounded-xl shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1"
                 >
                   <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-500" />
-                  <span className="relative flex items-center justify-center gap-3">
-                    <span className="text-lg">🎓</span>
-                    Student Portal
-                    <span className="group-hover:translate-x-2 transition-transform duration-300">
+                  <span className="relative flex items-center justify-center gap-2">
+                    <span className="text-base">🔐</span>
+                    Login
+                    <span className="group-hover:translate-x-1 transition-transform duration-300">
                       →
                     </span>
                   </span>
                 </button>
 
                 <button
-                  onClick={() => navigate("/admin")}
-                  className="group relative px-8 py-4 bg-white text-gray-900 font-semibold rounded-xl border-2 border-[#FFCD2C]/70 shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1 hover:bg-[#FFF3C4]"
+                  onClick={handleLearnMore}
+                  className="group relative px-6 py-3 bg-white text-gray-900 text-sm font-semibold rounded-xl border border-[#FFCD2C]/70 shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1 hover:bg-[#FFF3C4]"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-[#FFFDF2] to-[#FFF3C4] opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-500" />
-                  <span className="relative flex items-center justify-center gap-3">
-                    <span className="text-lg">⚙️</span>
-                    Admin Dashboard
-                    <span className="group-hover:translate-x-2 transition-transform duration-300">
+                  <span className="relative flex items-center justify-center gap-2">
+                    <span className="text-base">📖</span>
+                    Learn More
+                    <span className="group-hover:translate-x-1 transition-transform duration-300">
                       →
                     </span>
                   </span>
@@ -246,26 +209,25 @@ export default function Home() {
             {/* RIGHT: Login/Register card */}
             <div
               className={`
-                w-full lg:w-[380px]
+                w-full lg:w-[360px]
                 transition-all duration-500
                 ${
                   loginOpen
-                    ? "opacity-100 translate-y-0 max-h-[580px]"
+                    ? "opacity-100 translate-y-0 max-h-[560px]"
                     : "opacity-0 -translate-y-4 max-h-0 overflow-hidden pointer-events-none"
                 }
               `}
             >
               {loginOpen && (
-                <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-[#FFE6A3] p-6 sm:p-8 animate-fade-in-up">
-                  {/* Tabs + close */}
-                  <div className="flex items-center mb-4">
-                    <div className="flex flex-1 bg-[#FFF7DA] rounded-full p-1 text-xs font-medium">
+                <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-[#FFE6A3] p-5 sm:p-6 animate-fade-in-up">
+                  <div className="flex items-center mb-3">
+                    <div className="flex flex-1 bg-[#FFF7DA] rounded-full p-1 text-[11px] font-medium">
                       <button
                         onClick={() => {
                           setAuthMode("login");
                           setMsg("");
                         }}
-                        className={`flex-1 px-3 py-1.5 rounded-full transition-all ${
+                        className={`flex-1 px-2.5 py-1.5 rounded-full transition-all ${
                           authMode === "login"
                             ? "bg-white shadow text-[#E0AC00]"
                             : "text-gray-500 hover:text-gray-700"
@@ -278,7 +240,7 @@ export default function Home() {
                           setAuthMode("register");
                           setMsg("");
                         }}
-                        className={`flex-1 px-3 py-1.5 rounded-full transition-all ${
+                        className={`flex-1 px-2.5 py-1.5 rounded-full transition-all ${
                           authMode === "register"
                             ? "bg-white shadow text-[#E0AC00]"
                             : "text-gray-500 hover:text-gray-700"
@@ -295,11 +257,11 @@ export default function Home() {
                     </button>
                   </div>
 
-                  <div className="mb-3">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-gray-400">
+                  <div className="mb-2">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-gray-400">
                       {authMode === "login" ? "Student Login" : "Student Registration"}
                     </p>
-                    <h2 className="text-lg font-semibold text-gray-900 mt-1">
+                    <h2 className="text-sm font-semibold text-gray-900 mt-1">
                       {authMode === "login"
                         ? "Sign in to your account"
                         : "Create a new account"}
@@ -308,7 +270,7 @@ export default function Home() {
 
                   {msg && (
                     <div
-                      className={`mb-3 text-xs rounded-md px-3 py-2 border ${
+                      className={`mb-3 text-[11px] rounded-md px-3 py-2 border ${
                         msg.toLowerCase().includes("success")
                           ? "text-green-700 bg-green-50 border-green-200"
                           : "text-red-700 bg-red-50 border-red-200"
@@ -318,12 +280,11 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* LOGIN FORM */}
                   {authMode === "login" && (
-                    <form onSubmit={submitLogin} className="space-y-4">
-                      <div className="space-y-3">
+                    <form onSubmit={submitLogin} className="space-y-3">
+                      <div className="space-y-2.5">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-[11px] font-medium text-gray-700 mb-1">
                             Email
                           </label>
                           <input
@@ -332,13 +293,13 @@ export default function Home() {
                             onChange={(e) =>
                               setLoginForm({ ...loginForm, email: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="student@example.com"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-[11px] font-medium text-gray-700 mb-1">
                             Password
                           </label>
                           <input
@@ -347,7 +308,7 @@ export default function Home() {
                             onChange={(e) =>
                               setLoginForm({ ...loginForm, password: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="••••••••"
                             required
                           />
@@ -357,7 +318,7 @@ export default function Home() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 ${
+                        className={`w-full py-2.5 text-xs font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 ${
                           loading ? "opacity-70 cursor-not-allowed" : ""
                         }`}
                       >
@@ -373,12 +334,11 @@ export default function Home() {
                     </form>
                   )}
 
-                  {/* REGISTER FORM */}
                   {authMode === "register" && (
-                    <form onSubmit={submitRegister} className="space-y-4">
-                      <div className="space-y-3">
+                    <form onSubmit={submitRegister} className="space-y-3">
+                      <div className="space-y-2.5">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-[11px] font-medium text-gray-700 mb-1">
                             Full Name
                           </label>
                           <input
@@ -387,13 +347,13 @@ export default function Home() {
                             onChange={(e) =>
                               setRegForm({ ...regForm, name: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="John Doe"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-[11px] font-medium text-gray-700 mb-1">
                             Email
                           </label>
                           <input
@@ -402,13 +362,13 @@ export default function Home() {
                             onChange={(e) =>
                               setRegForm({ ...regForm, email: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="student@example.com"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-[11px] font-medium text-gray-700 mb-1">
                             Password
                           </label>
                           <input
@@ -417,7 +377,7 @@ export default function Home() {
                             onChange={(e) =>
                               setRegForm({ ...regForm, password: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="••••••••"
                             required
                           />
@@ -427,7 +387,7 @@ export default function Home() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 ${
+                        className={`w-full py-2.5 text-xs font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 ${
                           loading ? "opacity-70 cursor-not-allowed" : ""
                         }`}
                       >
@@ -443,7 +403,7 @@ export default function Home() {
                     </form>
                   )}
 
-                  <p className="text-[11px] text-gray-500 text-center mt-4">
+                  <p className="text-[10px] text-gray-500 text-center mt-3">
                     {authMode === "login"
                       ? "New here? Switch to Register tab to create account."
                       : "Already registered? Switch to Login tab to sign in."}
@@ -451,90 +411,93 @@ export default function Home() {
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* Stats */}
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {[
-                { number: "10K+", label: "Students", color: "from-[#FFCD2C] to-[#E0AC00]" },
-                { number: "99.8%", label: "Uptime", color: "from-green-500 to-green-600" },
-                { number: "500+", label: "Exams", color: "from-[#FFB200] to-[#FF8A00]" },
-                { number: "24/7", label: "Support", color: "from-orange-500 to-orange-600" },
-              ].map((stat, index) => (
-                <div
-                  key={index}
-                  className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#FFEBD0] hover:shadow-xl transition-all duration-500 hover:-translate-y-2 animate-fade-in-up"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div
-                    className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-2`}
-                  >
-                    {stat.number}
-                  </div>
-                  <div className="text-gray-600 text-sm font-medium">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Why choose */}
-          <div className="mb-20 bg-transparent">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                  Why Choose Our Platform
-                </h2>
-                <div className="w-24 h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full mx-auto" />
-              </div>
-
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {features.map((feature, index) => (
+          {/* ===== BELOW THE FOLD: STATS & WHY CHOOSE ===== */}
+          <section>
+            {/* Stats */}
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[
+                  { number: "10K+", label: "Students", color: "from-[#FFCD2C] to-[#E0AC00]" },
+                  { number: "99.8%", label: "Uptime", color: "from-green-500 to-green-600" },
+                  { number: "500+", label: "Exams", color: "from-[#FFB200] to-[#FF8A00]" },
+                  { number: "24/7", label: "Support", color: "from-orange-500 to-orange-600" },
+                ].map((stat, index) => (
                   <div
                     key={index}
-                    className={`relative bg-white rounded-2xl p-6 shadow-lg border border-[#FFEBD0] transition-all duration-500 transform hover:-translate-y-2 cursor-pointer ${
-                      activeFeature === index
-                        ? "ring-2 ring-[#FFCD2C] shadow-xl"
-                        : "hover:shadow-xl"
-                    }`}
-                    onMouseEnter={() => setActiveFeature(index)}
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#FFEBD0] hover:shadow-xl transition-all duration-500 hover:-translate-y-2 animate-fade-in-up"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div
-                      className={`w-14 h-14 rounded-xl mb-4 flex items-center justify-center text-2xl transition-all duration-500 ${
-                        activeFeature === index
-                          ? "bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] scale-110"
-                          : "bg-gradient-to-br from-gray-100 to-gray-200"
-                      }`}
+                      className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-2`}
                     >
-                      <span
-                        className={
-                          activeFeature === index ? "text-gray-900" : "text-gray-700"
-                        }
-                      >
-                        {feature.icon}
-                      </span>
+                      {stat.number}
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {feature.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      {feature.desc}
-                    </p>
-
-                    <div
-                      className={`mt-4 h-0.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full transition-all duration-500 ${
-                        activeFeature === index ? "w-full" : "w-8"
-                      }`}
-                    />
+                    <div className="text-gray-600 text-sm font-medium">{stat.label}</div>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+
+            {/* Why choose */}
+            <div className="mb-20 bg-transparent" id="why-choose">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-bold text-gray-900">
+                    Why Choose Our Platform
+                  </h2>
+                  <div className="w-24 h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full mx-auto mt-4" />
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {features.map((feature, index) => (
+                    <div
+                      key={index}
+                      className={`relative bg-white rounded-2xl p-6 shadow-lg border border-[#FFEBD0] transition-all duration-500 transform hover:-translate-y-2 cursor-pointer ${
+                        activeFeature === index
+                          ? "ring-2 ring-[#FFCD2C] shadow-xl"
+                          : "hover:shadow-xl"
+                      }`}
+                      onMouseEnter={() => setActiveFeature(index)}
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <div
+                        className={`w-14 h-14 rounded-xl mb-4 flex items-center justify-center text-2xl transition-all duration-500 ${
+                          activeFeature === index
+                            ? "bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] scale-110"
+                            : "bg-gradient-to-br from-gray-100 to-gray-200"
+                        }`}
+                      >
+                        <span
+                          className={
+                            activeFeature === index ? "text-gray-900" : "text-gray-700"
+                          }
+                        >
+                          {feature.icon}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {feature.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        {feature.desc}
+                      </p>
+
+                      <div
+                        className={`mt-4 h-0.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full transition-all duration-500 ${
+                          activeFeature === index ? "w-full" : "w-8"
+                        }`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
         </main>
 
-        {/* Footer */}
+        {/* Footer same as before */}
         <footer className="relative border-t border-[#FFE6A3] bg-white/80 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
