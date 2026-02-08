@@ -45,30 +45,23 @@ export default function Home() {
   const submitLogin = async (e) => {
     e.preventDefault();
     if (!loginForm.email || !loginForm.password) return;
-
     setLoading(true);
     setMsg("");
 
     try {
       const res = await loginUser(loginForm);
-
       if (!res || !res.success) {
         setMsg(res?.message || "Login failed");
         setLoading(false);
         return;
       }
-
       const { user, token } = res;
-
       localStorage.setItem("token", token);
       localStorage.setItem("userId", user.id);
       localStorage.setItem("isPaid", user.isPaid);
 
-      if (user.isPaid) {
-        navigate("/student");
-      } else {
-        navigate("/payment");
-      }
+      if (user.isPaid) navigate("/student");
+      else navigate("/payment");
     } catch {
       setMsg("Something went wrong. Try again.");
     } finally {
@@ -79,23 +72,19 @@ export default function Home() {
   const submitRegister = async (e) => {
     e.preventDefault();
     if (!regForm.name || !regForm.email || !regForm.password) return;
-
     setLoading(true);
     setMsg("");
 
     try {
       const res = await registerUser(regForm);
-
       setMsg(res.message || "");
 
       if (res.success) {
         const { data } = res;
-
         if (data && data.id) {
           localStorage.setItem("userId", data.id);
           localStorage.setItem("isPaid", false);
         }
-
         navigate("/payment");
       }
     } catch {
@@ -107,21 +96,18 @@ export default function Home() {
 
   const handleLearnMore = () => {
     const el = document.getElementById("why-choose");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    }
+    if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden">
-      {/* Animated Background Elements */}
+      {/* Animated bg + particles same as before */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-24 left-10 w-72 h-72 bg-[#FFF3C4] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob" />
         <div className="absolute top-40 right-20 w-72 h-72 bg-[#FFE6A3] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000" />
         <div className="absolute -bottom-8 left-40 w-72 h-72 bg-[#FFEBD0] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000" />
       </div>
 
-      {/* Floating Particles */}
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(20)].map((_, i) => (
           <div
@@ -141,7 +127,7 @@ export default function Home() {
         {/* Navbar */}
         <Navbar onStudentLoginClick={() => openCard("login")} />
 
-        {/* ===== ABOVE THE FOLD: HERO + AUTH CARD ONLY ===== */}
+        {/* HERO + AUTH CARD (first screen) */}
         <main className="flex-1">
           <section
             className={`
@@ -154,10 +140,9 @@ export default function Home() {
                   : "lg:grid-cols-1 place-items-center"
               }
             `}
-            // height ~ full screen minus navbar so stats niche chalayen
             style={{ minHeight: "calc(100vh - 70px)" }}
           >
-            {/* LEFT text */}
+            {/* LEFT hero text */}
             <div className="transition-all duration-500 w-full justify-self-center text-center">
               <div className="mb-4 overflow-hidden">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 leading-tight">
@@ -206,7 +191,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* RIGHT: Login/Register card */}
+            {/* RIGHT auth card (same) */}
             <div
               className={`
                 w-full lg:w-[360px]
@@ -220,6 +205,7 @@ export default function Home() {
             >
               {loginOpen && (
                 <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-[#FFE6A3] p-5 sm:p-6 animate-fade-in-up">
+                  {/* Tabs + close */}
                   <div className="flex items-center mb-3">
                     <div className="flex flex-1 bg-[#FFF7DA] rounded-full p-1 text-[11px] font-medium">
                       <button
@@ -413,11 +399,11 @@ export default function Home() {
             </div>
           </section>
 
-          {/* ===== BELOW THE FOLD: STATS & WHY CHOOSE ===== */}
-          <section>
-            {/* Stats */}
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {/* ===== BELOW THE FOLD: COMPACT STATS + FEATURES ===== */}
+          <section className="pb-12">
+            {/* Compact stats cards */}
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { number: "10K+", label: "Students", color: "from-[#FFCD2C] to-[#E0AC00]" },
                   { number: "99.8%", label: "Uptime", color: "from-green-500 to-green-600" },
@@ -426,46 +412,44 @@ export default function Home() {
                 ].map((stat, index) => (
                   <div
                     key={index}
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#FFEBD0] hover:shadow-xl transition-all duration-500 hover:-translate-y-2 animate-fade-in-up"
-                    style={{ animationDelay: `${index * 0.1}s` }}
+                    className="bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-md border border-[#FFEBD0] hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                   >
                     <div
-                      className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-2`}
+                      className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent mb-1`}
                     >
                       {stat.number}
                     </div>
-                    <div className="text-gray-600 text-sm font-medium">{stat.label}</div>
+                    <div className="text-gray-600 text-xs sm:text-sm font-medium">
+                      {stat.label}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Why choose */}
-            <div className="mb-20 bg-transparent" id="why-choose">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-12">
-                  <h2 className="text-3xl font-bold text-gray-900">
+            {/* Compact feature cards */}
+            <div className="bg-transparent" id="why-choose">
+              <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     Why Choose Our Platform
                   </h2>
-                  <div className="w-24 h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full mx-auto mt-4" />
+                  <div className="w-20 h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full mx-auto mt-3" />
                 </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {features.map((feature, index) => (
                     <div
                       key={index}
-                      className={`relative bg-white rounded-2xl p-6 shadow-lg border border-[#FFEBD0] transition-all duration-500 transform hover:-translate-y-2 cursor-pointer ${
-                        activeFeature === index
-                          ? "ring-2 ring-[#FFCD2C] shadow-xl"
-                          : "hover:shadow-xl"
+                      className={`relative bg-white/90 rounded-xl p-4 shadow-md border border-[#FFEBD0] transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer ${
+                        activeFeature === index ? "ring-2 ring-[#FFCD2C]" : ""
                       }`}
                       onMouseEnter={() => setActiveFeature(index)}
-                      style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       <div
-                        className={`w-14 h-14 rounded-xl mb-4 flex items-center justify-center text-2xl transition-all duration-500 ${
+                        className={`w-10 h-10 rounded-lg mb-3 flex items-center justify-center text-xl transition-all duration-300 ${
                           activeFeature === index
-                            ? "bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] scale-110"
+                            ? "bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] scale-105"
                             : "bg-gradient-to-br from-gray-100 to-gray-200"
                         }`}
                       >
@@ -477,18 +461,12 @@ export default function Home() {
                           {feature.icon}
                         </span>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1.5">
                         {feature.title}
                       </h3>
-                      <p className="text-gray-600 text-sm leading-relaxed">
+                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
                         {feature.desc}
                       </p>
-
-                      <div
-                        className={`mt-4 h-0.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full transition-all duration-500 ${
-                          activeFeature === index ? "w-full" : "w-8"
-                        }`}
-                      />
                     </div>
                   ))}
                 </div>
@@ -496,46 +474,7 @@ export default function Home() {
             </div>
           </section>
         </main>
-
-        {/* Footer same as before */}
-        <footer className="relative border-t border-[#FFE6A3] bg-white/80 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-gray-900 font-bold">TE</span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">TestEdu Platform</h3>
-                  <p className="text-gray-600 text-sm">
-                    Professional Examination System
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6">
-                <button className="text-gray-600 hover:text-gray-900 text-sm transition-colors duration-300">
-                  Privacy Policy
-                </button>
-                <button className="text-gray-600 hover:text-gray-900 text-sm transition-colors duration-300">
-                  Terms of Service
-                </button>
-                <button className="text-gray-600 hover:text-gray-900 text-sm transition-colors duration-300">
-                  Contact Support
-                </button>
-              </div>
-
-              <div className="text-center md:text-right">
-                <p className="text-gray-600 text-sm">
-                  © 2024 TestEdu. All rights reserved.
-                </p>
-                <p className="text-gray-500 text-xs mt-1">
-                  v2.1.0 • Enterprise Edition
-                </p>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {/* Footer completely removed (alag file se banoge) */}
       </div>
     </div>
   );
