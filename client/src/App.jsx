@@ -21,7 +21,7 @@ import ViewStudents from "./pages/admin/ViewStudents";
 import SendNotification from "./pages/admin/SendNotification";
 
 // Layout
-import AdminLayout from "./components/adminlayout/sidebar";
+import AdminLayout from "./components/adminlayout/AdminLayout";
 
 // 🔐 Protected wrapper
 import ProtectedRoute from "./protected/ProtectedRoute";

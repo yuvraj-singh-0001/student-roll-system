@@ -184,54 +184,70 @@ export default function AdminDashboard() {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] px-4 sm:px-6 lg:px-8 py-6">
+      {/* Top bar */}
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Admin Dashboard
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Monitor exams, students and system health in real-time.
+          </p>
+        </div>
+        <div className="bg-white/80 backdrop-blur-sm border border-[#FFE6A3] rounded-xl px-4 py-2 flex items-center gap-2 shadow-sm">
+          <span className="text-xs text-gray-500">Current Time</span>
+          <span className="text-sm font-semibold text-gray-900">
+            {time.toLocaleTimeString()}
+          </span>
+        </div>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="group relative bg-white rounded-xl shadow-lg border border-gray-100 p-4 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 animate-fade-in-up"
-            style={{ animationDelay: `${index * 0.1}s` }}
+            className="group relative bg-white/90 rounded-xl shadow-md border border-[#FFEBD0] p-4 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 animate-fade-in-up"
+            style={{ animationDelay: `${index * 0.08}s` }}
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2.5">
               <div
-                className={`w-10 h-10 rounded-lg ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
               >
                 <span className="text-lg text-white">{stat.icon}</span>
               </div>
               <span
-                className={`px-2 py-1 text-xs font-medium rounded-full ${
+                className={`px-2 py-1 text-[11px] font-medium rounded-full ${
                   stat.label === "Active Sessions"
-                    ? "bg-red-100 text-red-700 animate-pulse"
-                    : "bg-green-100 text-green-700"
+                    ? "bg-red-50 text-red-600 animate-pulse"
+                    : "bg-emerald-50 text-emerald-700"
                 }`}
               >
                 {stat.change}
               </span>
             </div>
-            <div className="text-xl font-bold text-gray-900 mb-1">
+            <div className="text-xl font-bold text-gray-900 mb-0.5">
               {stat.value}
             </div>
-            <div className="text-sm text-gray-500">{stat.label}</div>
+            <div className="text-xs text-gray-500">{stat.label}</div>
             <div
-              className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.color} rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+              className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${stat.color} rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
             ></div>
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
-            <span className="text-sm text-gray-500">
-              {quickLinks.length} actions available
-            </span>
-          </div>
+      <div className="bg-white/90 rounded-2xl shadow-lg border border-[#FFEBD0] overflow-hidden mb-8">
+        <div className="px-5 py-4 border-b border-[#FFE6A3] flex items-center justify-between bg-[#FFF9E6]/60">
+          <h2 className="text-lg font-bold text-gray-900">Quick Actions</h2>
+          <span className="text-xs sm:text-sm text-gray-500">
+            {quickLinks.length} actions available
+          </span>
         </div>
 
-        <div className="p-6">
+        <div className="p-5">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {quickLinks.map((link, index) => (
               <button
@@ -239,27 +255,27 @@ export default function AdminDashboard() {
                 onClick={() => navigate(link.path)}
                 onMouseEnter={() => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
-                className={`group relative p-5 bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 text-left transition-all duration-300 hover:border-transparent hover:shadow-xl hover:-translate-y-1 ${
-                  activeIndex === index ? "ring-2 ring-blue-500" : ""
+                className={`group relative p-4 bg-gradient-to-br from-white to-[#FFFDF2] rounded-xl border border-[#FFEBD0] text-left transition-all duration-300 hover:border-transparent hover:shadow-xl hover:-translate-y-1 ${
+                  activeIndex === index ? "ring-2 ring-[#FFCD2C]" : ""
                 }`}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3">
                   <div
-                    className={`w-12 h-12 rounded-xl ${link.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                    className={`w-11 h-11 rounded-xl ${link.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
                   >
-                    <span className="text-xl text-white">{link.icon}</span>
+                    <span className="text-lg text-white">{link.icon}</span>
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-0.5">
                       {link.label}
                     </h3>
-                    <p className="text-sm text-gray-500">{link.desc}</p>
+                    <p className="text-xs text-gray-500">{link.desc}</p>
                   </div>
-                  <span className="text-gray-400 group-hover:text-gray-700 transform group-hover:translate-x-2 transition-all duration-300">
+                  <span className="text-gray-400 group-hover:text-gray-700 transform group-hover:translate-x-1 transition-all duration-300">
                     →
                   </span>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300"></div>
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#FFCD2C]/5 to-[#E0AC00]/5 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300"></div>
               </button>
             ))}
           </div>
@@ -270,8 +286,8 @@ export default function AdminDashboard() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Left - Recent Activities */}
         <div className="lg:w-2/3">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-white/90 rounded-2xl shadow-lg border border-[#FFEBD0] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#FFE6A3] bg-[#FFF9E6]/60">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">
@@ -281,7 +297,7 @@ export default function AdminDashboard() {
                     Real-time student activities monitoring
                   </p>
                 </div>
-                <button className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
+                <button className="px-3 py-1.5 text-xs font-medium text-gray-900 bg-[#FFEBB5] hover:bg-[#FFDF85] rounded-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
                   View All →
                 </button>
               </div>
@@ -289,32 +305,32 @@ export default function AdminDashboard() {
 
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <thead className="bg-[#FFF9E6]/60">
+                  <tr className="border-b border-[#FFE6A3]">
+                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       <div className="flex items-center gap-1">
                         <span>USER</span>
                         <span className="text-gray-400 text-xs">↓</span>
                       </div>
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       ACTIVITY
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       EXAM/DETAILS
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       STATUS
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       SCORE
                     </th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       TIME
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#FFF1CC]">
                   {recentActivities.slice(0, 3).map((activity, index) => (
                     <tr
                       key={activity.id}
@@ -322,12 +338,12 @@ export default function AdminDashboard() {
                       onMouseLeave={() => setHoveredRow(null)}
                       className={`group transition-all duration-300 animate-fade-in ${
                         hoveredRow === activity.id
-                          ? "bg-gradient-to-r from-blue-50/50 to-transparent transform scale-[1.002]"
-                          : "hover:bg-gray-50"
+                          ? "bg-gradient-to-r from-[#FFF9E6] to-transparent transform scale-[1.002]"
+                          : "hover:bg-[#FFFDF2]"
                       }`}
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
-                      <td className="py-2 px-4">
+                      <td className="py-2.5 px-4">
                         <div className="flex items-center gap-2">
                           <div
                             className={`w-7 h-7 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-sm transition-transform duration-300 ${
@@ -343,7 +359,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-2 px-4">
+                      <td className="py-2.5 px-4">
                         <div className="flex items-center gap-1.5">
                           <span
                             className={`w-5 h-5 rounded flex items-center justify-center text-xs ${getStatusColor(
@@ -357,12 +373,12 @@ export default function AdminDashboard() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-2 px-4">
+                      <td className="py-2.5 px-4">
                         <div className="text-sm font-medium text-gray-900">
                           {activity.exam}
                         </div>
                       </td>
-                      <td className="py-2 px-4">
+                      <td className="py-2.5 px-4">
                         <span
                           className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(
                             activity.status
@@ -372,7 +388,7 @@ export default function AdminDashboard() {
                             activity.status.slice(1)}
                         </span>
                       </td>
-                      <td className="py-2 px-4">
+                      <td className="py-2.5 px-4">
                         <div
                           className={`text-sm font-medium ${
                             activity.score !== "-"
@@ -389,7 +405,7 @@ export default function AdminDashboard() {
                           {activity.score}
                         </div>
                       </td>
-                      <td className="py-2 px-4">
+                      <td className="py-2.5 px-4">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-gray-500">
                             {activity.time}
@@ -405,17 +421,16 @@ export default function AdminDashboard() {
               </table>
             </div>
 
-            <div className="border-t border-gray-100 p-3 bg-gray-50/50">
+            <div className="border-t border-[#FFE6A3] px-4 py-2.5 bg-[#FFF9E6]/70">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">
-                  Showing {recentActivities.slice(0, 3).length} of 1248
-                  activities
+                  Showing {recentActivities.slice(0, 3).length} of 1248 activities
                 </span>
                 <div className="flex items-center gap-1">
                   <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-all duration-300 hover:-translate-y-0.5">
                     ←
                   </button>
-                  <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-gray-700 font-medium">
+                  <span className="px-2 py-0.5 bg-white border border-[#FFE6A3] rounded text-gray-700 font-medium">
                     1
                   </span>
                   <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-all duration-300 hover:-translate-y-0.5">
@@ -428,9 +443,9 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right - System Status + Emergency Actions */}
-        <div className="lg:w-1/3 space-y-8">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-6">
+        <div className="lg:w-1/3 space-y-6">
+          <div className="bg-white/90 rounded-2xl shadow-lg border border-[#FFEBD0] p-5">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
               System Status
             </h3>
             <div className="space-y-4">
@@ -439,7 +454,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-2">
                   <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
+                      className="h-full bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full"
                       style={{ width: "65%" }}
                     ></div>
                   </div>
@@ -452,7 +467,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Database</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
                   <span className="text-sm font-medium text-green-600">
                     Connected
                   </span>
@@ -475,21 +490,24 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl border border-red-100 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+          <div className="bg-gradient-to-br from-[#FFE0D9] to-[#FFF1CC] rounded-2xl border border-[#FFC8B8] p-5">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">
               Emergency Actions
             </h3>
+            <p className="text-xs text-gray-600 mb-3">
+              Use these actions carefully. They affect live exams and students.
+            </p>
             <div className="space-y-3">
-              <button className="w-full p-3 bg-white border border-red-200 text-red-600 font-medium rounded-lg hover:bg-red-50 hover:border-red-300 transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-md">
+              <button className="w-full p-3 bg-white/90 border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:border-red-300 transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-md">
                 ⚠️ Emergency Lockdown
               </button>
-              <button className="w-full p-3 bg-white border border-orange-200 text-orange-600 font-medium rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-md">
+              <button className="w-full p-3 bg-white/90 border border-orange-200 text-orange-600 text-sm font-medium rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-md">
                 📧 Broadcast Alert
               </button>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
