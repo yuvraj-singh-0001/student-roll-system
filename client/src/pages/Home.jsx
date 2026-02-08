@@ -106,12 +106,12 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
-        <div className="absolute top-40 right-20 w-72 h-72 bg-purple-100 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-8 left-40 w-72 h-72 bg-pink-100 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-[#FFF3C4] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob" />
+        <div className="absolute top-40 right-20 w-72 h-72 bg-[#FFE6A3] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000" />
+        <div className="absolute -bottom-8 left-40 w-72 h-72 bg-[#FFEBD0] rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000" />
       </div>
 
       {/* Floating Particles */}
@@ -119,7 +119,7 @@ export default function Home() {
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-blue-200 rounded-full animate-float"
+            className="absolute w-1 h-1 bg-[#FFCD2C]/40 rounded-full animate-float"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -135,8 +135,8 @@ export default function Home() {
         <header className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg">TE</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-gray-900 font-bold text-lg">TE</span>
               </div>
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white" />
             </div>
@@ -144,7 +144,7 @@ export default function Home() {
               <h1 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
                 TestEdu
               </h1>
-              <div className="w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mt-1" />
+              <div className="w-16 h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full mt-1" />
             </div>
           </div>
 
@@ -154,12 +154,12 @@ export default function Home() {
               className="relative px-5 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-all duration-300 group"
             >
               <span className="relative z-10">Sign In</span>
-              <span className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="absolute inset-0 bg-gradient-to-r from-[#FFF3C4] to-[#FFE6A3] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </button>
 
             <button
               onClick={() => navigate("/admin")}
-              className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-gray-900 hover:to-black transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg hover:from-black hover:to-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               Admin
             </button>
@@ -193,7 +193,7 @@ export default function Home() {
             >
               <div className="mb-6 overflow-hidden">
                 <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-4">
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 animate-gradient">
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#FFCD2C] via-[#E0AC00] to-[#FFB200] animate-gradient">
                     Professional
                   </span>
                   <span className="block text-transparent bg-clip-text bg-gradient-to-r from-gray-800 via-gray-900 to-black mt-2">
@@ -215,7 +215,7 @@ export default function Home() {
               >
                 <button
                   onClick={() => openCard("login")}
-                  className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-1 hover:scale-105"
+                  className="group relative px-8 py-4 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-semibold rounded-xl shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-1 hover:scale-105"
                 >
                   <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-500" />
                   <span className="relative flex items-center justify-center gap-3">
@@ -229,9 +229,9 @@ export default function Home() {
 
                 <button
                   onClick={() => navigate("/admin")}
-                  className="group relative px-8 py-4 bg-white text-gray-800 font-semibold rounded-xl border-2 border-gray-200 shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1"
+                  className="group relative px-8 py-4 bg-white text-gray-900 font-semibold rounded-xl border-2 border-[#FFCD2C]/70 shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1 hover:bg-[#FFF3C4]"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-50 to-white opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FFFDF2] to-[#FFF3C4] opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-500" />
                   <span className="relative flex items-center justify-center gap-3">
                     <span className="text-lg">⚙️</span>
                     Admin Dashboard
@@ -256,10 +256,10 @@ export default function Home() {
               `}
             >
               {loginOpen && (
-                <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-100 p-6 sm:p-8 animate-fade-in-up">
+                <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-[#FFE6A3] p-6 sm:p-8 animate-fade-in-up">
                   {/* Tabs + close */}
                   <div className="flex items-center mb-4">
-                    <div className="flex flex-1 bg-gray-100 rounded-full p-1 text-xs font-medium">
+                    <div className="flex flex-1 bg-[#FFF7DA] rounded-full p-1 text-xs font-medium">
                       <button
                         onClick={() => {
                           setAuthMode("login");
@@ -267,7 +267,7 @@ export default function Home() {
                         }}
                         className={`flex-1 px-3 py-1.5 rounded-full transition-all ${
                           authMode === "login"
-                            ? "bg-white shadow text-blue-600"
+                            ? "bg-white shadow text-[#E0AC00]"
                             : "text-gray-500 hover:text-gray-700"
                         }`}
                       >
@@ -280,7 +280,7 @@ export default function Home() {
                         }}
                         className={`flex-1 px-3 py-1.5 rounded-full transition-all ${
                           authMode === "register"
-                            ? "bg-white shadow text-blue-600"
+                            ? "bg-white shadow text-[#E0AC00]"
                             : "text-gray-500 hover:text-gray-700"
                         }`}
                       >
@@ -332,7 +332,7 @@ export default function Home() {
                             onChange={(e) =>
                               setLoginForm({ ...loginForm, email: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="student@example.com"
                             required
                           />
@@ -347,7 +347,7 @@ export default function Home() {
                             onChange={(e) =>
                               setLoginForm({ ...loginForm, password: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="••••••••"
                             required
                           />
@@ -357,7 +357,7 @@ export default function Home() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white ${
+                        className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 ${
                           loading ? "opacity-70 cursor-not-allowed" : ""
                         }`}
                       >
@@ -387,7 +387,7 @@ export default function Home() {
                             onChange={(e) =>
                               setRegForm({ ...regForm, name: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="John Doe"
                             required
                           />
@@ -402,7 +402,7 @@ export default function Home() {
                             onChange={(e) =>
                               setRegForm({ ...regForm, email: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="student@example.com"
                             required
                           />
@@ -417,7 +417,7 @@ export default function Home() {
                             onChange={(e) =>
                               setRegForm({ ...regForm, password: e.target.value })
                             }
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C]"
                             placeholder="••••••••"
                             required
                           />
@@ -427,7 +427,7 @@ export default function Home() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white ${
+                        className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 ${
                           loading ? "opacity-70 cursor-not-allowed" : ""
                         }`}
                       >
@@ -457,14 +457,14 @@ export default function Home() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
-                { number: "10K+", label: "Students", color: "from-blue-500 to-blue-600" },
+                { number: "10K+", label: "Students", color: "from-[#FFCD2C] to-[#E0AC00]" },
                 { number: "99.8%", label: "Uptime", color: "from-green-500 to-green-600" },
-                { number: "500+", label: "Exams", color: "from-purple-500 to-purple-600" },
+                { number: "500+", label: "Exams", color: "from-[#FFB200] to-[#FF8A00]" },
                 { number: "24/7", label: "Support", color: "from-orange-500 to-orange-600" },
               ].map((stat, index) => (
                 <div
                   key={index}
-                  className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-500 hover:-translate-y-2 animate-fade-in-up"
+                  className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#FFEBD0] hover:shadow-xl transition-all duration-500 hover:-translate-y-2 animate-fade-in-up"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div
@@ -485,16 +485,16 @@ export default function Home() {
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">
                   Why Choose Our Platform
                 </h2>
-                <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto" />
+                <div className="w-24 h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full mx-auto" />
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {features.map((feature, index) => (
                   <div
                     key={index}
-                    className={`relative bg-white rounded-2xl p-6 shadow-lg border border-gray-100 transition-all duration-500 transform hover:-translate-y-2 cursor-pointer ${
+                    className={`relative bg-white rounded-2xl p-6 shadow-lg border border-[#FFEBD0] transition-all duration-500 transform hover:-translate-y-2 cursor-pointer ${
                       activeFeature === index
-                        ? "ring-2 ring-blue-500 shadow-xl"
+                        ? "ring-2 ring-[#FFCD2C] shadow-xl"
                         : "hover:shadow-xl"
                     }`}
                     onMouseEnter={() => setActiveFeature(index)}
@@ -503,13 +503,13 @@ export default function Home() {
                     <div
                       className={`w-14 h-14 rounded-xl mb-4 flex items-center justify-center text-2xl transition-all duration-500 ${
                         activeFeature === index
-                          ? "bg-gradient-to-br from-blue-500 to-indigo-600 scale-110"
+                          ? "bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] scale-110"
                           : "bg-gradient-to-br from-gray-100 to-gray-200"
                       }`}
                     >
                       <span
                         className={
-                          activeFeature === index ? "text-white" : "text-gray-700"
+                          activeFeature === index ? "text-gray-900" : "text-gray-700"
                         }
                       >
                         {feature.icon}
@@ -523,8 +523,8 @@ export default function Home() {
                     </p>
 
                     <div
-                      className={`mt-4 w-8 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500 ${
-                        activeFeature === index ? "w-full" : ""
+                      className={`mt-4 h-0.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full transition-all duration-500 ${
+                        activeFeature === index ? "w-full" : "w-8"
                       }`}
                     />
                   </div>
@@ -535,12 +535,12 @@ export default function Home() {
         </main>
 
         {/* Footer */}
-        <footer className="relative border-t border-gray-200 bg-white/80 backdrop-blur-sm">
+        <footer className="relative border-t border-[#FFE6A3] bg-white/80 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold">TE</span>
+                <div className="w-10 h-10 bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-gray-900 font-bold">TE</span>
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900">TestEdu Platform</h3>
