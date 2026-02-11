@@ -1,6 +1,8 @@
-const Student = require("../models/Student");
+﻿const Student = require("../models/Student");
 const { sendMail } = require("../../utils/email");
 const { v4: uuidv4 } = require("uuid");
+const serverBaseUrl = (process.env.SERVER_BASE_URL || `http://localhost:${process.env.PORT || 5000}`)
+  .replace(/\/+$/, "");
 
 // Function to generate roll number
 function generateRollNumber(course, index) {
@@ -10,7 +12,7 @@ function generateRollNumber(course, index) {
 // Main function to send notifications
 const sendNotification = async (req, res) => {
   try {
-    console.log("📧 Starting notification send...");
+    console.log("ðŸ“§ Starting notification send...");
     
     let students = await Student.find();
     console.log(`Found ${students.length} students`);
@@ -31,7 +33,7 @@ const sendNotification = async (req, res) => {
         if (!student.rollNumber) {
           student.rollNumber = generateRollNumber(student.course || "General", rollNumberCounter);
           await student.save();
-          console.log(`✅ Generated roll number for ${student.name}: ${student.rollNumber}`);
+          console.log(`âœ… Generated roll number for ${student.name}: ${student.rollNumber}`);
           rollNumberCounter++;
         }
 
@@ -84,7 +86,7 @@ const sendNotification = async (req, res) => {
               
               <div class="footer">
                 <p>SP Coaching Classes</p>
-                <img src="http://localhost:5000/api/student/track/${trackingId}" alt="" width="1" height="1" style="display:none;" />
+                <img src="${serverBaseUrl}/api/student/track/${trackingId}" alt="" width="1" height="1" style="display:none;" />
               </div>
             </div>
           </body>
@@ -93,28 +95,28 @@ const sendNotification = async (req, res) => {
 
         await sendMail(
           student.email,
-          "🎓 Your Roll Number - Important Information",
+          "ðŸŽ“ Your Roll Number - Important Information",
           html
         );
         
         await student.save();
         emailsSent++;
-        console.log(`✅ Email sent to ${student.email} (Roll: ${student.rollNumber}, Tracking ID: ${trackingId})`);
+        console.log(`âœ… Email sent to ${student.email} (Roll: ${student.rollNumber}, Tracking ID: ${trackingId})`);
       } catch (emailError) {
-        console.error(`❌ Failed to send to ${student.email}:`, emailError.message);
+        console.error(`âŒ Failed to send to ${student.email}:`, emailError.message);
         student.emailStatus = "bounced";
         await student.save();
       }
     }
 // Final response
-    console.log(`📊 Total emails sent: ${emailsSent}/${students.length}`);
+    console.log(`ðŸ“Š Total emails sent: ${emailsSent}/${students.length}`);
     res.json({
       success: true,
-      message: `✅ Notifications sent successfully to ${emailsSent} students`,
+      message: `âœ… Notifications sent successfully to ${emailsSent} students`,
     });
 
   } catch (error) {
-    console.error("❌ NOTIFICATION ERROR:", error.message);
+    console.error("âŒ NOTIFICATION ERROR:", error.message);
     res.status(500).json({ 
       success: false,
       message: "Server error: " + error.message 
@@ -123,3 +125,5 @@ const sendNotification = async (req, res) => {
 };
 
 module.exports = sendNotification;
+
+

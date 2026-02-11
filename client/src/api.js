@@ -1,13 +1,15 @@
-import axios from "axios";
+﻿import axios from "axios";
 
 /* ================= AXIOS INSTANCE ================= */
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api").replace(/\/+$/, "");
+
 const API = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // 🔥 VERY IMPORTANT (cookie ke liye)
+  withCredentials: true, // ðŸ”¥ VERY IMPORTANT (cookie ke liye)
 });
 
 /* ===================================================
@@ -82,4 +84,8 @@ export const analysisApi = {
     API.get(`/analysis/student-details/${studentId}`),
 };
 
+export { API_BASE_URL };
+
 export default API;
+
+

@@ -1,10 +1,10 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const connectDB = require("./src/api/config/db"); // tumhara DB file
-const routes = require("./src/routes/router"); // tumhara main router file
+const connectDB = require("./src/api/config/db");
+const routes = require("./src/routes/router");
 
 const app = express();
 
@@ -17,22 +17,29 @@ connectDB();
    MIDDLEWARES
 ====================== */
 
-// JSON body parser
 app.use(express.json());
-
-// Cookie parser (JWT ke liye)
 app.use(cookieParser());
 
-// CORS (cookie allow karne ke liye IMPORTANT)
+/* ===== CORS FIX FOR PRODUCTION ===== */
+
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: "http://localhost:5173", // apna frontend URL
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true
   })
 );
 
 /* ======================
-   ROUTES (unchanged)
+   ROUTES
 ====================== */
 
 app.use("/api", routes);
@@ -57,3 +64,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+

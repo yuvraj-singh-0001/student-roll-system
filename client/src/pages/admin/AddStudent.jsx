@@ -1,6 +1,6 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import API from "../../api";
 
 export default function AddStudent() {
   const navigate = useNavigate();
@@ -33,10 +33,10 @@ export default function AddStudent() {
 
     // API call to add student
     try {
-      const response = await axios.post("http://localhost:5000/api/student/add", formData);
+      const response = await API.post("/student/add", formData);
       
       if (response.data.success) {
-        setSuccess(`✓ Student added! Roll Number: ${response.data.data.rollNumber}`);
+        setSuccess(`âœ“ Student added! Roll Number: ${response.data.data.rollNumber}`);
         setFormData({ name: "", email: "", course: "" });
         
         setTimeout(() => {
@@ -86,7 +86,7 @@ export default function AddStudent() {
                         <p className="text-sm text-gray-500 mt-1">Enter student's name and email</p>
                         {formData.name && formData.email && (
                           <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-                            <span>✓ Completed</span>
+                            <span>âœ“ Completed</span>
                           </div>
                         )}
                       </div>
@@ -112,7 +112,7 @@ export default function AddStudent() {
                         } mt-1`}>Choose the academic course</p>
                         {formData.course && (
                           <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-                            <span>✓ Selected: {formData.course}</span>
+                            <span>âœ“ Selected: {formData.course}</span>
                           </div>
                         )}
                       </div>
@@ -138,7 +138,7 @@ export default function AddStudent() {
                         } mt-1`}>Submit and create account</p>
                         {loading && (
                           <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
-                            <span>⏳ Processing...</span>
+                            <span>â³ Processing...</span>
                           </div>
                         )}
                       </div>
@@ -274,7 +274,7 @@ export default function AddStudent() {
                         onClick={() => navigate("/admin")}
                         className="group flex-1 py-3.5 px-4 bg-gradient-to-br from-white to-gray-50 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 flex items-center justify-center gap-2"
                       >
-                        <span className="group-hover:-translate-x-1 transition-transform duration-300">←</span>
+                        <span className="group-hover:-translate-x-1 transition-transform duration-300">â†</span>
                         <span>Back to Dashboard</span>
                       </button>
 
@@ -292,7 +292,7 @@ export default function AddStudent() {
                         ) : (
                           <>
                             <span>Register Student</span>
-                            <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
+                            <span className="group-hover:translate-x-1 transition-transform duration-300">â†’</span>
                           </>
                         )}
                       </button>
@@ -310,3 +310,4 @@ export default function AddStudent() {
     </div>
   );
 }
+

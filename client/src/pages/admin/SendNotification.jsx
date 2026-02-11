@@ -1,5 +1,6 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../../api";
 
 export default function SendNotification() {
   const [loading, setLoading] = useState(false);
@@ -10,20 +11,16 @@ export default function SendNotification() {
     setLoading(true);
     setMessage("");
     try {
-      const response = await fetch("http://localhost:5000/api/notification/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await response.json();
+      const response = await API.post("/notification/send");
+      const data = response.data;
       if (data.success) {
-        setMessage("✅ " + data.message);
+        setMessage("âœ… " + data.message);
         setTimeout(() => navigate("/admin"), 2000);
       } else {
-        setMessage("❌ " + data.message);
+        setMessage("âŒ " + data.message);
       }
     } catch (error) {
-      setMessage("❌ Error: " + error.message);
+      setMessage("âŒ Error: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -46,7 +43,7 @@ export default function SendNotification() {
             {message && (
               <div
                 className={`mb-6 p-4 rounded-xl text-sm font-semibold text-center ${
-                  message.startsWith("✅")
+                  message.startsWith("âœ…")
                     ? "bg-green-50 text-green-800 border border-green-200"
                     : "bg-red-50 text-red-800 border border-red-200"
                 }`}
@@ -62,8 +59,8 @@ export default function SendNotification() {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin">⏳</span>
-                  Sending…
+                  <span className="animate-spin">â³</span>
+                  Sendingâ€¦
                 </span>
               ) : (
                 "Send now"
@@ -75,15 +72,15 @@ export default function SendNotification() {
               disabled={loading}
               className="mt-3 w-full py-3 px-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition disabled:opacity-60"
             >
-              ← Admin Panel
+              â† Admin Panel
             </button>
 
             <div className="mt-6 pt-4 border-t border-slate-200">
               <h3 className="font-semibold text-slate-800 text-sm mb-2">What will be sent</h3>
               <ul className="text-slate-600 text-sm space-y-1.5">
-                <li>✓ Roll number</li>
-                <li>✓ Course info</li>
-                <li>✓ Instructions</li>
+                <li>âœ“ Roll number</li>
+                <li>âœ“ Course info</li>
+                <li>âœ“ Instructions</li>
               </ul>
             </div>
           </div>
@@ -92,3 +89,6 @@ export default function SendNotification() {
     </div>
   );
 }
+
+
+
