@@ -6,7 +6,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Payment from "./pages/Payment";
 
-// Student
+// Student pages
 import StudentDashboard from "./pages/Student/StudentDashboard";
 import ExamRegister from "./pages/Student/ExamRegister";
 import Exam from "./pages/Student/Exam";
@@ -20,8 +20,9 @@ import AddStudent from "./pages/admin/AddStudent";
 import ViewStudents from "./pages/admin/ViewStudents";
 import SendNotification from "./pages/admin/SendNotification";
 
-// Layout
+// Layouts
 import AdminLayout from "./components/adminlayout/AdminLayout";
+import StudentLayout from "./components/Student-layout/StudentLayout";
 
 // 🔐 Protected wrapper
 import ProtectedRoute from "./protected/ProtectedRoute";
@@ -36,39 +37,21 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/payment" element={<Payment />} />
 
-        {/* 🔒 Student Protected */}
+        {/* 🔒 Student Protected + Layout */}
         <Route
           path="/student"
           element={
             <ProtectedRoute>
-              <StudentDashboard />
+              <StudentLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/student/register"
-          element={
-            <ProtectedRoute>
-              <ExamRegister />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/student/exam"
-          element={
-            <ProtectedRoute>
-              <Exam />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/student/result"
-          element={
-            <ProtectedRoute>
-              <ExamResult />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route index element={<StudentDashboard />} />
+          <Route path="exam" element={<Exam />} />
+          <Route path="register" element={<ExamRegister />} />
+          {/* ExamResult ko abhi direct use kar rahe ho (summary page) */}
+          <Route path="result" element={<ExamResult />} />
+        </Route>
 
         {/* Admin – sabhi routes AdminLayout ke andar */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -83,4 +66,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-  
