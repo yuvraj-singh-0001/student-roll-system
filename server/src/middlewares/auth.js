@@ -1,22 +1,20 @@
 const jwt = require("jsonwebtoken");
 
 const authMiddleware = (req, res, next) => {
-  const header = req.headers.authorization;
+  const token = req.cookies.token;
 
-  if (!header) {
+  if (!token) {
     return res.status(401).json({
       success: false,
-      message: "No token, login required"
+      message: "Login required"
     });
   }
 
-  const token = header.split(" ")[1];
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { userId, role }
+    req.user = decoded;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({
       success: false,
       message: "Invalid token"

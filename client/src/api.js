@@ -1,42 +1,66 @@
 import axios from "axios";
 
+/* ================= AXIOS INSTANCE ================= */
+
 const API = axios.create({
   baseURL: "http://localhost:5000/api",
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // 🔥 VERY IMPORTANT (cookie ke liye)
 });
 
-/* ================= AUTH ================= */
+/* ===================================================
+   AUTH (Form A based)
+=================================================== */
 
+// Form A Registration (name + mobile + class)
+export const registerFormA = async (body) => {
+  const res = await API.post("/auth/register", body);
+  // { success, message, student }
+  return res.data;
+};
+
+// Agar future me login add karna ho
 export const loginUser = async (body) => {
   const res = await API.post("/auth/login", body);
-  // { success, message, token, user: { id, name, email, isPaid } }
   return res.data;
 };
 
-export const registerUser = async (body) => {
-  const res = await API.post("/auth/register", body);
-  // { success, message, data: { id, name, email } }
+/* ===================================================
+   PAYMENT
+=================================================== */
+
+// Payment success (cookie se user identify hoga)
+export const makePayment = async (body) => {
+  const res = await API.post("/payment/success", body);
+  // { success, message }
   return res.data;
 };
 
-/* ================= PAYMENT ================= */
+/* ===================================================
+   ADMIN CHECK (Name / Mobile se search)
+=================================================== */
 
-export const fakePay = async (userId) => {
-  const res = await API.post("/payment/pay", { userId });
-  // { success, message, user }
+export const checkStudent = async (query) => {
+  const res = await API.get("/admin/check", {
+    params: query,
+  });
   return res.data;
 };
 
-/* ================= EXAM ================= */
+/* ===================================================
+   EXAM (Future use)
+=================================================== */
 
 export const examApi = {
   register: (body) => API.post("/exam/register", body),
   submit: (body) => API.post("/exam/submit", body),
 };
 
-/* ================= QUESTIONS ================= */
+/* ===================================================
+   QUESTIONS
+=================================================== */
 
 export const questionApi = {
   add: (body) => API.post("/question/add", body),
@@ -45,7 +69,9 @@ export const questionApi = {
   exam: () => API.get("/question/exam"),
 };
 
-/* ================= ANALYSIS ================= */
+/* ===================================================
+   ANALYSIS
+=================================================== */
 
 export const analysisApi = {
   students: () => API.get("/analysis/students"),

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const register = require("../../api/auth/register");
+const register = require("../../api/auth/Register");
 const login = require("../../api/auth/login");
 const authMiddleware = require("../../middlewares/auth");
 
