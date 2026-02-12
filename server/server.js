@@ -22,7 +22,10 @@ app.use(cookieParser());
 
 /* ===== CORS FIX FOR PRODUCTION ===== */
 
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+const allowedOrigins = (
+  process.env.CORS_ORIGIN ||
+  "http://localhost:5173,https://ttt-olympaid.vercel.app"
+)
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
