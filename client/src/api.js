@@ -2,28 +2,35 @@
 
 /* ================= AXIOS INSTANCE ================= */
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api").replace(/\/+$/, "");
+// Auto detect environment
+const isProduction = import.meta.env.PROD;
+
+// Development URL
+const DEV_URL = "http://localhost:5000/api";
+
+// Production URL (Render backend)
+const PROD_URL = "https://student-roll-system.onrender.com/api";
+
+// Final Base URL
+const API_BASE_URL = isProduction ? PROD_URL : DEV_URL;
 
 const API = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // ðŸ”¥ VERY IMPORTANT (cookie ke liye)
+  withCredentials: true, // cookies ke liye
 });
 
 /* ===================================================
-   AUTH (Form A based)
+   AUTH
 =================================================== */
 
-// Form A Registration (name + mobile + class)
 export const registerFormA = async (body) => {
   const res = await API.post("/auth/register", body);
-  // { success, message, student }
   return res.data;
 };
 
-// Agar future me login add karna ho
 export const loginUser = async (body) => {
   const res = await API.post("/auth/login", body);
   return res.data;
@@ -33,15 +40,13 @@ export const loginUser = async (body) => {
    PAYMENT
 =================================================== */
 
-// Payment success (cookie se user identify hoga)
 export const makePayment = async (body) => {
   const res = await API.post("/payment/success", body);
-  // { success, message }
   return res.data;
 };
 
 /* ===================================================
-   ADMIN CHECK (Name / Mobile se search)
+   ADMIN CHECK
 =================================================== */
 
 export const checkStudent = async (query) => {
@@ -52,7 +57,7 @@ export const checkStudent = async (query) => {
 };
 
 /* ===================================================
-   EXAM (Future use)
+   EXAM
 =================================================== */
 
 export const examApi = {
@@ -84,8 +89,4 @@ export const analysisApi = {
     API.get(`/analysis/student-details/${studentId}`),
 };
 
-export { API_BASE_URL };
-
 export default API;
-
-
