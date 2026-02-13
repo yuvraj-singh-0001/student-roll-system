@@ -60,6 +60,19 @@ body {
   50% { opacity: 0.85; }
 }
 
+@keyframes balloonFloat {
+  0% {
+    opacity: 0;
+    transform: translate(0, 80px) rotate(-2deg) scale(0.98);
+  }
+  15% { opacity: 1; }
+  50% { transform: translate(8px, -40px) rotate(2deg) scale(1); }
+  100% {
+    opacity: 0.95;
+    transform: translate(-6px, -220px) rotate(-2deg) scale(1.02);
+  }
+}
+
 .animate-fade-in-up {
   animation: fadeInUp 0.4s ease-out forwards;
 }
@@ -87,6 +100,45 @@ body {
 .delay-5 { animation-delay: 0.5s; }
 .delay-6 { animation-delay: 0.6s; }
 .delay-7 { animation-delay: 0.7s; }
+
+/* Balloon celebration */
+.balloon-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.balloon {
+  position: absolute;
+  width: 56px;
+  height: 72px;
+  border-radius: 50% 50% 45% 45%;
+  box-shadow: inset -8px -12px 18px rgba(0, 0, 0, 0.12);
+  animation: balloonFloat 7s ease-in-out infinite;
+}
+
+.balloon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 70px;
+  width: 2px;
+  height: 52px;
+  background: rgba(0, 0, 0, 0.12);
+  transform: translateX(-50%);
+}
+
+.balloon-1 { left: 40%; bottom: -14%; background: #f87171; animation-duration: 4.2s; }
+.balloon-2 { left: 46%; bottom: -16%; background: #fbbf24; animation-duration: 4.6s; animation-delay: 0.2s; }
+.balloon-3 { left: 52%; bottom: -15%; background: #60a5fa; animation-duration: 4.1s; animation-delay: 0.1s; }
+.balloon-4 { left: 58%; bottom: -17%; background: #34d399; animation-duration: 4.8s; animation-delay: 0.3s; }
+.balloon-5 { left: 62%; bottom: -16%; background: #a78bfa; animation-duration: 4.4s; animation-delay: 0.25s; }
+.balloon-6 { left: 48%; bottom: -18%; background: #fb7185; animation-duration: 4.5s; animation-delay: 0.35s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .balloon { animation: none; }
+}
 
 /* Student theme */
 .student-bg { background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 50%, #f5f3ff 100%); }

@@ -1,19 +1,67 @@
+// backend/models/ExamAttempt.js
 const mongoose = require("mongoose");
 
-const examAttemptSchema = new mongoose.Schema({
-  studentId: { type: String, required: true },
-  questionNumber: { type: Number, required: true },
-  selectedAnswer: { type: String, enum: ["A", "B", "C", "D"], default: null },
-  confidenceLevel: {
-    type: String,
-    enum: ["full", "middle", "low"],
-    default: null
+const answerSchema = new mongoose.Schema(
+  {
+    questionNumber: { type: Number, required: true },
+    questionText: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ["simple", "multiple", "confidence", "branch_parent", "branch_child"],
+      required: true,
+    },
+    // branch metadata (optional)
+    parentQuestion: { type: Number },
+    branchKey: { type: String, enum: ["A", "B"] },
+    options: [
+      {
+        key: String,
+        text: String,
+      },
+    ],
+
+    // student selection
+    selectedAnswer: { type: String, default: null }, // simple / confidence / branch
+    selectedAnswers: [{ type: String }], // multiple
+
+    // correct
+    correctAnswer: { type: String, default: null },
+    correctAnswers: [{ type: String }],
+
+    confidence: { type: String, enum: ["low", "mid", "high", null], default: null },
+
+    status: {
+      type: String,
+      enum: ["attempted", "skipped", "not_visited"],
+      default: "not_visited",
+    },
+
+    marks: { type: Number, default: 0 },
+    isCorrect: { type: Boolean, default: null },
+    marksReason: { type: String, default: "" },
   },
-  status: { type: String, required: true, enum: ["attempted", "skipped"] },
-  marks: { type: Number, default: 0 },
-  isCorrect: { type: Boolean, default: null }
-});
+  { _id: false }
+);
 
-examAttemptSchema.index({ studentId: 1, questionNumber: 1 }, { unique: true });
+const examAttemptSchema = new mongoose.Schema(
+  {
+    studentId: {
+      type: String, // roll number / student id string
+      required: false, // abhi optional rakh rahe, baad me required kar sakte ho
+      trim: true,
+    },
 
-module.exports = mongoose.model("ExamAttempt", examAttemptSchema);
+    examCode: { type: String, required: true },
+
+    totalMarks: { type: Number, required: true },
+
+    autoSubmitted: { type: Boolean, default: false },
+
+    // saare questions + unke attempts
+    answers: [answerSchema],
+  },
+  { timestamps: true }
+);
+
+const ExamAttempt = mongoose.model("ExamAttempt", examAttemptSchema);
+module.exports = ExamAttempt;

@@ -1,4 +1,5 @@
-﻿import axios from "axios";
+﻿// src/api/api.js
+import axios from "axios";
 
 /* ================= AXIOS INSTANCE ================= */
 
@@ -11,8 +12,11 @@ const DEV_URL = "http://localhost:5000/api";
 // Production URL (Render backend)
 const PROD_URL = "https://student-roll-system.onrender.com/api";
 
+// Allow override from env (Vercel / local)
+const ENV_URL = import.meta.env.VITE_API_BASE_URL;
 // Final Base URL
-const API_BASE_URL = isProduction ? PROD_URL : DEV_URL;
+const API_BASE_URL = (ENV_URL && String(ENV_URL).trim()) || (isProduction ? PROD_URL : DEV_URL);
+const ROOT_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
 const API = axios.create({
   baseURL: API_BASE_URL,
@@ -20,7 +24,16 @@ const API = axios.create({
     "Content-Type": "application/json",
   },
   withCredentials: true, // cookies ke liye
+  timeout: 30000,
 });
+
+export const warmUpBackend = async () => {
+  try {
+    await fetch(ROOT_URL, { method: "GET" });
+  } catch {
+    // ignore warmup errors
+  }
+};
 
 /* ===================================================
    AUTH
@@ -62,7 +75,8 @@ export const checkStudent = async (query) => {
 
 export const examApi = {
   register: (body) => API.post("/exam/register", body),
-  submit: (body) => API.post("/exam/submit", body),
+  submit: (body) => API.post("/exam/olympiad/submit", body),
+  list: () => API.get("/exam/list"),
 };
 
 /* ===================================================
@@ -70,10 +84,30 @@ export const examApi = {
 =================================================== */
 
 export const questionApi = {
+  // ek-ek question add (humara AdminQuestionBuilder isi ko use karega)
   add: (body) => API.post("/question/add", body),
+
+  // future ke liye bulk import agar tum excel ya json se karna chaho
   bulkAdd: (body) => API.post("/question/bulk-add", body),
+
+  // sab questions (admin listing ke liye)
   all: () => API.get("/question/all"),
-  exam: () => API.get("/question/exam"),
+
+  // exam dene wale student ke liye filtered questions
+  exam: (params) => API.get("/question/exam", { params }),
+  // ⭐ examCode ke basis pe saare questions
+  byExamCode: (examCode) => API.get("/question/exam", { params: { examCode } }),
+};
+
+/* ===================================================
+   EXAM SUBMISSION (Olympiad)
+=================================================== */
+
+export const olympiadExamApi = {
+  submit: (body) => API.post("/exam/olympiad/submit", body),
+  attempts: (params) => API.get("/exam/olympiad/attempts", { params }),
+  attemptDetails: (attemptId) =>
+    API.get(`/exam/olympiad/attempts/${attemptId}`),
 };
 
 /* ===================================================
