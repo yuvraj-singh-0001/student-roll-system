@@ -187,11 +187,6 @@ export default function OlympiadExamPage() {
   // 4) Submit exam – send to backend for scoring
   const submitExam = async (auto) => {
     try {
-      const sid = (studentId || "").trim();
-      if (!sid) {
-        alert("Student ID missing. Please register/login first.");
-        return;
-      }
       setSubmitting(true);
 
       // Prepare payload: examCode + per-question data
@@ -220,8 +215,9 @@ export default function OlympiadExamPage() {
         examCode,
         attempts: payloadAttempts,
         autoSubmitted: !!auto,
-        studentId: sid,
       };
+      const sid = (studentId || "").trim();
+      if (sid) body.studentId = sid;
 
       const res = await olympiadExamApi.submit(body);
       const result = res.data || res;

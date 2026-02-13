@@ -100,6 +100,8 @@ async function submitOlympiad(req, res) {
   try {
     const { examCode, attempts = [], autoSubmitted, studentId } = req.body;
     const normalizedExamCode = String(examCode || "").trim();
+    const normalizedStudentId =
+      typeof studentId === "string" ? studentId.trim() : "";
 
     if (!normalizedExamCode) {
       return res.status(400).json({
@@ -107,13 +109,6 @@ async function submitOlympiad(req, res) {
         message: "examCode is required",
       });
     }
-    if (!studentId) {
-      return res.status(400).json({
-        success: false,
-        message: "studentId is required",
-      });
-    }
-
     const questions = await Question.find({ examCode: normalizedExamCode }).lean();
     if (!questions.length) {
       return res.status(404).json({
@@ -215,7 +210,7 @@ async function submitOlympiad(req, res) {
 
     // 🔴 IMPORTANT: db me attempt save karo
     const attemptDoc = new ExamAttempt({
-      studentId: studentId?.trim() || null, // TODO: baad me login se real studentId bhejna
+      studentId: normalizedStudentId || null, // optional
       examCode: normalizedExamCode,
       totalMarks,
       autoSubmitted: !!autoSubmitted,
@@ -232,7 +227,7 @@ async function submitOlympiad(req, res) {
     return res.status(200).json({
       success: true,
       examCode: normalizedExamCode,
-      studentId: studentId?.trim() || studentId,
+      studentId: normalizedStudentId || null,
       totalMarks,
       detailedAttempts,
       attemptId: attemptDoc._id,

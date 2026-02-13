@@ -229,10 +229,6 @@ export default function Exam() {
       setError("Exam not selected. Please choose from dashboard.");
       return;
     }
-    if (!studentId.trim()) {
-      setError("Student ID missing. Please login or register.");
-      return;
-    }
     setError("");
     setSubmitLoading(true);
     try {
@@ -274,11 +270,15 @@ export default function Exam() {
         };
       });
 
-      const { data } = await examApi.submit({
+      const submitBody = {
         examCode: examCode.trim(),
-        studentId: studentId.trim(),
         attempts: payload,
-      });
+      };
+      if (studentId.trim()) {
+        submitBody.studentId = studentId.trim();
+      }
+
+      const { data } = await examApi.submit(submitBody);
 
       if (data.success) {
         navigate(`/student/result/${data.attemptId}`, { state: data });
