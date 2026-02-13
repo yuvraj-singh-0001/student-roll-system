@@ -7,6 +7,7 @@ const connectDB = require("./src/api/config/db");
 const routes = require("./src/routes/router");
 
 const app = express();
+app.set("trust proxy", 1);
 
 /* ======================
    DATABASE
@@ -22,19 +23,36 @@ app.use(cookieParser());
 
 /* ===== CORS FIX FOR PRODUCTION ===== */
 
-const allowedOrigins = (
-  process.env.CORS_ORIGIN ||
-  "http://localhost:5173,https://ttt-olympaid.vercel.app"
-)
+const defaultOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
+  "https://ttt-olympaid.vercel.app",
+];
+const envOrigins = (process.env.CORS_ORIGIN || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  try {
+    const url = new URL(origin);
+    if (url.hostname.endsWith(".vercel.app")) return true;
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return true;
+  } catch {
+    // ignore
+  }
+  return false;
+};
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (isAllowedOrigin(origin)) return callback(null, true);
       return callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true

@@ -1,10 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import { olympiadExamApi, examApi } from "../../api";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
   const fileInputRef = useRef(null);
+  const [recentResults, setRecentResults] = useState([]);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsError, setResultsError] = useState("");
+  const [examList, setExamList] = useState([]);
+  const [examLoading, setExamLoading] = useState(false);
+  const [examError, setExamError] = useState("");
 
   const student = {
     name: "Rahul Sharma",
@@ -21,38 +28,7 @@ export default function StudentDashboard() {
     channelName: "StudentOlympiad Official",
   };
 
-  const availableTests = [
-    {
-      id: 1,
-      name: "Maths Practice Test",
-      subject: "Mathematics",
-      time: "60 min",
-      questions: 30,
-      eligibleClasses: "6–8",
-      examDate: "05 Feb 2026",
-      isEligible: true,
-    },
-    {
-      id: 2,
-      name: "Physics Concept Test",
-      subject: "Physics",
-      time: "45 min",
-      questions: 25,
-      eligibleClasses: "8–10",
-      examDate: "08 Feb 2026",
-      isEligible: true,
-    },
-    {
-      id: 3,
-      name: "English Grammar Test",
-      subject: "English",
-      time: "40 min",
-      questions: 40,
-      eligibleClasses: "5–8",
-      examDate: "03 Feb 2026",
-      isEligible: false,
-    },
-  ];
+  const availableTests = examList;
 
   const upcomingOlympiads = [
     {
@@ -93,36 +69,74 @@ export default function StudentDashboard() {
     },
   ];
 
-  const recentResults = [
-    {
-      id: 1,
-      name: "IMO Level 1",
-      subject: "Mathematics",
-      date: "10 Jan 2026",
-      score: "92%",
-      status: "Passed",
-    },
-    {
-      id: 2,
-      name: "NSO Mock Test",
-      subject: "Science",
-      date: "5 Jan 2026",
-      score: "84%",
-      status: "Passed",
-    },
-    {
-      id: 3,
-      name: "English Weekly Quiz",
-      subject: "English",
-      date: "28 Dec 2025",
-      score: "78%",
-      status: "Passed",
-    },
-  ];
+  // recent results will be loaded from backend
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setExamLoading(true);
+    setExamError("");
+
+    (async () => {
+      try {
+        const { data } = await examApi.list();
+        if (!cancelled) {
+          if (data.success) {
+            setExamList(data.data || []);
+          } else {
+            setExamError(data.message || "Failed to load exams");
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setExamError(e.response?.data?.message || "Failed to load exams");
+        }
+      } finally {
+        if (!cancelled) setExamLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const studentId = (
+      localStorage.getItem("examStudentId") || localStorage.getItem("studentId") || ""
+    ).trim();
+    if (!studentId) return;
+
+    let cancelled = false;
+    setResultsLoading(true);
+    setResultsError("");
+
+    (async () => {
+      try {
+        const { data } = await olympiadExamApi.attempts({ studentId });
+        if (!cancelled) {
+          if (data.success) {
+            setRecentResults(data.data || []);
+          } else {
+            setResultsError(data.message || "Failed to load results");
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setResultsError(e.response?.data?.message || "Failed to load results");
+        }
+      } finally {
+        if (!cancelled) setResultsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleVideoUploadClick = () => {
@@ -354,46 +368,56 @@ export default function StudentDashboard() {
                   View All
                 </button>
               </div>
-
               <div className="space-y-2">
-                {availableTests.map((test) => (
-                  <div
-                    key={test.id}
-                    className="group flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-3 hover:border-[#FFC94A] hover:bg-[#FFF7DE] transition"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-sm text-gray-900 shadow">
-                        📘
+                {examLoading ? (
+                  <div className="py-6 text-center text-xs text-gray-500">
+                    Loading exams...
+                  </div>
+                ) : examError ? (
+                  <div className="py-6 text-center text-xs text-red-600">
+                    {examError}
+                  </div>
+                ) : availableTests.length > 0 ? (
+                  availableTests.map((exam) => (
+                    <div
+                      key={exam.examCode}
+                      className="group flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-3 hover:border-[#FFC94A] hover:bg-[#FFF7DE] transition"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-sm text-gray-900 shadow">
+                          📘
+                        </div>
+                        <div className="text-xs text-gray-800">
+                          <p className="font-medium">
+                            {exam.title || exam.examCode}
+                          </p>
+                          <p className="text-gray-600 text-[11px]">
+                            Exam Code: {exam.examCode} • Time: {exam.totalTimeMinutes || 60} min
+                          </p>
+                          <p className="text-[11px] text-gray-500 mt-1">
+                            Total Questions: {exam.totalQuestions || 0}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-800">
-                        <p className="font-medium">{test.name}</p>
-                        <p className="text-gray-600 text-[11px]">
-                          {test.subject} • {test.time} • {test.questions}{" "}
-                          questions
-                        </p>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          Eligible Classes: {test.eligibleClasses} • Exam Date:{" "}
-                          {test.examDate}
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="flex flex-col items-end gap-2">
-                      {test.isEligible ? (
+                      <div className="flex flex-col items-end gap-2">
                         <button
-                          onClick={() => navigate("/student/exam")}
+                          onClick={() => {
+                            localStorage.setItem("examCode", exam.examCode);
+                            navigate("/student/exam");
+                          }}
                           className="text-[11px] px-3 py-1.5 rounded-full bg-[#FFCD2C] text-gray-900 font-medium hover:bg-[#FFC107] transition"
                         >
-                          🔵 Start Test
+                          🔵 Start Exam
                         </button>
-                      ) : (
-                        <span className="text-[11px] px-3 py-1.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
-                          🔒 Not Eligible
-                        </span>
-                      )}
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="py-6 text-center text-xs text-gray-500">
+                    No exams available yet.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -462,7 +486,11 @@ export default function StudentDashboard() {
                   </p>
                 </div>
                 <button
-                  onClick={() => navigate("/student/result")}
+                  onClick={() =>
+                    recentResults.length > 0
+                      ? navigate(`/student/result/${recentResults[0].attemptId}`)
+                      : navigate("/student/result")
+                  }
                   className="text-[11px] px-3 py-1.5 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition"
                 >
                   🕒 Full History
@@ -474,10 +502,7 @@ export default function StudentDashboard() {
                   <thead className="text-gray-600">
                     <tr className="border-b border-[#FFE6A3]">
                       <th className="py-2 pr-3 text-left font-medium">
-                        Test Name
-                      </th>
-                      <th className="py-2 px-3 text-left font-medium">
-                        Subject
+                        Exam Code
                       </th>
                       <th className="py-2 px-3 text-left font-medium">
                         Date
@@ -486,7 +511,10 @@ export default function StudentDashboard() {
                         Score
                       </th>
                       <th className="py-2 px-3 text-left font-medium">
-                        Status
+                        Attempted / Skipped
+                      </th>
+                      <th className="py-2 px-3 text-left font-medium">
+                        Correct / Wrong
                       </th>
                       <th className="py-2 pl-3 text-left font-medium">
                         Action
@@ -494,32 +522,73 @@ export default function StudentDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentResults.map((res) => (
-                      <tr
-                        key={res.id}
-                        className="border-b border-[#FFF1CC] hover:bg-[#FFF9E6]"
-                      >
-                        <td className="py-2 pr-3">{res.name}</td>
-                        <td className="py-2 px-3">{res.subject}</td>
-                        <td className="py-2 px-3">{res.date}</td>
-                        <td className="py-2 px-3">{res.score}</td>
-                        <td className="py-2 px-3">
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px]">
-                            ✅ {res.status}
-                          </span>
-                        </td>
-                        <td className="py-2 pl-3">
-                          <button
-                            onClick={() =>
-                              navigate(`/student/result/${res.id}`)
-                            }
-                            className="text-[11px] text-amber-700 hover:text-amber-900"
-                          >
-                            🔍 View Details
-                          </button>
+                    {resultsLoading ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="py-6 text-center text-gray-500"
+                        >
+                          Loading results...
                         </td>
                       </tr>
-                    ))}
+                    ) : resultsError ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="py-6 text-center text-red-600"
+                        >
+                          {resultsError}
+                        </td>
+                      </tr>
+                    ) : recentResults.length > 0 ? (
+                      recentResults.map((res) => (
+                        <tr
+                          key={res.attemptId}
+                          className="border-b border-[#FFF1CC] hover:bg-[#FFF9E6]"
+                        >
+                          <td className="py-2 pr-3 font-medium">
+                            {res.examCode}
+                          </td>
+                          <td className="py-2 px-3">
+                            {res.createdAt
+                              ? new Date(res.createdAt).toLocaleDateString()
+                              : "-"}
+                          </td>
+                          <td className="py-2 px-3">{res.totalMarks}</td>
+                          <td className="py-2 px-3">
+                            {res.attemptedCount} / {res.skippedCount}
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className="text-emerald-700 font-medium">
+                              {res.correctCount}✓
+                            </span>{" "}
+                            /{" "}
+                            <span className="text-red-700 font-medium">
+                              {res.wrongCount}✗
+                            </span>
+                          </td>
+                          <td className="py-2 pl-3">
+                            <button
+                              onClick={() =>
+                                navigate(`/student/result/${res.attemptId}`)
+                              }
+                              className="text-[11px] text-amber-700 hover:text-amber-900"
+                            >
+                              🔍 View Details
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="py-6 text-center text-gray-500"
+                        >
+                          No attempts yet.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -560,7 +629,11 @@ export default function StudentDashboard() {
                 </button>
 
                 <button
-                  onClick={() => navigate("/student/result")}
+                  onClick={() =>
+                    recentResults.length > 0
+                      ? navigate(`/student/result/${recentResults[0].attemptId}`)
+                      : navigate("/student/result")
+                  }
                   className="w-full flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 hover:bg-[#FFF3C4] transition"
                 >
                   <span className="flex items-center gap-2">
@@ -607,3 +680,7 @@ export default function StudentDashboard() {
     </div>
   );
 }
+
+
+
+

@@ -1,12 +1,129 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { olympiadExamApi } from "../../api";
 
 export default function ExamResult() {
   const location = useLocation();
   const navigate = useNavigate();
-  const data = location.state || {};
-  const total = data.totalMarks ?? 0;
-  const attempted = data.attempted ?? 0;
-  const skipped = data.skipped ?? 0;
+  const { attemptId } = useParams();
+  const [result, setResult] = useState(location.state || null);
+  const [loading, setLoading] = useState(!location.state && !!attemptId);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (location.state) return;
+    if (!attemptId) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    (async () => {
+      try {
+        const { data } = await olympiadExamApi.attemptDetails(attemptId);
+        if (!cancelled) {
+          if (data.success) {
+            setResult({
+              ...data.data,
+              detailedAttempts: data.data?.answers || [],
+            });
+          } else {
+            setError(data.message || "Failed to load result");
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e.response?.data?.message || "Failed to load result");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptId, location.state]);
+
+  const detailedAttempts = result?.detailedAttempts || [];
+  const branchChoices = {};
+  detailedAttempts.forEach((a) => {
+    if (a.type !== "branch_parent") return;
+    if (a.selectedAnswer !== "A" && a.selectedAnswer !== "B") return;
+    branchChoices[String(a.questionNumber)] = a.selectedAnswer;
+  });
+  const visibleAttempts = detailedAttempts.filter((a) => {
+    if (a.type !== "branch_child") return true;
+    if (!a.parentQuestion || !a.branchKey) return true;
+    const choice = branchChoices[String(a.parentQuestion)];
+    if (!choice) return false;
+    return choice === a.branchKey;
+  });
+  const scoredAttempts = visibleAttempts.filter((a) => a.type !== "branch_parent");
+  const total = result?.totalMarks ?? 0;
+  const attempted =
+    result?.attemptedCount ??
+    scoredAttempts.filter((a) => a.status === "attempted").length;
+  const skipped =
+    result?.skippedCount ??
+    scoredAttempts.filter((a) => a.status === "skipped").length;
+  const correct =
+    result?.correctCount ??
+    scoredAttempts.filter((a) => a.isCorrect === true).length;
+  const wrong =
+    result?.wrongCount ??
+    scoredAttempts.filter(
+      (a) => a.isCorrect === false && a.status === "attempted"
+    ).length;
+  const examCode = result?.examCode || "";
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden relative">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-24 w-72 h-72 bg-[#FFE6A3] rounded-full blur-3xl animate-blob" />
+          <div className="absolute top-32 -left-24 w-72 h-72 bg-[#FFEBD0] rounded-full blur-3xl animate-blob animation-delay-2000" />
+        </div>
+        <div className="relative z-10 min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 border-4 border-[#FFCD2C] border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-gray-600 animate-pulse">Loading result...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden relative">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-24 w-72 h-72 bg-[#FFE6A3] rounded-full blur-3xl animate-blob" />
+          <div className="absolute top-32 -left-24 w-72 h-72 bg-[#FFEBD0] rounded-full blur-3xl animate-blob animation-delay-2000" />
+        </div>
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+          <div className="bg-white/95 rounded-2xl shadow-xl border border-[#FFE6A3] p-8 text-center max-w-md animate-fade-in-up backdrop-blur">
+            <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center">
+              <span className="text-2xl text-red-600">âš ï¸</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Unable to Load Result
+            </h3>
+            <p className="text-red-600 mb-6 text-sm">{error}</p>
+            <button
+              onClick={() => navigate("/student")}
+              className="group px-6 py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-xl hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2 mx-auto"
+            >
+              <span className="group-hover:-translate-x-0.5 transition-transform duration-300">
+                â†
+              </span>
+              <span>Back to Student Portal</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden relative">
@@ -26,7 +143,14 @@ export default function ExamResult() {
             ← Student Portal
           </button>
           <span className="text-gray-400 text-sm">|</span>
-          <h1 className="text-lg font-bold text-gray-900">Exam Result</h1>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Exam Result</h1>
+            {examCode && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                Exam Code: {examCode}
+              </p>
+            )}
+          </div>
         </div>
       </header>
 
@@ -59,7 +183,7 @@ export default function ExamResult() {
                 Total score
               </p>
               <p className="text-4xl font-bold text-emerald-600">{total}</p>
-              <div className="mt-4 flex gap-6 text-sm text-gray-700">
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-gray-700">
                 <span>
                   Attempted:{" "}
                   <span className="font-semibold text-gray-900">
@@ -72,8 +196,117 @@ export default function ExamResult() {
                     {skipped}
                   </span>
                 </span>
+                <span>
+                  Correct:{" "}
+                  <span className="font-semibold text-emerald-700">
+                    {correct}
+                  </span>
+                </span>
+                <span>
+                  Wrong:{" "}
+                  <span className="font-semibold text-red-700">{wrong}</span>
+                </span>
               </div>
             </div>
+
+            {/* detailed review */}
+            {visibleAttempts.length > 0 && (
+              <div className="mt-8 space-y-4">
+                <h3 className="text-base font-semibold text-gray-900">
+                  Question Review
+                </h3>
+                {visibleAttempts.map((d, idx) => {
+                  const isSkipped =
+                    d.status === "skipped" || d.status === "not_visited";
+                  const isCorrect = d.isCorrect === true;
+                  const isNeutral = !isSkipped && d.isCorrect === null;
+                  const borderClass = isSkipped
+                    ? "border-amber-200 bg-amber-50"
+                    : isCorrect
+                    ? "border-emerald-200 bg-emerald-50"
+                    : isNeutral
+                    ? "border-slate-200 bg-slate-50"
+                    : "border-rose-200 bg-rose-50";
+
+                  const selectedText =
+                    d.type === "multiple"
+                      ? (d.selectedAnswers || []).join(", ") || "-"
+                      : d.selectedAnswer || "-";
+                  const correctText =
+                    d.type === "multiple"
+                      ? (d.correctAnswers || []).join(", ") || "-"
+                      : d.correctAnswer || "-";
+
+                  return (
+                    <div
+                      key={`${d.questionNumber}-${idx}`}
+                      className={`rounded-xl border p-4 ${borderClass}`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            Q{d.questionNumber}{" "}
+                            <span className="text-[11px] text-gray-500">
+                              ({d.type})
+                            </span>
+                          </p>
+                          <p className="text-sm text-gray-800">
+                            {d.questionText || "-"}
+                          </p>
+                        </div>
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-1 rounded-full ${
+                            isSkipped
+                              ? "bg-amber-100 text-amber-800"
+                              : isCorrect
+                              ? "bg-emerald-100 text-emerald-800"
+                              : isNeutral
+                              ? "bg-slate-100 text-slate-700"
+                              : "bg-rose-100 text-rose-800"
+                          }`}
+                        >
+                          {isSkipped
+                            ? "Skipped"
+                            : isCorrect
+                            ? "Correct"
+                            : isNeutral
+                            ? d.type === "branch_parent"
+                              ? "No Marks"
+                              : "Attempted"
+                            : "Wrong"}
+                        </span>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-2 text-[11px] text-gray-700">
+                        <div>
+                          <span className="text-gray-600">Your Answer: </span>
+                          <span className="font-medium">{selectedText}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Correct Answer: </span>
+                          <span className="font-medium">{correctText}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Marks: </span>
+                          <span className="font-semibold">{d.marks}</span>
+                        </div>
+                        {d.type === "confidence" && d.confidence && (
+                          <div>
+                            <span className="text-gray-600">Confidence: </span>
+                            <span className="font-medium">{d.confidence}</span>
+                          </div>
+                        )}
+                      </div>
+                      {d.marksReason && (
+                        <p className="mt-2 text-[11px] text-gray-500">
+                          {d.marksReason}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* actions */}
             <div className="mt-8 flex flex-col gap-3 animate-fade-in-up delay-3">

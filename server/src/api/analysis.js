@@ -4,14 +4,34 @@ const ExamAttempt = require("../models/ExamAttempt");
 
 async function getStudentWiseData() {
   const attempts = await ExamAttempt.aggregate([
+    { $unwind: "$answers" },
     {
       $group: {
         _id: "$studentId",
-        totalScore: { $sum: "$marks" },
-        attempted: { $sum: { $cond: [{ $eq: ["$status", "attempted"] }, 1, 0] } },
-        skipped: { $sum: { $cond: [{ $eq: ["$status", "skipped"] }, 1, 0] } },
-        correct: { $sum: { $cond: ["$isCorrect", 1, 0] } },
-        wrong: { $sum: { $cond: [{ $and: [{ $eq: ["$status", "attempted"] }, { $eq: ["$isCorrect", false] }] }, 1, 0] } },
+        totalScore: { $sum: "$answers.marks" },
+        attempted: {
+          $sum: { $cond: [{ $eq: ["$answers.status", "attempted"] }, 1, 0] },
+        },
+        skipped: {
+          $sum: { $cond: [{ $eq: ["$answers.status", "skipped"] }, 1, 0] },
+        },
+        correct: {
+          $sum: { $cond: [{ $eq: ["$answers.isCorrect", true] }, 1, 0] },
+        },
+        wrong: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$answers.status", "attempted"] },
+                  { $eq: ["$answers.isCorrect", false] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
       },
     },
   ]);
@@ -32,13 +52,18 @@ async function getStudentWiseData() {
 
 async function getQuestionWiseData() {
   const attempts = await ExamAttempt.aggregate([
-    { $match: { status: "attempted" } },
+    { $unwind: "$answers" },
+    { $match: { "answers.status": "attempted" } },
     {
       $group: {
-        _id: "$questionNumber",
+        _id: "$answers.questionNumber",
         attemptCount: { $sum: 1 },
-        wrongCount: { $sum: { $cond: [{ $eq: ["$isCorrect", false] }, 1, 0] } },
-        correctCount: { $sum: { $cond: ["$isCorrect", 1, 0] } },
+        wrongCount: {
+          $sum: { $cond: [{ $eq: ["$answers.isCorrect", false] }, 1, 0] },
+        },
+        correctCount: {
+          $sum: { $cond: [{ $eq: ["$answers.isCorrect", true] }, 1, 0] },
+        },
       },
     },
   ]);
@@ -63,12 +88,27 @@ async function getQuestionWiseData() {
 
 async function getConfidenceWiseData() {
   const attempts = await ExamAttempt.aggregate([
-    { $match: { status: "attempted", confidenceLevel: { $in: ["full", "middle", "low"] } } },
-    { $group: { _id: { level: "$confidenceLevel", correct: "$isCorrect" }, count: { $sum: 1 } } },
+    { $unwind: "$answers" },
+    {
+      $match: {
+        "answers.status": "attempted",
+        "answers.confidence": { $in: ["high", "mid", "low"] },
+      },
+    },
+    {
+      $group: {
+        _id: { level: "$answers.confidence", correct: "$answers.isCorrect" },
+        count: { $sum: 1 },
+      },
+    },
   ]);
-  const out = { full: { correct: 0, wrong: 0 }, middle: { correct: 0, wrong: 0 }, low: { correct: 0, wrong: 0 } };
+  const out = {
+    high: { correct: 0, wrong: 0 },
+    mid: { correct: 0, wrong: 0 },
+    low: { correct: 0, wrong: 0 },
+  };
   for (const a of attempts) {
-    const level = a._id.level || "middle";
+    const level = a._id.level || "mid";
     if (a._id.correct) out[level].correct += a.count;
     else out[level].wrong += a.count;
   }
@@ -104,18 +144,39 @@ async function confidenceWise(req, res) {
 
 async function dashboard(req, res) {
   try {
-    const [studentList, qData, cData, totalsAgg, totalQuestions] = await Promise.all([
+    const [studentList, qData, cData, totalsAgg, totalQuestions] =
+      await Promise.all([
       getStudentWiseData(),
       getQuestionWiseData(),
       getConfidenceWiseData(),
       ExamAttempt.aggregate([
+        { $unwind: "$answers" },
         {
           $group: {
             _id: null,
-            attempted: { $sum: { $cond: [{ $eq: ["$status", "attempted"] }, 1, 0] } },
-            skipped: { $sum: { $cond: [{ $eq: ["$status", "skipped"] }, 1, 0] } },
-            correct: { $sum: { $cond: ["$isCorrect", 1, 0] } },
-            wrong: { $sum: { $cond: [{ $and: [{ $eq: ["$status", "attempted"] }, { $eq: ["$isCorrect", false] }] }, 1, 0] } },
+            attempted: {
+              $sum: { $cond: [{ $eq: ["$answers.status", "attempted"] }, 1, 0] },
+            },
+            skipped: {
+              $sum: { $cond: [{ $eq: ["$answers.status", "skipped"] }, 1, 0] },
+            },
+            correct: {
+              $sum: { $cond: [{ $eq: ["$answers.isCorrect", true] }, 1, 0] },
+            },
+            wrong: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ["$answers.status", "attempted"] },
+                      { $eq: ["$answers.isCorrect", false] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
           },
         },
       ]),
@@ -141,24 +202,30 @@ async function dashboard(req, res) {
 async function studentExamDetails(req, res) {
   try {
     const { studentId } = req.params;
-    const attempts = await ExamAttempt.find({ studentId }).lean();
-    const questionIds = [...new Set(attempts.map(a => a.questionNumber))];
-    const questions = await Question.find({ questionNumber: { $in: questionIds } }).lean();
-    const questionMap = Object.fromEntries(questions.map(q => [q.questionNumber, q]));
-    
-    const details = attempts.map(attempt => {
-      const question = questionMap[attempt.questionNumber];
-      return {
-        questionNumber: attempt.questionNumber,
-        question: question?.question || "-",
-        correctAnswer: question?.correctAnswer || "-",
-        studentAnswer: attempt.selectedAnswer || "-",
-        isCorrect: attempt.isCorrect,
-        status: attempt.status,
-        confidenceLevel: attempt.confidenceLevel,
-        marks: attempt.marks,
-      };
-    });
+    const attempt = await ExamAttempt.find({ studentId })
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .lean();
+
+    if (!attempt.length) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const answers = attempt[0].answers || [];
+    const details = answers.map((a) => ({
+      questionNumber: a.questionNumber,
+      question: a.questionText || "-",
+      correctAnswer: a.correctAnswer || "-",
+      correctAnswers: a.correctAnswers || [],
+      studentAnswer: a.selectedAnswer || "-",
+      studentAnswers: a.selectedAnswers || [],
+      isCorrect: a.isCorrect,
+      status: a.status,
+      confidenceLevel: a.confidence || null,
+      marks: a.marks,
+      marksReason: a.marksReason || "",
+      type: a.type,
+    }));
 
     return res.status(200).json({ success: true, data: details });
   } catch (e) {

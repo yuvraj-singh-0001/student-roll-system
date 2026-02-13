@@ -28,6 +28,16 @@ const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    const isSecure =
+      req.secure || req.headers["x-forwarded-proto"] === "https";
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: isSecure ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     res.status(200).json({
       success: true,
       message: "Login successful",
