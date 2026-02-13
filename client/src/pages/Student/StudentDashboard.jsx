@@ -557,7 +557,7 @@ export default function StudentDashboard() {
                       </p>
                     </span>
                   </span>
-                  <span className="text-gray-400">></span>
+                  <span className="text-gray-400">{">"}</span>
                 </button>
               </div>
             </div>

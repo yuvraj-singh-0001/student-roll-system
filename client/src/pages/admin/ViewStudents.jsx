@@ -119,7 +119,7 @@ export default function ViewStudents() {
               <div>
                 <h2 className="text-base font-bold text-gray-900">Students Directory</h2>
                 <p className="text-xs text-gray-500">
-                  Page {currentPage} of {totalPages} â€¢ {filteredStudents.length} total students
+                  Page {currentPage} of {totalPages} | {filteredStudents.length} total students
                 </p>
               </div>
               

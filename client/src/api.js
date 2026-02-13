@@ -14,8 +14,12 @@ const PROD_URL = "https://student-roll-system.onrender.com/api";
 
 // Allow override from env (Vercel / local)
 const ENV_URL = import.meta.env.VITE_API_BASE_URL;
+const CLEAN_ENV_URL = ENV_URL && String(ENV_URL).trim();
 // Final Base URL
-const API_BASE_URL = (ENV_URL && String(ENV_URL).trim()) || (isProduction ? PROD_URL : DEV_URL);
+// Dev mode: default to localhost, unless ENV points to a non-prod URL.
+const API_BASE_URL = isProduction
+  ? (CLEAN_ENV_URL || PROD_URL)
+  : (CLEAN_ENV_URL && CLEAN_ENV_URL !== PROD_URL ? CLEAN_ENV_URL : DEV_URL);
 const ROOT_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
 const API = axios.create({

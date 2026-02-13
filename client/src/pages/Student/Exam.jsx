@@ -287,11 +287,13 @@ export default function Exam() {
       } else {
         setError(data.message || "Submit failed");
       }
-    } catch (e) {
-      setError(e.response?.data?.message || "Submit failed");
-    } finally {
-      setSubmitLoading(false);
-    }
+      } catch (e) {
+        const serverMsg =
+          e.response?.data?.error || e.response?.data?.message || "Submit failed";
+        setError(serverMsg);
+      } finally {
+        setSubmitLoading(false);
+      }
   };
 
   if (!examCode) {

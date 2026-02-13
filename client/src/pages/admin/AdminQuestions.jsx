@@ -1,4 +1,4 @@
-// src/components/AdminQuestionBuilder.jsx
+﻿// src/components/AdminQuestionBuilder.jsx
 import React, { useState, useEffect } from "react";
 import { questionApi } from "../../api";
 
@@ -162,7 +162,7 @@ function AdminQuestionBuilder() {
     }));
   };
 
-  // simple / confidence / branch_child → single correct
+  // simple / confidence / branch_child  single correct
   const handleCorrectAnswerChange = (key) => {
     setQuestion((prev) => ({
       ...prev,
@@ -170,7 +170,7 @@ function AdminQuestionBuilder() {
     }));
   };
 
-  // multiple → multi select correctAnswers
+  // multiple  multi select correctAnswers
   const handleMultipleCorrectToggle = (key) => {
     setQuestion((prev) => {
       const exists = prev.correctAnswers.includes(key);
@@ -493,7 +493,7 @@ function AdminQuestionBuilder() {
           </select>
 
           <small style={{ color: "#777" }}>
-            Simple: 1 right option. Multiple: 1–3 right options. Confidence: answer + confidence on student side. Branch: X se A/B path, phir child questions.
+            Simple: 1 right option. Multiple: 1-3 right options. Confidence: answer + confidence on student side. Branch: X chooses A/B path, then child questions.
           </small>
         </div>
 
@@ -604,37 +604,37 @@ function AdminQuestionBuilder() {
         >
           {question.type === "simple" && (
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>Student ko 1 sahi option choose karna hoga.</li>
-              <li>Marks: sahi = +1, galat = −0.25, skip = 0.</li>
+              <li>Student must choose 1 correct option.</li>
+              <li>Marks: correct = +1, wrong = -0.25, skip = 0.</li>
             </ul>
           )}
 
           {question.type === "multiple" && (
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>Yahan 1, 2, 3 jitne bhi options sahi ho sakte hain.</li>
-              <li>Marks: total 2 marks. Har sahi option = 2 / (total correct).</li>
-              <li>Agar koi galat option bhi tick hua to poora question = −0.25.</li>
+              <li>1, 2, or 3 options can be correct.</li>
+              <li>Marks: total 2 marks. Each correct option = 2 / (total correct).</li>
+              <li>If any wrong option is selected, the whole question = -0.25.</li>
             </ul>
           )}
 
           {question.type === "confidence" && (
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>Student answer select karega, phir confidence (low/mid/high) choose karega.</li>
-              <li>High: sahi +2, galat −0.5. Mid: sahi +1, galat −0.25. Low: sahi +0.25, galat −0.10.</li>
+              <li>Student selects an answer, then chooses confidence (low/mid/high).</li>
+              <li>High: correct +2, wrong -0.5. Mid: correct +1, wrong -0.25. Low: correct +0.25, wrong -0.10.</li>
             </ul>
           )}
 
           {question.type === "branch_parent" && (
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>Ye X type question hai. Student sirf A/B jaisa path choose karega.</li>
-              <li>Is question par koi marks/negative nahi lagega, bas branch choose hogi.</li>
+              <li>This is an X (branch) question. The student only chooses A or B.</li>
+              <li>No marks for this question. It only decides the branch.</li>
             </ul>
           )}
 
           {question.type === "branch_child" && (
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>Ye X ke baad aane wale simple questions hain (A ya B path ke liye).</li>
-              <li>Marks simple jaisa: sahi +1, galat −0.25.</li>
+              <li>These are simple questions that appear after X (for A or B path).</li>
+              <li>Marks like simple: correct +1, wrong -0.25.</li>
             </ul>
           )}
         </div>
@@ -667,3 +667,4 @@ function AdminQuestionBuilder() {
 }
 
 export default AdminQuestionBuilder;
+

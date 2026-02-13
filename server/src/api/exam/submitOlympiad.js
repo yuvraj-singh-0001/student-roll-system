@@ -117,13 +117,34 @@ async function submitOlympiad(req, res) {
       });
     }
 
-    const attemptMap = Object.fromEntries(
-      (attempts || []).map((a) => [a.questionNumber, a || {}])
-    );
+    const attemptMap = {};
+    const attemptList = Array.isArray(attempts) ? attempts : [];
+    for (const a of attemptList) {
+      if (!a || typeof a !== "object") continue;
+      const qn = a.questionNumber;
+      if (qn === undefined || qn === null) continue;
+      attemptMap[qn] = a;
+    }
+
+    const VALID_TYPES = [
+      "simple",
+      "multiple",
+      "confidence",
+      "branch_parent",
+      "branch_child",
+    ];
+
+    const inferType = (q) => {
+      if (VALID_TYPES.includes(q.type)) return q.type;
+      if (q.branchKey && q.parentQuestion) return "branch_child";
+      if (Array.isArray(q.options) && q.options.length === 2) return "branch_parent";
+      return "simple";
+    };
 
     const branchChoices = {};
     for (const q of questions) {
-      if (q.type !== "branch_parent") continue;
+      const safeType = inferType(q);
+      if (safeType !== "branch_parent") continue;
       const att = attemptMap[q.questionNumber] || {};
       const choice = normalizeBranchChoice(att.selectedAnswer);
       if (choice) branchChoices[String(q.questionNumber)] = choice;
@@ -141,17 +162,30 @@ async function submitOlympiad(req, res) {
     const detailedAttempts = [];
 
     for (const q of questions) {
+      const safeType = inferType(q);
+      const safeQuestionText =
+        typeof q.questionText === "string" && q.questionText.trim()
+          ? q.questionText
+          : "Question";
+      const safeOptions = Array.isArray(q.options) ? q.options : [];
+      const safeParentQuestion = Number.isFinite(q.parentQuestion)
+        ? q.parentQuestion
+        : undefined;
+      const safeBranchKey = BRANCH_KEYS.includes(q.branchKey) ? q.branchKey : undefined;
+      const safeCorrectAnswer = normalizeSelectedAnswer(q.correctAnswer);
+      const safeCorrectAnswers = normalizeSelectedAnswers(q.correctAnswers);
+
       const att = attemptMap[q.questionNumber] || {};
       let selectedAnswer = normalizeSelectedAnswer(att.selectedAnswer);
       let selectedAnswers = normalizeSelectedAnswers(att.selectedAnswers);
       const confidence = normalizeConfidence(att.confidence);
 
-      if (q.type === "branch_parent" && !BRANCH_KEYS.includes(selectedAnswer)) {
+      if (safeType === "branch_parent" && !BRANCH_KEYS.includes(selectedAnswer)) {
         selectedAnswer = null;
       }
 
       const hasSelection =
-        q.type === "multiple" ? selectedAnswers.length > 0 : !!selectedAnswer;
+        safeType === "multiple" ? selectedAnswers.length > 0 : !!selectedAnswer;
 
       let status = att.status;
       if (!["attempted", "skipped", "not_visited"].includes(status)) {
@@ -161,9 +195,9 @@ async function submitOlympiad(req, res) {
       if (status === "not_visited" && hasSelection) status = "attempted";
 
       let branchAllowed = true;
-      if (q.type === "branch_child") {
-        const choice = branchChoices[String(q.parentQuestion)];
-        branchAllowed = !!choice && choice === q.branchKey;
+      if (safeType === "branch_child") {
+        const choice = branchChoices[String(safeParentQuestion)];
+        branchAllowed = !!choice && choice === safeBranchKey;
       }
       if (!branchAllowed) {
         selectedAnswer = null;
@@ -179,11 +213,22 @@ async function submitOlympiad(req, res) {
         confidence,
       };
 
-      if (q.type === "simple") result = calcSimple(q, normalizedAttempt);
-      else if (q.type === "multiple") result = calcMultiple(q, normalizedAttempt);
-      else if (q.type === "confidence") result = calcConfidence(q, normalizedAttempt);
-      else if (q.type === "branch_child") result = calcBranchChild(q, normalizedAttempt);
-      else if (q.type === "branch_parent") {
+      const qSafe = {
+        ...q,
+        type: safeType,
+        questionText: safeQuestionText,
+        options: safeOptions,
+        parentQuestion: safeParentQuestion,
+        branchKey: safeBranchKey,
+        correctAnswer: safeCorrectAnswer,
+        correctAnswers: safeCorrectAnswers,
+      };
+
+      if (safeType === "simple") result = calcSimple(qSafe, normalizedAttempt);
+      else if (safeType === "multiple") result = calcMultiple(qSafe, normalizedAttempt);
+      else if (safeType === "confidence") result = calcConfidence(qSafe, normalizedAttempt);
+      else if (safeType === "branch_child") result = calcBranchChild(qSafe, normalizedAttempt);
+      else if (safeType === "branch_parent") {
         result = { marks: 0, isCorrect: null, reason: "Branch parent: no marks." };
       }
 
@@ -191,15 +236,15 @@ async function submitOlympiad(req, res) {
 
       detailedAttempts.push({
         questionNumber: q.questionNumber,
-        questionText: q.questionText,
-        type: q.type,
-        parentQuestion: q.parentQuestion ?? undefined,
-        branchKey: q.branchKey ?? undefined,
-        options: q.options,
+        questionText: safeQuestionText,
+        type: safeType,
+        parentQuestion: safeParentQuestion,
+        branchKey: safeBranchKey,
+        options: safeOptions,
         selectedAnswer,
         selectedAnswers,
-        correctAnswer: q.correctAnswer || null,
-        correctAnswers: q.correctAnswers || [],
+        correctAnswer: safeCorrectAnswer || null,
+        correctAnswers: safeCorrectAnswers || [],
         confidence: confidence || null,
         status,
         marks: result.marks,
@@ -242,10 +287,23 @@ async function submitOlympiad(req, res) {
     });
   } catch (err) {
     console.error("submitOlympiad error:", err);
-    return res.status(500).json({
+    const isProd = process.env.NODE_ENV === "production";
+    const allowDebug =
+      !isProd || String(process.env.DEBUG_ERRORS || "").toLowerCase() === "true";
+    const errorPayload = {
       success: false,
       message: "Internal server error",
-    });
+      error: err.message,
+      type: err.name,
+      code: err.code,
+    };
+    if (err && err.errors && typeof err.errors === "object") {
+      errorPayload.errorFields = Object.keys(err.errors);
+    }
+    if (allowDebug) {
+      errorPayload.stack = err.stack || String(err);
+    }
+    return res.status(500).json(errorPayload);
   }
 }
 

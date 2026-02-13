@@ -27,6 +27,26 @@ const connectDB = async () => {
       console.warn("Index cleanup skipped:", idxErr.message);
     }
 
+    // Fix legacy unique index on examattempts (studentId + questionNumber)
+    try {
+      const attemptCollection = mongoose.connection.db.collection("examattempts");
+      const attemptIndexes = await attemptCollection.indexes();
+      const legacyAttemptIndex = attemptIndexes.find(
+        (i) =>
+          i.name === "studentId_1_questionNumber_1" ||
+          (i.key &&
+            i.key.studentId === 1 &&
+            i.key.questionNumber === 1 &&
+            Object.keys(i.key).length === 2)
+      );
+      if (legacyAttemptIndex) {
+        await attemptCollection.dropIndex(legacyAttemptIndex.name);
+        console.log(`Dropped legacy index: ${legacyAttemptIndex.name}`);
+      }
+    } catch (idxErr) {
+      console.warn("Attempt index cleanup skipped:", idxErr.message);
+    }
+
     // Ensure current indexes (examCode + questionNumber unique)
     try {
       await Question.syncIndexes();
