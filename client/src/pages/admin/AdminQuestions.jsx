@@ -339,7 +339,7 @@ function AdminQuestionBuilder() {
       {/* Exam Info */}
       <h2>Olympiad Exam Setup (Admin)</h2>
       <p style={{ color: "#555", marginTop: "4px" }}>
-        Pehle exam ka basic detail bharo, fir niche se 4 tarah ke questions add karo. Har submit ke baad question number auto increase hoga.
+        Fill the basic exam details first. Then add questions below by type. After each submit, the question number auto-increments.
       </p>
 
       <div
