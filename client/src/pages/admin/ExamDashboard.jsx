@@ -226,7 +226,7 @@ export default function ExamDashboard() {
               Confidence Impact
             </h2>
             <div className="space-y-3">
-              {["full", "middle", "low"].map((level) => (
+              {["high", "mid", "low"].map((level) => (
                 <div
                   key={level}
                   className="group flex items-center justify-between p-3 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-sm transition-all duration-300"
@@ -234,23 +234,27 @@ export default function ExamDashboard() {
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-8 h-8 rounded-lg ${
-                        level === "full"
+                        level === "high"
                           ? "bg-gradient-to-br from-green-500 to-emerald-500"
-                          : level === "middle"
+                          : level === "mid"
                           ? "bg-gradient-to-br from-yellow-500 to-amber-500"
                           : "bg-gradient-to-br from-red-500 to-rose-500"
                       } flex items-center justify-center`}
                     >
                       <span className="text-white text-xs">
-                        {level === "full"
+                        {level === "high"
                           ? "✓"
-                          : level === "middle"
+                          : level === "mid"
                           ? "~"
                           : "?"}
                       </span>
                     </div>
                     <span className="font-medium text-gray-700 capitalize">
-                      {level}
+                      {level === "high"
+                        ? "High"
+                        : level === "mid"
+                        ? "Medium"
+                        : "Low"}
                     </span>
                   </div>
                   <div className="text-sm text-gray-600">
@@ -591,14 +595,22 @@ export default function ExamDashboard() {
                               </span>
                               <span
                                 className={`font-medium capitalize ${
+                                  detail.confidenceLevel === "high" ||
                                   detail.confidenceLevel === "full"
                                     ? "text-green-600"
-                                    : detail.confidenceLevel === "middle"
+                                    : detail.confidenceLevel === "mid" ||
+                                      detail.confidenceLevel === "middle"
                                     ? "text-yellow-600"
                                     : "text-red-600"
                                 }`}
                               >
-                                {detail.confidenceLevel || "-"}
+                                {detail.confidenceLevel === "high" ||
+                                detail.confidenceLevel === "full"
+                                  ? "high"
+                                  : detail.confidenceLevel === "mid" ||
+                                    detail.confidenceLevel === "middle"
+                                  ? "mid"
+                                  : detail.confidenceLevel || "-"}
                               </span>
                             </div>
                           </div>

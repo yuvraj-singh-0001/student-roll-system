@@ -16,8 +16,7 @@ export default function Payment() {
       });
 
       if (res.success) {
-        alert(res.message);
-        navigate("/"); // ya success page
+        navigate("/payment-success", { state: { message: res.message } });
       } else {
         setStep("idle");
         alert(res.message);

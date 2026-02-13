@@ -1,67 +1,211 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { questionApi, examApi } from "../../api";
 
 const CONFIDENCE_OPTS = [
-  { value: "full", label: "Full Confidence", color: "from-green-500 to-emerald-500" },
-  { value: "middle", label: "Middle Confidence", color: "from-yellow-500 to-amber-500" },
+  { value: "high", label: "High Confidence", color: "from-green-500 to-emerald-500" },
+  { value: "mid", label: "Medium Confidence", color: "from-yellow-500 to-amber-500" },
   { value: "low", label: "Low Confidence", color: "from-red-500 to-rose-500" },
 ];
+
+const TYPE_LABELS = {
+  simple: "Simple",
+  multiple: "Multiple",
+  confidence: "Confidence",
+  branch_parent: "Branch Choice",
+  branch_child: "Branch Question",
+};
 
 export default function Exam() {
   const navigate = useNavigate();
   const [studentId, setStudentId] = useState("");
+  const [examCode, setExamCode] = useState("");
   const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
+  const [examList, setExamList] = useState([]);
+  const [examLoading, setExamLoading] = useState(false);
+  const [examError, setExamError] = useState("");
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [time, setTime] = useState(new Date());
   const [hoveredOption, setHoveredOption] = useState(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("examStudentId");
+    const saved = localStorage.getItem("examStudentId") || localStorage.getItem("studentId");
     if (saved) setStudentId(saved);
-
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
+    if (examCode) return;
     let cancelled = false;
+    setExamLoading(true);
+    setExamError("");
+
     (async () => {
       try {
-        const { data } = await questionApi.exam();
-        if (data.success && !cancelled) setQuestions(data.data);
+        const { data } = await examApi.list();
+        if (!cancelled) {
+          if (data.success) {
+            setExamList(data.data || []);
+          } else {
+            setExamError(data.message || "Failed to load exams");
+          }
+        }
       } catch (e) {
-        if (!cancelled)
+        if (!cancelled) {
+          setExamError(e.response?.data?.message || "Failed to load exams");
+        }
+      } finally {
+        if (!cancelled) setExamLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [examCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!examCode) {
+      setQuestions([]);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setError("");
+    setAnswers({});
+    setCurrent(0);
+
+    (async () => {
+      try {
+        const { data } = await questionApi.byExamCode(examCode);
+        const list = data?.questions || data?.data || [];
+        if (!cancelled) {
+          setQuestions(list);
+          if (!list.length) {
+            setError("No questions found for this exam.");
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
           setError(e.response?.data?.message || "Could not load questions");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [examCode]);
 
-  const q = questions[current];
-  const aid = answers[q?.questionNumber];
+  const visibleQuestions = useMemo(() => {
+    if (!questions.length) return [];
+    return questions.filter((question) => {
+      if (question.type !== "branch_child") return true;
+      const parentAns = answers[question.parentQuestion];
+      if (!parentAns?.selectedAnswer) return false;
+      return parentAns.selectedAnswer === question.branchKey;
+    });
+  }, [questions, answers]);
 
-  const updateAnswer = (questionNumber, payload) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionNumber]: { ...prev[questionNumber], ...payload },
-    }));
+  useEffect(() => {
+    if (!visibleQuestions.length) return;
+    if (current >= visibleQuestions.length) {
+      setCurrent(visibleQuestions.length - 1);
+    }
+  }, [visibleQuestions, current]);
+
+  const q = visibleQuestions[current];
+  const aid = answers[q?.questionNumber] || {};
+  const branchMustSelect = q?.type === "branch_parent" && !aid?.selectedAnswer;
+  const branchLocked = q?.type === "branch_parent" && !!aid?.selectedAnswer;
+
+  const scoredQuestions = useMemo(
+    () => visibleQuestions.filter((vq) => vq.type !== "branch_parent"),
+    [visibleQuestions]
+  );
+  const displayIndexMap = useMemo(() => {
+    const map = new Map();
+    scoredQuestions.forEach((sq, idx) => {
+      map.set(sq.questionNumber, idx + 1);
+    });
+    return map;
+  }, [scoredQuestions]);
+  const displayTotal = scoredQuestions.length;
+  const displayIndex =
+    q?.type === "branch_parent"
+      ? null
+      : displayIndexMap.get(q?.questionNumber);
+
+  const attemptedCount = scoredQuestions.filter(
+    (vq) => answers[vq.questionNumber]?.status === "attempted"
+  ).length;
+  const skippedCount = scoredQuestions.filter(
+    (vq) => answers[vq.questionNumber]?.status === "skipped"
+  ).length;
+  const pendingCount = displayTotal - attemptedCount - skippedCount;
+
+  const navItems = useMemo(
+    () =>
+      visibleQuestions.map((vq, i) => ({
+        q: vq,
+        visibleIdx: i,
+        label: vq.type === "branch_parent" ? "X" : displayIndexMap.get(vq.questionNumber),
+      })),
+    [visibleQuestions, displayIndexMap]
+  );
+
+  const updateAnswer = (questionNumber, updater) => {
+    setAnswers((prev) => {
+      const prevAns = prev[questionNumber] || {};
+      const next =
+        typeof updater === "function" ? updater(prevAns) : { ...prevAns, ...updater };
+      return { ...prev, [questionNumber]: next };
+    });
   };
 
-  const markAttempted = (opt, conf) => {
+  const markSingleAttempted = (opt) => {
     if (!q) return;
-    updateAnswer(q.questionNumber, {
-      status: "attempted",
-      selectedAnswer: opt,
-      confidenceLevel: conf || "middle",
+    updateAnswer(q.questionNumber, (prevAns) => {
+      if (q.type === "branch_parent" && prevAns.selectedAnswer) return prevAns;
+      return {
+        ...prevAns,
+        status: "attempted",
+        selectedAnswer: opt,
+        selectedAnswers: [],
+        confidence:
+          q.type === "confidence"
+            ? prevAns.confidence || "mid"
+            : prevAns.confidence || null,
+      };
+    });
+  };
+
+  const toggleMultipleAttempt = (opt) => {
+    if (!q) return;
+    updateAnswer(q.questionNumber, (prevAns) => {
+      const prevSelected = prevAns.selectedAnswers || [];
+      const exists = prevSelected.includes(opt);
+      const updated = exists
+        ? prevSelected.filter((k) => k !== opt)
+        : [...prevSelected, opt];
+      return {
+        ...prevAns,
+        selectedAnswer: null,
+        selectedAnswers: updated,
+        status: updated.length ? "attempted" : "not_visited",
+      };
     });
   };
 
@@ -70,33 +214,76 @@ export default function Exam() {
     updateAnswer(q.questionNumber, {
       status: "skipped",
       selectedAnswer: null,
-      confidenceLevel: null,
+      selectedAnswers: [],
+      confidence: null,
     });
   };
 
+  const handleConfidenceChange = (level) => {
+    if (!q) return;
+    updateAnswer(q.questionNumber, { confidence: level });
+  };
+
   const handleSubmit = async () => {
+    if (!examCode.trim()) {
+      setError("Exam not selected. Please choose from dashboard.");
+      return;
+    }
     if (!studentId.trim()) {
-      setError("Enter your Student ID");
+      setError("Student ID missing. Please login or register.");
       return;
     }
     setError("");
     setSubmitLoading(true);
     try {
-      const payload = questions.map((q) => {
-        const a = answers[q.questionNumber] || {};
+      const payload = questions.map((question) => {
+        const a = answers[question.questionNumber] || {};
+        let selectedAnswer = a.selectedAnswer || null;
+        let selectedAnswers = a.selectedAnswers || [];
+
+        const branchAllowed =
+          question.type !== "branch_child" ||
+          answers[question.parentQuestion]?.selectedAnswer === question.branchKey;
+
+        if (!branchAllowed) {
+          selectedAnswer = null;
+          selectedAnswers = [];
+        }
+
+        const hasSelection =
+          question.type === "multiple"
+            ? selectedAnswers.length > 0
+            : !!selectedAnswer;
+
+        let status = a.status || "not_visited";
+        if (status !== "skipped") {
+          status = hasSelection ? "attempted" : "not_visited";
+        }
+        if (!branchAllowed) status = "not_visited";
+
         return {
-          questionNumber: q.questionNumber,
-          status: a.status || "skipped",
-          selectedAnswer: a.selectedAnswer || null,
-          confidenceLevel: a.confidenceLevel || null,
+          questionNumber: question.questionNumber,
+          type: question.type,
+          selectedAnswer,
+          selectedAnswers,
+          confidence:
+            question.type === "confidence"
+              ? a.confidence || "mid"
+              : a.confidence || null,
+          status,
         };
       });
+
       const { data } = await examApi.submit({
+        examCode: examCode.trim(),
         studentId: studentId.trim(),
-        answers: payload,
+        attempts: payload,
       });
+
       if (data.success) {
-        navigate("/student/result", { state: data.data });
+        navigate(`/student/result/${data.attemptId}`, { state: data });
+      } else {
+        setError(data.message || "Submit failed");
       }
     } catch (e) {
       setError(e.response?.data?.message || "Submit failed");
@@ -104,6 +291,74 @@ export default function Exam() {
       setSubmitLoading(false);
     }
   };
+
+  if (!examCode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden relative">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#FFE6A3] rounded-full blur-3xl opacity-50 animate-blob"></div>
+          <div className="absolute top-40 -left-40 w-80 h-80 bg-[#FFEBD0] rounded-full blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+        </div>
+
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+          <div className="bg-white/95 rounded-2xl shadow-xl border border-[#FFE6A3] p-8 max-w-md w-full animate-fade-in-up backdrop-blur text-center">
+            <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] rounded-xl flex items-center justify-center shadow">
+              <span className="text-xl text-gray-900">E</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Select Your Exam
+            </h3>
+            <p className="text-gray-600 mb-6 text-sm">
+              Dashboard se exam choose karke yahan aao.
+            </p>
+            <div className="space-y-3 text-left mb-4">
+              {examLoading ? (
+                <div className="text-xs text-gray-500">Loading exams...</div>
+              ) : examError ? (
+                <div className="text-xs text-red-600">{examError}</div>
+              ) : examList.length > 0 ? (
+                examList.map((exam) => (
+                  <div
+                    key={exam.examCode}
+                    className="w-full px-3 py-3 rounded-lg border border-[#FFE1B5] bg-[#FFFDF5] hover:border-[#FFCD2C] transition flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="text-xs font-semibold text-gray-900">
+                        {exam.title || exam.examCode}
+                      </div>
+                      <div className="text-[11px] text-gray-600">
+                        Exam Code: {exam.examCode} â€¢ Time:{" "}
+                        {exam.totalTimeMinutes || 60} min
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        localStorage.setItem("examCode", exam.examCode);
+                        setExamCode(exam.examCode);
+                      }}
+                      className="px-3 py-1.5 text-[11px] rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
+                    >
+                      Start
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-gray-500">
+                  No exams available yet.
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => navigate("/student")}
+              className="w-full py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-semibold rounded-lg hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (loading) {
@@ -141,19 +396,24 @@ export default function Exam() {
               <span className="text-2xl text-gray-500">❓</span>
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">
-              No Questions Available
+              No Questions Found
             </h3>
             <p className="text-gray-600 mb-6 text-sm">
-              Please contact your administrator to add exam questions.
+              Exam Code: <span className="font-semibold">{examCode}</span>
             </p>
             <button
-              onClick={() => navigate("/student")}
+              onClick={() => {
+                setError("");
+                localStorage.removeItem("examCode");
+                setExamCode("");
+                navigate("/student");
+              }}
               className="group px-6 py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-xl hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2 mx-auto"
             >
               <span className="group-hover:-translate-x-0.5 transition-transform duration-300">
                 ←
               </span>
-              <span>Back to Student Portal</span>
+              <span>Go to Dashboard</span>
             </button>
           </div>
         </div>
@@ -195,7 +455,11 @@ export default function Exam() {
                       Online Exam
                     </h1>
                     <p className="text-xs text-gray-600">
-                      Question {current + 1} of {questions.length}
+                      Exam: {examCode} â€¢{" "}
+                      {q?.type === "branch_parent"
+                        ? "Branch Choice"
+                        : `Question ${displayIndex}`}{" "}
+                      of {displayTotal}
                     </p>
                   </div>
                 </div>
@@ -243,16 +507,18 @@ export default function Exam() {
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h2 className="text-base font-bold text-gray-900">
-                        Question {current + 1}
+                        {q?.type === "branch_parent"
+                          ? "Branch Choice"
+                          : `Question ${displayIndex}`}
                       </h2>
                       <p className="text-xs text-gray-600">
-                        Select your answer below
+                        Type: {TYPE_LABELS[q?.type] || q?.type || "-"}
                       </p>
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-gray-600">Progress</div>
                       <div className="text-lg font-bold text-gray-900">
-                        {current + 1}/{questions.length}
+                        {displayIndex || 0}/{displayTotal}
                       </div>
                     </div>
                   </div>
@@ -266,90 +532,122 @@ export default function Exam() {
 
                   {/* Options */}
                   <div className="space-y-3 mb-6">
-                    {(q?.options || []).map((o) => (
-                      <label
-                        key={o.key}
-                        onMouseEnter={() => setHoveredOption(o.key)}
-                        onMouseLeave={() => setHoveredOption(null)}
-                        className={`group flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all duration-200 ${
-                          aid?.selectedAnswer === o.key
-                            ? "border-[#FFCD2C] bg-gradient-to-r from-[#FFF9E6] to-[#FFF3C4] shadow-sm"
-                            : hoveredOption === o.key
-                            ? "border-[#FFE1B5] bg-[#FFFDF5] shadow-sm"
-                            : "border-[#FFE1B5] hover:border-[#FFCD2C]"
-                        }`}
-                      >
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                            aid?.selectedAnswer === o.key
-                              ? "border-[#FFCD2C] bg-[#FFCD2C]"
-                              : "border-[#FFE1B5] group-hover:border-[#FFCD2C]"
-                          }`}
+                    {(q?.type === "branch_parent"
+                      ? (q?.options || []).filter(
+                          (o) => o.key === "A" || o.key === "B"
+                        )
+                      : q?.options || []
+                    ).map((o) => {
+                      const isMultiple = q?.type === "multiple";
+                      const isSelected = isMultiple
+                        ? (aid?.selectedAnswers || []).includes(o.key)
+                        : aid?.selectedAnswer === o.key;
+                      const isDisabled = q?.type === "branch_parent" && branchLocked;
+
+                      return (
+                        <label
+                          key={o.key}
+                          onMouseEnter={() => setHoveredOption(o.key)}
+                          onMouseLeave={() => setHoveredOption(null)}
+                          className={`group flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all duration-200 ${
+                            isSelected
+                              ? "border-[#FFCD2C] bg-gradient-to-r from-[#FFF9E6] to-[#FFF3C4] shadow-sm"
+                              : hoveredOption === o.key
+                              ? "border-[#FFE1B5] bg-[#FFFDF5] shadow-sm"
+                              : "border-[#FFE1B5] hover:border-[#FFCD2C]"
+                          } ${isDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
                         >
-                          {aid?.selectedAnswer === o.key && (
-                            <div className="w-2 h-2 rounded-full bg-white" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`font-semibold ${
-                                aid?.selectedAnswer === o.key
-                                  ? "text-amber-800"
-                                  : "text-gray-700"
-                              }`}
-                            >
-                              {o.key}.
-                            </span>
-                            <span className="text-gray-800">{o.text}</span>
+                          <div
+                            className={`w-5 h-5 ${
+                              isMultiple ? "rounded-md" : "rounded-full"
+                            } border-2 flex items-center justify-center transition-all duration-200 ${
+                              isSelected
+                                ? "border-[#FFCD2C] bg-[#FFCD2C]"
+                                : "border-[#FFE1B5] group-hover:border-[#FFCD2C]"
+                            }`}
+                          >
+                            {isSelected && (
+                              <div
+                                className={`w-2 h-2 ${
+                                  isMultiple ? "rounded-sm" : "rounded-full"
+                                } bg-white`}
+                              />
+                            )}
                           </div>
-                        </div>
-                        <input
-                          type="radio"
-                          name="opt"
-                          checked={aid?.selectedAnswer === o.key}
-                          onChange={() =>
-                            markAttempted(
-                              o.key,
-                              aid?.confidenceLevel || "middle"
-                            )
-                          }
-                          className="sr-only"
-                        />
-                      </label>
-                    ))}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`font-semibold ${
+                                  isSelected ? "text-amber-800" : "text-gray-700"
+                                }`}
+                              >
+                                {o.key}.
+                              </span>
+                              <span className="text-gray-800">{o.text}</span>
+                            </div>
+                          </div>
+                          <input
+                            type={isMultiple ? "checkbox" : "radio"}
+                            name={`opt-${q?.questionNumber || "q"}`}
+                            checked={isSelected}
+                            disabled={isDisabled}
+                            onChange={() =>
+                              isMultiple
+                                ? toggleMultipleAttempt(o.key)
+                                : markSingleAttempted(o.key)
+                            }
+                            className="sr-only"
+                          />
+                        </label>
+                      );
+                    })}
                   </div>
 
-                  {/* Confidence Level */}
-                  <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                      Confidence Level
-                    </h3>
-                    <div className="grid grid-cols-3 gap-2">
-                      {CONFIDENCE_OPTS.map((c) => (
-                        <button
-                          key={c.value}
-                          onClick={() =>
-                            aid?.status === "attempted" &&
-                            markAttempted(aid.selectedAnswer, c.value)
-                          }
-                          className={`group px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
-                            aid?.confidenceLevel === c.value
-                              ? `bg-gradient-to-br ${c.color} text-white shadow-md`
-                              : "bg-[#FFF9E6] text-gray-700 hover:bg-[#FFF3C4] hover:shadow-sm"
-                          }`}
-                        >
-                          {c.label}
-                        </button>
-                      ))}
+                  {q?.type === "branch_parent" && !aid?.selectedAnswer && (
+                    <div className="mb-4 text-xs text-amber-700">
+                      Please choose A or B to continue. (Branch decision required)
                     </div>
-                  </div>
+                  )}
+                  {q?.type === "branch_parent" && aid?.selectedAnswer && (
+                    <div className="mb-4 text-xs text-emerald-700">
+                      Branch locked: {aid.selectedAnswer}. You cannot change it.
+                    </div>
+                  )}
+
+                  {/* Confidence Level */}
+                  {q?.type === "confidence" && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                        Confidence Level
+                      </h3>
+                      <div className="grid grid-cols-3 gap-2">
+                        {CONFIDENCE_OPTS.map((c) => (
+                          <button
+                            key={c.value}
+                            onClick={() => handleConfidenceChange(c.value)}
+                            className={`group px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
+                              aid?.confidence === c.value
+                                ? `bg-gradient-to-br ${c.color} text-white shadow-md`
+                                : "bg-[#FFF9E6] text-gray-700 hover:bg-[#FFF3C4] hover:shadow-sm"
+                            }`}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Navigation Buttons */}
                   <div className="flex gap-3">
                     <button
                       onClick={markSkipped}
-                      className="group px-4 py-2.5 bg-gradient-to-br from-amber-100 to-orange-100 text-amber-800 font-medium rounded-lg hover:shadow transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
+                      disabled={q?.type === "branch_parent"}
+                      className={`group px-4 py-2.5 bg-gradient-to-br from-amber-100 to-orange-100 text-amber-800 font-medium rounded-lg hover:shadow transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2 ${
+                        q?.type === "branch_parent"
+                          ? "opacity-60 cursor-not-allowed"
+                          : ""
+                      }`}
                     >
                       <span>⏭️</span>
                       <span>Skip Question</span>
@@ -366,10 +664,13 @@ export default function Exam() {
                           <span>Previous</span>
                         </button>
                       )}
-                      {current < questions.length - 1 && (
+                      {current < visibleQuestions.length - 1 && (
                         <button
-                          onClick={() => setCurrent((c) => c + 1)}
-                          className="group px-4 py-2.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-lg hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
+                          onClick={() => !branchMustSelect && setCurrent((c) => c + 1)}
+                          disabled={branchMustSelect}
+                          className={`group px-4 py-2.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-lg hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2 ${
+                            branchMustSelect ? "opacity-60 cursor-not-allowed" : ""
+                          }`}
                         >
                           <span>Next</span>
                           <span className="group-hover:translate-x-0.5 transition-transform duration-200">
@@ -379,59 +680,19 @@ export default function Exam() {
                       )}
                     </div>
                   </div>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitLoading}
+                    className="mt-4 w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {submitLoading ? "Submitting..." : "Submit Exam"}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Right Panel - Progress & Submit */}
+            {/* Right Panel - Progress */}
             <div className="space-y-6">
-              {/* Student ID & Submit */}
-              <div className="bg-white/95 rounded-xl shadow-lg border border-[#FFE6A3] overflow-hidden backdrop-blur">
-                <div className="h-1 bg-gradient-to-r from-emerald-400 to-emerald-500" />
-                <div className="p-6">
-                  <h3 className="text-sm font-bold text-gray-900 mb-4">
-                    Exam Information
-                  </h3>
-
-                  <div className="mb-4">
-                    <label className="block text-xs font-medium text-gray-700 mb-2">
-                      Student ID
-                    </label>
-                    <input
-                      type="text"
-                      value={studentId}
-                      onChange={(e) => setStudentId(e.target.value)}
-                      onBlur={() =>
-                        studentId &&
-                        localStorage.setItem("examStudentId", studentId)
-                      }
-                      placeholder="Enter your student ID"
-                      className="w-full px-3 py-2.5 text-sm border border-[#FFE1B5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C] transition-all duration-200 bg-[#FFFDF5]"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitLoading}
-                    className="group w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {submitLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Submitting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Submit Exam</span>
-                        <span className="group-hover:translate-x-1 transition-transform duration-300">
-                          ✓
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
               {/* Question Navigator */}
               <div className="bg-white/95 rounded-xl shadow-lg border border-[#FFE6A3] overflow-hidden backdrop-blur">
                 <div className="h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00]" />
@@ -439,32 +700,33 @@ export default function Exam() {
                   <h3 className="text-sm font-bold text-gray-900 mb-4">
                     Question Navigator
                   </h3>
-                  <div className="grid grid-cols-5 gap-2">
-                    {questions.map((x) => {
-                      const answer = answers[x.questionNumber];
-                      const idx = questions.findIndex(
-                        (r) => r.questionNumber === x.questionNumber
-                      );
-                      const isCurrent = current === idx;
+                  <div className="grid grid-cols-10 gap-1">
+                    {navItems.map(({ q: navQ, visibleIdx, label }) => {
+                      const answer = answers[navQ.questionNumber];
+                      const isCurrent = current === visibleIdx;
+                      const disableNav = branchMustSelect && visibleIdx !== current;
 
-                      let bgClass = "bg-gray-100 text-gray-600";
+                      let bgClass = "bg-gray-200 text-gray-700";
                       if (isCurrent)
                         bgClass =
-                          "bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] text-gray-900 shadow-md";
+                          "bg-[#111827] text-white shadow-md";
                       else if (answer?.status === "attempted")
                         bgClass =
-                          "bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700";
+                          "bg-emerald-600 text-white";
                       else if (answer?.status === "skipped")
                         bgClass =
-                          "bg-gradient-to-br from-amber-50 to-orange-100 text-amber-700";
+                          "bg-amber-500 text-white";
 
                       return (
                         <button
-                          key={x.questionNumber}
-                          onClick={() => setCurrent(idx)}
-                          className={`w-full aspect-square rounded-lg text-xs font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${bgClass}`}
+                          key={`${navQ.questionNumber}-${visibleIdx}`}
+                          onClick={() => !disableNav && setCurrent(visibleIdx)}
+                          disabled={disableNav}
+                          className={`w-full h-6 rounded-md text-[9px] font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm ${bgClass} ${
+                            disableNav ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
                         >
-                          {x.questionNumber}
+                          {label || "-"}
                         </button>
                       );
                     })}
@@ -474,19 +736,19 @@ export default function Exam() {
                   <div className="mt-4 pt-4 border-t border-[#FFE6A3]">
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded bg-gradient-to-br from-emerald-50 to-emerald-100" />
+                        <div className="w-3 h-3 rounded bg-emerald-600" />
                         <span className="text-gray-600">Attempted</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded bg-gradient-to-br from-amber-50 to-orange-100" />
+                        <div className="w-3 h-3 rounded bg-amber-500" />
                         <span className="text-gray-600">Skipped</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00]" />
+                        <div className="w-3 h-3 rounded bg-[#111827]" />
                         <span className="text-gray-600">Current</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded bg-gray-100" />
+                        <div className="w-3 h-3 rounded bg-gray-200" />
                         <span className="text-gray-600">Pending</span>
                       </div>
                     </div>
@@ -504,11 +766,7 @@ export default function Exam() {
                   <div className="grid grid-cols-3 gap-3 text-center">
                     <div className="p-2 bg-emerald-50 rounded-lg">
                       <div className="text-lg font-bold text-emerald-600">
-                        {
-                          Object.values(answers).filter(
-                            (a) => a?.status === "attempted"
-                          ).length
-                        }
+                        {attemptedCount}
                       </div>
                       <div className="text-xs text-emerald-700">
                         Attempted
@@ -516,17 +774,13 @@ export default function Exam() {
                     </div>
                     <div className="p-2 bg-amber-50 rounded-lg">
                       <div className="text-lg font-bold text-amber-600">
-                        {
-                          Object.values(answers).filter(
-                            (a) => a?.status === "skipped"
-                          ).length
-                        }
+                        {skippedCount}
                       </div>
                       <div className="text-xs text-amber-700">Skipped</div>
                     </div>
                     <div className="p-2 bg-gray-100 rounded-lg">
                       <div className="text-lg font-bold text-gray-700">
-                        {questions.length - Object.keys(answers).length}
+                        {pendingCount}
                       </div>
                       <div className="text-xs text-gray-700">Pending</div>
                     </div>
@@ -563,20 +817,11 @@ export default function Exam() {
               </div>
 
               <div className="flex items-center gap-4 text-xs text-gray-600">
-                <span>Questions: {questions.length}</span>
+                <span>Questions: {displayTotal}</span>
                 <span>|</span>
-                <span>
-                  Answered:{" "}
-                  {
-                    Object.values(answers).filter(
-                      (a) => a?.status === "attempted"
-                    ).length
-                  }
-                </span>
+                <span>Answered: {attemptedCount}</span>
                 <span>|</span>
-                <span>
-                  Remaining: {questions.length - Object.keys(answers).length}
-                </span>
+                <span>Remaining: {pendingCount}</span>
               </div>
             </div>
           </div>
@@ -585,3 +830,10 @@ export default function Exam() {
     </div>
   );
 }
+
+
+
+
+
+
+
