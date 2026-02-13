@@ -22,8 +22,6 @@ export default function StudentSidebar({
   currentPath,
   onNavigate,
 }) {
-  const isCollapsed = !sidebarOpen;
-
   return (
     <>
       {/* Overlay for mobile */}
@@ -35,65 +33,89 @@ export default function StudentSidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40
-        bg-gradient-to-b from-[#FFA600] via-[#FF8A3C] to-[#D95A00]
-        text-white shadow-2xl border-r border-white/10
-        backdrop-blur-xl bg-opacity-95
-        transition-all duration-300
+        className={`fixed inset-y-0 left-0 z-40 h-screen
+        bg-white/95 text-gray-800
+        border-r border-[#FFE6A3]
+        flex flex-col shadow-lg
+        transition-all duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)]
         ${sidebarOpen ? "w-64" : "w-16"}
-        hidden sm:flex flex-col`}
+        hidden sm:flex`}
       >
-        {/* Header + collapse toggle */}
-        <div className="flex items-center justify-between px-3 py-3 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-xs font-bold">
-              ST
+        {/* Top brand + toggle */}
+        <div className="flex items-center justify-between h-16 px-3 border-b border-[#FFE6A3] bg-[#FFF9E6]/80 backdrop-blur-sm">
+          <div
+            className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ${
+              sidebarOpen ? "opacity-100" : "opacity-0 w-0"
+            }`}
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center shadow">
+              <span className="text-xs font-bold text-gray-900">T</span>
             </div>
-            {!isCollapsed && (
-              <div>
-                <p className="text-[11px] uppercase tracking-wide text-white/80">
-                  NSO Student
-                </p>
-                <p className="text-sm font-semibold">Student Portal</p>
+            <div>
+              <div className="text-sm font-semibold text-gray-900">
+                TTT Student
               </div>
-            )}
+              <div className="text-[11px] text-gray-500">TTT Student Portal</div>
+            </div>
           </div>
+
           <button
             onClick={() => setSidebarOpen((v) => !v)}
-            className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-xs hover:bg-white/20"
+            className="p-1.5 rounded-lg hover:bg-[#FFF3C4] text-gray-600 transition-colors"
           >
-            {isCollapsed ? "›" : "‹"}
+            {sidebarOpen ? "«" : "»"}
           </button>
         </div>
 
         {/* Nav items */}
-        <div className="flex-1 overflow-y-auto py-3 px-2 space-y-1 custom-scroll">
+        <nav className="mt-3 px-2 space-y-1 flex-1 overflow-y-auto">
           {studentMenu.map((item) => {
             const active = currentPath.startsWith(item.path);
             return (
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.path)}
-                className={`w-full flex items-center rounded-lg px-2 ${
-                  isCollapsed ? "justify-center py-2.5" : "justify-start py-2.5"
-                } text-sm transition-all duration-200
-                ${
-                  active
-                    ? "bg-white/95 text-[#D95A00] shadow-sm"
-                    : "text-white/90 hover:bg-white/10"
-                }`}
+                className={`group w-full flex items-center gap-3 px-2.5 py-2 text-xs font-medium rounded-md transition-all duration-200
+                  ${
+                    active
+                      ? "bg-gradient-to-r from-[#FFEBB5] to-[#FFDF85] text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:bg-[#FFF3C4] hover:text-gray-900"
+                  }`}
               >
-                <span className="text-base">{item.icon}</span>
-                {!isCollapsed && (
-                  <span className="ml-2.5 truncate">{item.label}</span>
-                )}
+                <div className="w-6 flex justify-center">
+                  <span className="text-sm group-hover:scale-110 transform transition-transform duration-200">
+                    {item.icon}
+                  </span>
+                </div>
+                <span
+                  className={`whitespace-nowrap transition-all duration-300 ${
+                    sidebarOpen ? "opacity-100" : "opacity-0 w-0"
+                  }`}
+                >
+                  {item.label}
+                </span>
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        <div className="px-3 py-3 text-center text-[11px] text-white/70 border-t border-white/10">
-          NSO Student Portal • © 2026
+        {/* Bottom */}
+        <div className="border-t border-[#FFE6A3] px-2 py-2 bg-[#FFF9E6]/70">
+          <button
+            onClick={() => onNavigate("/")}
+            className="w-full flex items-center gap-3 px-2.5 py-2 text-xs font-medium rounded-md hover:bg-[#FFF3C4] hover:text-gray-900 text-gray-600 transition-colors"
+          >
+            <div className="w-6 flex justify-center">
+              <span>↩</span>
+            </div>
+            <span
+              className={`whitespace-nowrap transition-all duration-300 ${
+                sidebarOpen ? "opacity-100" : "opacity-0 w-0"
+              }`}
+            >
+              Back to Home
+            </span>
+          </button>
         </div>
       </aside>
     </>

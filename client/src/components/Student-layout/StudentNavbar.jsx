@@ -28,7 +28,7 @@ export default function StudentNavbar({ onToggleSidebar }) {
                 Student Area
               </p>
               <p className="text-sm font-semibold text-gray-900">
-                NSO Student Portal
+                TTT Student Portal
               </p>
             </div>
           </div>

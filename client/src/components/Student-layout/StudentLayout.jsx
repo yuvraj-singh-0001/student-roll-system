@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import StudentSidebar from "./StudentSidebar";
-import StudentNavbar from "./StudentNavbar";
 
 export default function StudentLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -23,16 +22,14 @@ export default function StudentLayout() {
       />
 
       <div className={`min-h-screen flex flex-col transition-all duration-300 sm:ml-16 ${sidebarOpen ? "sm:ml-64" : "sm:ml-16"}`}>
-        <StudentNavbar
-          onToggleSidebar={() => setSidebarOpen((v) => !v)}
-        />
         <main className="flex-1">
           <Outlet />
         </main>
         <footer className="border-t border-[#FFE6A3] bg-white/80 py-3 text-center text-[11px] text-gray-600">
-          NSO Student Portal • © 2026
+          TTT Student Portal • © 2026
         </footer>
       </div>
     </div>
   );
 }
+

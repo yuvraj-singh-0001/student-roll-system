@@ -169,7 +169,7 @@ export default function StudentDashboard() {
                   🎓
                 </div>
                 <span className="text-sm font-semibold text-gray-900">
-                  Student Olympiad Portal
+                  TTT Student Portal
                 </span>
               </div>
 
@@ -680,6 +680,8 @@ export default function StudentDashboard() {
     </div>
   );
 }
+
+
 
 
 
