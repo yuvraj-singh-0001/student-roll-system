@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+﻿import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { olympiadExamApi } from "../../api";
 
@@ -86,7 +86,7 @@ export default function ExamResult() {
         </div>
         <div className="relative z-10 min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 border-4 border-[#FFCD2C] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-16 h-16 mx-auto mb-3 border-4 border-[#FFCD2C] border-t-transparent rounded-full animate-spin"></div>
             <p className="text-gray-600 animate-pulse">Loading result...</p>
           </div>
         </div>
@@ -103,8 +103,8 @@ export default function ExamResult() {
         </div>
         <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
           <div className="bg-white/95 rounded-2xl shadow-xl border border-[#FFE6A3] p-8 text-center max-w-md animate-fade-in-up backdrop-blur">
-            <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center">
-              <span className="text-2xl text-red-600">âš ï¸</span>
+            <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center">
+              <span className="text-sm font-bold text-red-600">ERR</span>
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">
               Unable to Load Result
@@ -112,12 +112,9 @@ export default function ExamResult() {
             <p className="text-red-600 mb-6 text-sm">{error}</p>
             <button
               onClick={() => navigate("/student")}
-              className="group px-6 py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-xl hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2 mx-auto"
+              className="px-6 py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-xl hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 mx-auto"
             >
-              <span className="group-hover:-translate-x-0.5 transition-transform duration-300">
-                â†
-              </span>
-              <span>Back to Student Portal</span>
+              Back to Dashboard
             </button>
           </div>
         </div>
@@ -133,57 +130,35 @@ export default function ExamResult() {
         <div className="absolute top-32 -left-24 w-72 h-72 bg-[#FFEBD0] rounded-full blur-3xl animate-blob animation-delay-2000" />
       </div>
 
-      {/* header */}
-      <header className="relative z-10 border-b border-[#FFE6A3] bg-[#FEECD5]/90 backdrop-blur-sm sticky top-0">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <button
-            onClick={() => navigate("/student")}
-            className="px-3 py-1.5 rounded-full bg-white/90 border border-[#FFE6A3] text-xs text-gray-700 hover:bg-[#FFF3C4] transition"
-          >
-            ← Student Portal
-          </button>
-          <span className="text-gray-400 text-sm">|</span>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">Exam Result</h1>
-            {examCode && (
-              <p className="text-xs text-gray-500 mt-0.5">
-                Exam Code: {examCode}
-              </p>
-            )}
-          </div>
-        </div>
-      </header>
-
       {/* main card */}
-      <main className="relative z-10 max-w-xl mx-auto px-4 py-10">
+      <main className="relative z-10 max-w-none mx-auto px-4 py-4">
         <div className="bg-white/95 rounded-2xl shadow-xl border border-[#FFE6A3] overflow-hidden animate-scale-in backdrop-blur">
           <div className="h-1 bg-gradient-to-r from-emerald-400 via-[#FFCD2C] to-emerald-400" />
-          <div className="p-6 sm:p-10">
+          <div className="p-4 sm:p-5">
             {/* Success icon */}
-            <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center text-4xl text-emerald-500 animate-fade-in shadow-md">
-                ✓
+            <div className="flex justify-center mb-3">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center animate-fade-in shadow-md">
+                <span className="text-sm font-bold text-emerald-600">OK</span>
               </div>
             </div>
 
             {/* message */}
-            <div className="text-center space-y-4 animate-fade-in-up delay-1">
-              <h2 className="text-2xl font-bold text-gray-900">
+            <div className="text-center space-y-1.5 animate-fade-in-up delay-1">
+              <h2 className="text-xl font-bold text-gray-900">
                 Exam submitted successfully
               </h2>
-              <p className="text-gray-600 leading-relaxed text-sm">
-                Your answers have been recorded and evaluated. Thank you for
-                completing the exam.
+              <p className="text-gray-600 leading-relaxed text-xs">
+                Your paper has been evaluated. Summary and details are below.
               </p>
             </div>
 
             {/* score card */}
-            <div className="mt-8 p-6 bg-[#FFF9E6] rounded-xl border border-[#FFE6A3] animate-fade-in-up delay-2">
-              <p className="text-sm font-medium text-gray-600 mb-1">
+            <div className="mt-3 p-3 bg-[#FFF9E6] rounded-xl border border-[#FFE6A3] animate-fade-in-up delay-2">
+              <p className="text-xs font-medium text-gray-600 mb-1">
                 Total score
               </p>
-              <p className="text-4xl font-bold text-emerald-600">{total}</p>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-gray-700">
+              <p className="text-3xl font-bold text-emerald-600">{total}</p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-700">
                 <span>
                   Attempted:{" "}
                   <span className="font-semibold text-gray-900">
@@ -211,8 +186,8 @@ export default function ExamResult() {
 
             {/* detailed review */}
             {visibleAttempts.length > 0 && (
-              <div className="mt-8 space-y-4">
-                <h3 className="text-base font-semibold text-gray-900">
+              <div className="mt-3 space-y-2">
+                <h3 className="text-sm font-semibold text-gray-900">
                   Question Review
                 </h3>
                 {visibleAttempts.map((d, idx) => {
@@ -240,17 +215,17 @@ export default function ExamResult() {
                   return (
                     <div
                       key={`${d.questionNumber}-${idx}`}
-                      className={`rounded-xl border p-4 ${borderClass}`}
+                      className={`rounded-xl border p-2 ${borderClass}`}
                     >
-                      <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-start justify-between gap-3 mb-1.5">
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-xs font-semibold text-gray-900">
                             Q{d.questionNumber}{" "}
                             <span className="text-[11px] text-gray-500">
                               ({d.type})
                             </span>
                           </p>
-                          <p className="text-sm text-gray-800">
+                          <p className="text-xs text-gray-800">
                             {d.questionText || "-"}
                           </p>
                         </div>
@@ -277,7 +252,7 @@ export default function ExamResult() {
                         </span>
                       </div>
 
-                      <div className="grid sm:grid-cols-2 gap-2 text-[11px] text-gray-700">
+                      <div className="grid sm:grid-cols-2 gap-2 text-[10px] text-gray-700">
                         <div>
                           <span className="text-gray-600">Your Answer: </span>
                           <span className="font-medium">{selectedText}</span>
@@ -298,7 +273,7 @@ export default function ExamResult() {
                         )}
                       </div>
                       {d.marksReason && (
-                        <p className="mt-2 text-[11px] text-gray-500">
+                        <p className="mt-1 text-[10px] text-gray-500">
                           {d.marksReason}
                         </p>
                       )}
@@ -309,18 +284,18 @@ export default function ExamResult() {
             )}
 
             {/* actions */}
-            <div className="mt-8 flex flex-col gap-3 animate-fade-in-up delay-3">
+            <div className="mt-4 flex flex-col gap-2 animate-fade-in-up delay-3">
               <button
                 onClick={() => navigate("/student/exam")}
-                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-semibold shadow-lg hover:shadow-amber-300/80 hover:-translate-y-[1px] transition"
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-semibold shadow-lg hover:shadow-amber-300/80 hover:-translate-y-[1px] transition"
               >
-                Give exam again
+                Take Exam Again
               </button>
               <button
                 onClick={() => navigate("/student")}
                 className="w-full py-3 px-4 bg-white/90 text-gray-800 font-semibold rounded-xl border border-[#FFE6A3] hover:bg-[#FFF3C4] transition"
               >
-                ← Back to Student Portal
+                Back to Dashboard
               </button>
             </div>
           </div>
@@ -329,3 +304,7 @@ export default function ExamResult() {
     </div>
   );
 }
+
+
+
+

@@ -1,4 +1,4 @@
-// src/Student-layout/StudentNavbar.jsx
+﻿// src/Student-layout/StudentNavbar.jsx
 import { useState, useEffect } from "react";
 
 export default function StudentNavbar({ onToggleSidebar }) {
@@ -18,7 +18,7 @@ export default function StudentNavbar({ onToggleSidebar }) {
               onClick={onToggleSidebar}
               className="sm:hidden mr-1 px-2 py-1 rounded-lg bg-white/80 border border-[#FFE6A3] text-xs text-gray-800"
             >
-              ☰
+              Menu
             </button>
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-xs font-bold text-gray-900 shadow">
               ST
@@ -51,3 +51,4 @@ export default function StudentNavbar({ onToggleSidebar }) {
     </header>
   );
 }
+

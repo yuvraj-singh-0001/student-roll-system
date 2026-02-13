@@ -1,4 +1,4 @@
-// src/pages/Student/OlympiadExamPage.jsx
+﻿// src/pages/Student/OlympiadExamPage.jsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { questionApi, olympiadExamApi } from "../../api";
@@ -184,7 +184,7 @@ export default function OlympiadExamPage() {
     }
   };
 
-  // 4) Submit exam – send to backend for scoring
+  // 4) Submit exam  send to backend for scoring
   const submitExam = async (auto) => {
     try {
       setSubmitting(true);
@@ -295,7 +295,7 @@ export default function OlympiadExamPage() {
         <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h1 className="text-lg font-semibold text-slate-900">
-              Olympiad Exam – {examCode}
+              Olympiad Exam - {examCode}
             </h1>
             <p className="text-xs text-slate-500">
               Answer all questions. Timer runs continuously, auto-submit on time up.
@@ -328,14 +328,14 @@ export default function OlympiadExamPage() {
                 <p className="text-sm text-slate-900">{q.questionText}</p>
                 <p className="text-[11px] text-slate-500 mt-1">
                   Type: {qType}
-                  {qType === "confidence" && " • You must choose confidence level with your answer."}
-                  {qType === "branch_parent" && " • This question decides your path (A or B). No marks."}
+                  {qType === "confidence" && "  You must choose confidence level with your answer."}
+                  {qType === "branch_parent" && "  This question decides your path (A or B). No marks."}
                 </p>
               </div>
             </div>
             <div className="text-[11px] text-slate-500">
               {qType === "branch_parent"
-                ? `Branch Choice • ${displayTotal} Questions`
+                ? `Branch Choice  ${displayTotal} Questions`
                 : `Question ${displayIndex} of ${displayTotal}`}
             </div>
           </div>
@@ -433,3 +433,4 @@ export default function OlympiadExamPage() {
     </div>
   );
 }
+

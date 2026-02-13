@@ -1,18 +1,12 @@
-// src/components/Student-layout/StudentSidebar.jsx
-import {
-  FaTachometerAlt,
-  FaClipboardList,
-  FaFileAlt,
-  FaVideo,
-  FaChartLine,
-} from "react-icons/fa";
+﻿// src/components/Student-layout/StudentSidebar.jsx
+import { FaTachometerAlt, FaClipboardList, FaFileAlt } from "react-icons/fa";
 
 const studentMenu = [
   { id: "dashboard", label: "Dashboard", icon: <FaTachometerAlt />, path: "/student" },
   { id: "exam", label: "Give Exam", icon: <FaClipboardList />, path: "/student/exam" },
   { id: "results", label: "Results", icon: <FaFileAlt />, path: "/student/result" },
-  { id: "video", label: "Video Upload", icon: <FaVideo />, path: "/student/video-upload" },
-  { id: "performance", label: "Performance", icon: <FaChartLine />, path: "/student/performance" },
+  // { id: "video", label: "Video Upload", icon: <FaVideo />, path: "/student/video-upload" },
+  // { id: "performance", label: "Performance", icon: <FaChartLine />, path: "/student/performance" },
   { id: "register", label: "Exam Register", icon: <FaFileAlt />, path: "/student/register" },
 ];
 
@@ -63,7 +57,7 @@ export default function StudentSidebar({
             onClick={() => setSidebarOpen((v) => !v)}
             className="p-1.5 rounded-lg hover:bg-[#FFF3C4] text-gray-600 transition-colors"
           >
-            {sidebarOpen ? "«" : "»"}
+            {sidebarOpen ? "<" : ">"}
           </button>
         </div>
 
@@ -106,7 +100,7 @@ export default function StudentSidebar({
             className="w-full flex items-center gap-3 px-2.5 py-2 text-xs font-medium rounded-md hover:bg-[#FFF3C4] hover:text-gray-900 text-gray-600 transition-colors"
           >
             <div className="w-6 flex justify-center">
-              <span>↩</span>
+              <span>{"<"}</span>
             </div>
             <span
               className={`whitespace-nowrap transition-all duration-300 ${
@@ -121,3 +115,4 @@ export default function StudentSidebar({
     </>
   );
 }
+

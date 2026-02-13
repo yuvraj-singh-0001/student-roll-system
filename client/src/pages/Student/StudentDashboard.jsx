@@ -1,11 +1,9 @@
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+﻿import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { olympiadExamApi, examApi } from "../../api";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
-  const [time, setTime] = useState(new Date());
-  const fileInputRef = useRef(null);
   const [recentResults, setRecentResults] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [resultsError, setResultsError] = useState("");
@@ -72,11 +70,6 @@ export default function StudentDashboard() {
   // recent results will be loaded from backend
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
     setExamLoading(true);
     setExamError("");
@@ -139,16 +132,6 @@ export default function StudentDashboard() {
     };
   }, []);
 
-  const handleVideoUploadClick = () => {
-    if (fileInputRef.current) fileInputRef.current.click();
-  };
-
-  const handleVideoFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    console.log("Selected video file:", file);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] text-gray-900 overflow-hidden relative">
       {/* Background blobs */}
@@ -159,68 +142,16 @@ export default function StudentDashboard() {
       </div>
 
       <div className="relative z-10">
-        {/* TOP NAVBAR */}
-        <header className="sticky top-0 z-50 bg-[#FEECD5]/90 backdrop-blur-xl border-b border-[#FFE6A3] shadow-sm">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="flex items-center justify-between h-14">
-              {/* Left: Logo + Title */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-lg shadow-md">
-                  🎓
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  TTT Student Portal
-                </span>
-              </div>
-
-              {/* Center: Nav Links */}
-              <nav className="hidden sm:flex items-center gap-4 text-xs font-medium">
-                <button className="px-3 py-1.5 rounded-full bg-[#FFEBB5] text-gray-900 border border-[#FFD765]">
-                  🏠 Dashboard
-                </button>
-                <button
-                  onClick={() => navigate("/student/exam")}
-                  className="px-3 py-1.5 rounded-full hover:bg-[#FFF3C4] text-gray-800 transition"
-                >
-                  📝 My Tests
-                </button>
-                <button
-                  onClick={() => navigate("/student/video-upload")}
-                  className="px-3 py-1.5 rounded-full hover:bg-[#FFF3C4] text-gray-800 transition"
-                >
-                  🎥 Video Upload
-                </button>
-              </nav>
-
-              {/* Right: Time + Logout */}
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex px-3 py-1.5 rounded-full bg-white/80 border border-[#FFE6A3] text-[11px] text-gray-700 shadow-sm">
-                  {time.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-                <button
-                  onClick={() => navigate("/logout")}
-                  className="text-[11px] px-3 py-1.5 rounded-full border border-red-400/70 text-red-600 hover:bg-red-50 transition bg-white/80"
-                >
-                  🚪 Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
         {/* MAIN */}
         <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
           {/* WELCOME + SUMMARY */}
           <section className="flex flex-col gap-4 md:flex-row md:items-start">
             <div className="flex-1 space-y-2">
               <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">
-                Dashboard • Home View
+                Dashboard | Home View
               </p>
               <h1 className="text-xl font-semibold text-gray-900">
-                Welcome back, {student.name.split(" ")[0]} 👋
+                Welcome back, {student.name.split(" ")[0]}
               </h1>
             </div>
 
@@ -230,7 +161,7 @@ export default function StudentDashboard() {
                   Overall Progress
                 </p>
                 <p className="mt-1 font-semibold text-emerald-600">
-                  {student.averageScore}% avg • {student.testsCompleted} tests
+                  {student.averageScore}% avg | {student.testsCompleted} tests
                 </p>
               </div>
             </div>
@@ -242,8 +173,8 @@ export default function StudentDashboard() {
             <div className="relative overflow-hidden rounded-2xl border border-[#FFE6A3] bg-white/90 backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 opacity-40 bg-gradient-to-br from-[#FFEBB5]/60 via-transparent to-[#FFE0D9]/80" />
               <div className="relative p-5 flex gap-4 items-start">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-3xl text-gray-900 shadow-md">
-                  👤
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-sm font-bold text-gray-900 shadow-md">
+                  ST
                 </div>
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center justify-between gap-2">
@@ -259,7 +190,7 @@ export default function StudentDashboard() {
                       onClick={() => navigate("/student/profile")}
                       className="text-[11px] px-3 py-1 rounded-full border border-[#FFE6A3] bg-white/80 hover:bg-[#FFF3C4] transition"
                     >
-                      ✏️ Edit Profile
+                      Edit Profile
                     </button>
                   </div>
 
@@ -317,21 +248,18 @@ export default function StudentDashboard() {
                     YouTube Subscription
                   </p>
                   <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800">
-                    {youtubeStatus.isSubscribed
-                      ? "✔️ Verified"
-                      : "🔴 Not Verified"}
+                    {youtubeStatus.isSubscribed ? "Verified" : "Not Verified"}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center text-xl text-white shadow-md">
-                    ▶️
+                  <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md">
+                    YT
                   </div>
                   <div className="text-xs text-gray-800">
                     <p className="font-medium">{youtubeStatus.channelName}</p>
                     <p className="text-gray-700 mt-1">
-                      Subscription verified hai, is wajah se test access enabled
-                      hai. Bina subscription exam start nahi hoga.
+                      Subscription is verified, so exam access is enabled.
                     </p>
                   </div>
                 </div>
@@ -342,7 +270,7 @@ export default function StudentDashboard() {
                   }
                   className="w-full mt-2 text-[11px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white py-2 font-medium shadow-lg shadow-emerald-300/60 hover:shadow-emerald-400/80 hover:-translate-y-[1px] transition-all"
                 >
-                  🎬 Open YouTube Channel
+                  Open YouTube Channel
                 </button>
               </div>
             </div>
@@ -358,7 +286,7 @@ export default function StudentDashboard() {
                     Available Tests
                   </h3>
                   <p className="text-[11px] text-gray-600">
-                    Yahan se directly exam start kar sakte hain
+                    Start your exam directly from here.
                   </p>
                 </div>
                 <button
@@ -368,53 +296,62 @@ export default function StudentDashboard() {
                   View All
                 </button>
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {examLoading ? (
-                  <div className="py-6 text-center text-xs text-gray-500">
+                  <div className="py-6 text-center text-xs text-gray-500 sm:col-span-2">
                     Loading exams...
                   </div>
                 ) : examError ? (
-                  <div className="py-6 text-center text-xs text-red-600">
+                  <div className="py-6 text-center text-xs text-red-600 sm:col-span-2">
                     {examError}
                   </div>
                 ) : availableTests.length > 0 ? (
                   availableTests.map((exam) => (
                     <div
                       key={exam.examCode}
-                      className="group flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-3 hover:border-[#FFC94A] hover:bg-[#FFF7DE] transition"
+                      className="group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm hover:shadow-md transition"
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-sm text-gray-900 shadow">
-                          📘
+                      <div className="absolute inset-0 pointer-events-none opacity-40 bg-gradient-to-br from-[#FFF3C4]/60 via-transparent to-[#FFE0D9]/70" />
+                      <div className="relative p-4 flex flex-col gap-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-amber-700/80">
+                              Exam Paper
+                            </p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {exam.title || exam.examCode}
+                            </p>
+                            <p className="text-[11px] text-gray-600">
+                              Exam Code: {exam.examCode} | Time:{" "}
+                              {exam.totalTimeMinutes || 60} min
+                            </p>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-[10px] font-bold text-gray-900 shadow">
+                            TTT
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-800">
-                          <p className="font-medium">
-                            {exam.title || exam.examCode}
-                          </p>
-                          <p className="text-gray-600 text-[11px]">
-                            Exam Code: {exam.examCode} • Time: {exam.totalTimeMinutes || 60} min
-                          </p>
-                          <p className="text-[11px] text-gray-500 mt-1">
-                            Total Questions: {exam.totalQuestions || 0}
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-[11px] text-gray-600">
+                          Total Questions:{" "}
+                          <span className="font-medium text-gray-900">
+                            {exam.totalQuestions || 0}
+                          </span>
+                        </div>
+
                         <button
                           onClick={() => {
                             localStorage.setItem("examCode", exam.examCode);
                             navigate("/student/exam");
                           }}
-                          className="text-[11px] px-3 py-1.5 rounded-full bg-[#FFCD2C] text-gray-900 font-medium hover:bg-[#FFC107] transition"
+                          className="mt-1 text-[11px] px-3 py-2 rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
                         >
-                          🔵 Start Exam
+                          Start Exam
                         </button>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="py-6 text-center text-xs text-gray-500">
+                  <div className="py-6 text-center text-xs text-gray-500 sm:col-span-2">
                     No exams available yet.
                   </div>
                 )}
@@ -429,7 +366,7 @@ export default function StudentDashboard() {
                     Upcoming Olympiads
                   </h3>
                   <p className="text-[11px] text-gray-600">
-                    Future exams ke liye registration yahan se karein
+                    Register for upcoming exams here.
                   </p>
                 </div>
               </div>
@@ -446,23 +383,23 @@ export default function StudentDashboard() {
                         Subject: {olymp.subject}
                       </p>
                       <p className="text-[11px] text-gray-500 mt-1">
-                        Reg closes: {olymp.regClose} • Event: {olymp.eventDate}
+                        Reg closes: {olymp.regClose} | Event: {olymp.eventDate}
                       </p>
                       <p className="text-[11px] text-emerald-700 mt-0.5">
-                        ⏰ {olymp.daysRemaining} days remaining
+                        {olymp.daysRemaining} days remaining
                       </p>
                     </div>
                     <div>
                       {olymp.status === "registered" ? (
                         <button className="text-[11px] px-3 py-1.5 rounded-full bg-emerald-500 text-white font-medium">
-                          ✅ Registered
+                          Registered
                         </button>
                       ) : (
                         <button
                           onClick={() => navigate("/student/register")}
                           className="text-[11px] px-3 py-1.5 rounded-full bg-[#FFCD2C] text-gray-900 font-medium hover:bg-[#FFC107] transition"
                         >
-                          🔵 Register Now
+                          Register Now
                         </button>
                       )}
                     </div>
@@ -482,7 +419,7 @@ export default function StudentDashboard() {
                     Recent Test Results
                   </h3>
                   <p className="text-[11px] text-gray-600">
-                    Aapke latest exam attempts ka history
+                    Your latest exam attempts.
                   </p>
                 </div>
                 <button
@@ -493,7 +430,7 @@ export default function StudentDashboard() {
                   }
                   className="text-[11px] px-3 py-1.5 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition"
                 >
-                  🕒 Full History
+                  Full History
                 </button>
               </div>
 
@@ -560,11 +497,11 @@ export default function StudentDashboard() {
                           </td>
                           <td className="py-2 px-3">
                             <span className="text-emerald-700 font-medium">
-                              {res.correctCount}✓
-                            </span>{" "}
-                            /{" "}
+                              {res.correctCount} correct
+                            </span>
+                            <span className="text-gray-400"> | </span>
                             <span className="text-red-700 font-medium">
-                              {res.wrongCount}✗
+                              {res.wrongCount} wrong
                             </span>
                           </td>
                           <td className="py-2 pl-3">
@@ -574,7 +511,7 @@ export default function StudentDashboard() {
                               }
                               className="text-[11px] text-amber-700 hover:text-amber-900"
                             >
-                              🔍 View Details
+                              View Details
                             </button>
                           </td>
                         </tr>
@@ -600,34 +537,7 @@ export default function StudentDashboard() {
                 Quick Actions
               </h3>
 
-              {/* Hidden file input for video */}
-              <input
-                type="file"
-                accept="video/*"
-                ref={fileInputRef}
-                onChange={handleVideoFileChange}
-                className="hidden"
-              />
-
               <div className="space-y-2 text-xs">
-                <button
-                  onClick={handleVideoUploadClick}
-                  className="w-full flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 hover:bg-[#FFF3C4] transition"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center text-white">
-                      🎥
-                    </span>
-                    <span className="text-gray-800">
-                      Upload Video
-                      <p className="text-[10px] text-gray-600">
-                        Educational ya solution videos upload karein
-                      </p>
-                    </span>
-                  </span>
-                  <span className="text-gray-500">→</span>
-                </button>
-
                 <button
                   onClick={() =>
                     recentResults.length > 0
@@ -637,35 +547,17 @@ export default function StudentDashboard() {
                   className="w-full flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 hover:bg-[#FFF3C4] transition"
                 >
                   <span className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-400 to-sky-400 flex items-center justify-center text-white">
-                      🕒
+                    <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-400 to-sky-400 flex items-center justify-center text-[10px] font-bold text-white">
+                      H
                     </span>
                     <span className="text-gray-800">
                       Test History
                       <p className="text-[10px] text-gray-600">
-                        Saare past test attempts dekhein
+                        View past test attempts.
                       </p>
                     </span>
                   </span>
-                  <span className="text-gray-500">→</span>
-                </button>
-
-                <button
-                  onClick={() => navigate("/student/performance")}
-                  className="w-full flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 hover:bg-[#FFF3C4] transition"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-lime-400 flex items-center justify-center text-white">
-                      📈
-                    </span>
-                    <span className="text-gray-800">
-                      Performance Analytics
-                      <p className="text-[10px] text-gray-600">
-                        Detailed progress & performance tracking
-                      </p>
-                    </span>
-                  </span>
-                  <span className="text-gray-500">→</span>
+                  <span className="text-gray-400">></span>
                 </button>
               </div>
             </div>
@@ -674,12 +566,14 @@ export default function StudentDashboard() {
 
         {/* FOOTER */}
         <footer className="border-t border-[#FFE6A3] bg-white/80 backdrop-blur-xl py-4 text-center text-[11px] text-gray-600">
-          Student Portal © {new Date().getFullYear()}
+          Student Portal (c) {new Date().getFullYear()}
         </footer>
       </div>
     </div>
   );
 }
+
+
 
 
 
