@@ -1,5 +1,5 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { warmUpBackend } from "./api";
 
@@ -78,6 +78,9 @@ export default function App() {
           <Route path="view-students" element={<ViewStudents />} />
           <Route path="send-notification" element={<SendNotification />} />
         </Route>
+
+        {/* Fallback: unknown routes to admin dashboard */}
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </BrowserRouter>
   );
