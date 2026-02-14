@@ -1,6 +1,19 @@
 const Question = require("../../../models/Question");
-const QuestionCounter = require("../../../models/QuestionCounter");
 const ExamConfig = require("../../../models/ExamConfig");
+
+function getNextQuestionNumber(existing) {
+  let next = 1;
+  for (const q of existing) {
+    const num = Number(q.questionNumber);
+    if (!Number.isFinite(num)) continue;
+    if (num === next) {
+      next += 1;
+      continue;
+    }
+    if (num > next) break;
+  }
+  return next;
+}
 
 async function addQuestion(req, res) {
   try {
@@ -108,57 +121,53 @@ async function addQuestion(req, res) {
       { upsert: true, new: true }
     );
 
-    // Auto-generate questionNumber using atomic counter (no pipeline)
-    const lastQuestion = await Question.findOne({ examCode: normalizedExamCode })
-      .sort({ questionNumber: -1 })
-      .lean();
+    // Auto-generate questionNumber based on smallest available number
+    // This keeps numbering compact after deletions.
+    const maxRetries = 3;
+    let savedQuestion = null;
+    let lastErr = null;
 
-    const startSeq = lastQuestion ? Number(lastQuestion.questionNumber) || 0 : 0;
+    for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+      const existing = await Question.find({ examCode: normalizedExamCode })
+        .select({ questionNumber: 1 })
+        .sort({ questionNumber: 1 })
+        .lean();
 
-    // ensure counter exists
-    await QuestionCounter.updateOne(
-      { examCode: normalizedExamCode },
-      { $setOnInsert: { examCode: normalizedExamCode, seq: startSeq } },
-      { upsert: true }
-    );
+      const nextNumber = getNextQuestionNumber(existing);
 
-    // if counter behind existing questions, sync it up
-    await QuestionCounter.updateOne(
-      { examCode: normalizedExamCode, seq: { $lt: startSeq } },
-      { $set: { seq: startSeq } }
-    );
-
-    const counter = await QuestionCounter.findOneAndUpdate(
-      { examCode: normalizedExamCode },
-      { $inc: { seq: 1 } },
-      { new: true }
-    );
-    if (!counter) {
-      return res.status(500).json({
-        success: false,
-        message: "Counter init failed. Please retry.",
+      const newQuestion = new Question({
+        examCode: normalizedExamCode,
+        questionNumber: nextNumber,
+        type,
+        questionText,
+        options,
+        correctAnswer: correctAnswer || undefined,
+        correctAnswers: correctAnswers || undefined,
+        confidenceRequired: type === "confidence" ? true : !!confidenceRequired,
+        parentQuestion: parentQuestion || undefined,
+        branchKey: branchKey || undefined,
       });
+
+      try {
+        savedQuestion = await newQuestion.save();
+        break;
+      } catch (err) {
+        if (err && err.code === 11000) {
+          lastErr = err;
+          continue;
+        }
+        throw err;
+      }
     }
 
-    const newQuestion = new Question({
-      examCode: normalizedExamCode,
-      questionNumber: counter.seq,
-      type,
-      questionText,
-      options,
-      correctAnswer: correctAnswer || undefined,
-      correctAnswers: correctAnswers || undefined,
-      confidenceRequired: type === "confidence" ? true : !!confidenceRequired,
-      parentQuestion: parentQuestion || undefined,
-      branchKey: branchKey || undefined,
-    });
-
-    await newQuestion.save();
+    if (!savedQuestion) {
+      throw lastErr || new Error("Failed to assign questionNumber.");
+    }
 
     return res.status(201).json({
       success: true,
       message: "Question added successfully.",
-      data: newQuestion,
+      data: savedQuestion,
     });
   } catch (err) {
     console.error("Error in addQuestion:", err);
