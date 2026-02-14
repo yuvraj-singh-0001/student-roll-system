@@ -15,6 +15,10 @@ export default function PaymentSuccess() {
         <div className="balloon balloon-4" />
         <div className="balloon balloon-5" />
         <div className="balloon balloon-6" />
+        <div className="balloon balloon-7" />
+        <div className="balloon balloon-8" />
+        <div className="balloon balloon-9" />
+        <div className="balloon balloon-10" />
       </div>
 
       <div className="relative z-10 w-[92%] max-w-md rounded-2xl bg-white p-8 shadow-xl text-center animate-scale-in">
