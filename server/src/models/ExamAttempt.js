@@ -57,6 +57,11 @@ const examAttemptSchema = new mongoose.Schema(
 
     autoSubmitted: { type: Boolean, default: false },
 
+    startedAt: { type: Date, default: null },
+    endedAt: { type: Date, default: null },
+    durationSeconds: { type: Number, default: null },
+    timeTakenSeconds: { type: Number, default: null },
+
     // saare questions + unke attempts
     answers: [answerSchema],
   },

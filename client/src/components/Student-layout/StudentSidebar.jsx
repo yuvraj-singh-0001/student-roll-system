@@ -7,7 +7,7 @@ const studentMenu = [
   { id: "results", label: "Results", icon: <FaFileAlt />, path: "/student/result" },
   // { id: "video", label: "Video Upload", icon: <FaVideo />, path: "/student/video-upload" },
   // { id: "performance", label: "Performance", icon: <FaChartLine />, path: "/student/performance" },
-  { id: "register", label: "Exam Register", icon: <FaFileAlt />, path: "/student/register" },
+  // { id: "register", label: "Exam Register", icon: <FaFileAlt />, path: "/student/register" },
 ];
 
 export default function StudentSidebar({
@@ -64,7 +64,10 @@ export default function StudentSidebar({
         {/* Nav items */}
         <nav className="mt-3 px-2 space-y-1 flex-1 overflow-y-auto">
           {studentMenu.map((item) => {
-            const active = currentPath.startsWith(item.path);
+            const active =
+              item.path === "/student"
+                ? currentPath === "/student" || currentPath === "/student/"
+                : currentPath.startsWith(item.path);
             return (
               <button
                 key={item.id}

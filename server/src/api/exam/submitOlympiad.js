@@ -50,7 +50,7 @@ function calcMultiple(q, attempt) {
 
   const wrongSelected = selectedArr.filter((x) => !correctArr.includes(x));
   if (wrongSelected.length > 0) {
-    return { marks: -0.25, isCorrect: false, reason: "Multiple: wrong option selected (-0.25)." };
+    return { marks: -0.5, isCorrect: false, reason: "Multiple: wrong option selected (-0.5)." };
   }
 
   const totalCorrect = correctArr.length || 1;
@@ -98,10 +98,40 @@ function calcBranchChild(q, attempt) {
 
 async function submitOlympiad(req, res) {
   try {
-    const { examCode, attempts = [], autoSubmitted, studentId } = req.body;
+    const {
+      examCode,
+      attempts = [],
+      autoSubmitted,
+      studentId,
+      startedAt,
+      endedAt,
+      durationSeconds,
+      timeTakenSeconds,
+    } = req.body;
     const normalizedExamCode = String(examCode || "").trim();
     const normalizedStudentId =
       typeof studentId === "string" ? studentId.trim() : "";
+
+    const parseDate = (value) => {
+      if (!value) return null;
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    };
+    const toNumberOrNull = (value) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const safeStartedAt = parseDate(startedAt);
+    const safeEndedAt = parseDate(endedAt) || new Date();
+    const safeDurationSeconds = toNumberOrNull(durationSeconds);
+    let safeTimeTakenSeconds = toNumberOrNull(timeTakenSeconds);
+    if (safeTimeTakenSeconds === null && safeStartedAt && safeEndedAt) {
+      safeTimeTakenSeconds = Math.max(
+        0,
+        Math.floor((safeEndedAt.getTime() - safeStartedAt.getTime()) / 1000)
+      );
+    }
 
     if (!normalizedExamCode) {
       return res.status(400).json({
@@ -259,6 +289,10 @@ async function submitOlympiad(req, res) {
       examCode: normalizedExamCode,
       totalMarks,
       autoSubmitted: !!autoSubmitted,
+      startedAt: safeStartedAt,
+      endedAt: safeEndedAt,
+      durationSeconds: safeDurationSeconds,
+      timeTakenSeconds: safeTimeTakenSeconds,
       answers: detailedAttempts,
     });
 

@@ -2,24 +2,142 @@
 import { useNavigate } from "react-router-dom";
 import { questionApi, examApi } from "../../api";
 
+const EXAM_CACHE_KEY = "examListCacheV1";
+const EXAM_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const readExamListCache = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(EXAM_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.data) || !parsed.ts) return null;
+    if (Date.now() - parsed.ts > EXAM_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+};
+
+const writeExamListCache = (list) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      EXAM_CACHE_KEY,
+      JSON.stringify({ data: Array.isArray(list) ? list : [], ts: Date.now() })
+    );
+  } catch {
+    // ignore cache write errors
+  }
+};
+
 const CONFIDENCE_OPTS = [
   { value: "high", label: "High Confidence", color: "from-green-500 to-emerald-500" },
   { value: "mid", label: "Medium Confidence", color: "from-yellow-500 to-amber-500" },
   { value: "low", label: "Low Confidence", color: "from-red-500 to-rose-500" },
 ];
 
-const TYPE_LABELS = {
-  simple: "Simple",
-  multiple: "Multiple",
-  confidence: "Confidence",
-  branch_parent: "Branch Choice",
-  branch_child: "Branch Question",
+const SECTION_INFO = {
+  simple: {
+    title: "Conventional MCQs",
+    blocks: [
+      {
+        type: "list",
+        items: ["Every question will have only one correct option as answer."],
+      },
+    ],
+  },
+  multiple: {
+    title: "Multiple Correct Answers MCQs",
+    blocks: [
+      {
+        type: "list",
+        items: [
+          "Questions in this category may have one or more correct options, up to all four.",
+          "Candidates are required to select all correct options.",
+          "Partial marking is applicable and will be awarded in direct proportion to the number of correct options selected, provided no incorrect option is selected.",
+          "Selection of any incorrect option shall result in the response being treated as entirely incorrect, and negative marking shall be applied as per the prescribed marking scheme, irrespective of correct options selected.",
+        ],
+      },
+    ],
+  },
+  confidence: {
+    title: "Confidence-Weighted MCQs",
+    blocks: [
+      { type: "text", text: "For every question, you must:" },
+      {
+        type: "list",
+        items: [
+          "Select one answer option",
+          "Select one confidence level: High, Average, or Low",
+          "Selecting a confidence level is mandatory for every question",
+        ],
+      },
+      { type: "text", text: "Marking Scheme" },
+      { type: "text", text: "If your answer is correct:" },
+      {
+        type: "list",
+        items: [
+          "High Confidence -> +2 marks",
+          "Average Confidence -> +1 mark",
+          "Low Confidence -> +0.5 mark",
+        ],
+      },
+      { type: "text", text: "If your answer is incorrect:" },
+      {
+        type: "list",
+        items: [
+          "High Confidence -> -1 mark",
+          "Average Confidence -> -0.5 mark",
+          "Low Confidence -> -0.1 mark",
+        ],
+      },
+    ],
+  },
+  branch_parent: {
+    title: "Decision Tree MCQs - Instructions",
+    blocks: [
+      {
+        type: "list",
+        items: [
+          "This section begins with a Question X, which is not evaluated and carries no marks.",
+          "Your response to Question X will determine the set of 5 MCQs that will appear next.",
+          "Once an option is selected for Question X, it cannot be changed.",
+          "Each of the 5 MCQs has only one correct answer.",
+          "Carries +2 marks for a correct answer.",
+          "Carries -0.5 marks for an incorrect answer.",
+          "You may answer or skip any of these questions, similar to conventional MCQs.",
+          "Marks are awarded or deducted only for attempted questions.",
+        ],
+      },
+    ],
+  },
+  branch_child: {
+    title: "Decision Tree MCQs - Instructions",
+    blocks: [
+      {
+        type: "list",
+        items: [
+          "This section begins with a Question X, which is not evaluated and carries no marks.",
+          "Your response to Question X will determine the set of 5 MCQs that will appear next.",
+          "Once an option is selected for Question X, it cannot be changed.",
+          "Each of the 5 MCQs has only one correct answer.",
+          "Carries +2 marks for a correct answer.",
+          "Carries -0.5 marks for an incorrect answer.",
+          "You may answer or skip any of these questions, similar to conventional MCQs.",
+          "Marks are awarded or deducted only for attempted questions.",
+        ],
+      },
+    ],
+  },
 };
 
 export default function Exam() {
   const navigate = useNavigate();
   const [studentId, setStudentId] = useState("");
   const [examCode, setExamCode] = useState("");
+  const [pendingExamCode, setPendingExamCode] = useState("");
+  const [introAccepted, setIntroAccepted] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -32,6 +150,15 @@ export default function Exam() {
   const [answers, setAnswers] = useState({});
   const [time, setTime] = useState(new Date());
   const [hoveredOption, setHoveredOption] = useState(null);
+  const [examDurationSeconds, setExamDurationSeconds] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [examStartAt, setExamStartAt] = useState(null);
+  const [autoSubmitted, setAutoSubmitted] = useState(false);
+
+  const clearExamStart = () => {
+    localStorage.removeItem("examStartAt");
+    localStorage.removeItem("examStartExamCode");
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("examStudentId") || localStorage.getItem("studentId");
@@ -41,32 +168,82 @@ export default function Exam() {
   }, []);
 
   useEffect(() => {
+    if (pendingExamCode || examCode) return;
+    const storedExam = localStorage.getItem("examCode");
+    if (storedExam) setPendingExamCode(storedExam);
+  }, [pendingExamCode, examCode]);
+
+  useEffect(() => {
+    if (!examCode) return;
+    const storedStart = localStorage.getItem("examStartAt");
+    const storedCode = localStorage.getItem("examStartExamCode");
+    if (examStartAt && storedCode === examCode) return;
+    if (storedStart && storedCode === examCode) {
+      const parsed = new Date(storedStart);
+      if (!Number.isNaN(parsed.getTime())) {
+        setExamStartAt(parsed);
+        return;
+      }
+    }
+    const now = new Date();
+    localStorage.setItem("examStartAt", now.toISOString());
+    localStorage.setItem("examStartExamCode", examCode);
+    setExamStartAt(now);
+  }, [examCode, examStartAt]);
+
+  useEffect(() => {
     if (examCode) return;
     let cancelled = false;
-    setExamLoading(true);
+    let fetching = false;
+    const cached = readExamListCache();
+    const hasCache = Array.isArray(cached) && cached.length > 0;
+    if (hasCache) setExamList(cached);
+    setExamLoading(!hasCache);
     setExamError("");
 
-    (async () => {
+    const fetchExams = async (silent = false) => {
+      if (fetching || cancelled) return;
+      fetching = true;
+      if (!silent && !hasCache) setExamLoading(true);
       try {
         const { data } = await examApi.list();
         if (!cancelled) {
           if (data.success) {
-            setExamList(data.data || []);
-          } else {
+            const list = data.data || [];
+            setExamList(list);
+            writeExamListCache(list);
+          } else if (!hasCache && !silent) {
             setExamError(data.message || "Failed to load exams");
           }
         }
       } catch (e) {
-        if (!cancelled) {
+        if (!cancelled && !hasCache && !silent) {
           setExamError(e.response?.data?.message || "Failed to load exams");
         }
       } finally {
-        if (!cancelled) setExamLoading(false);
+        fetching = false;
+        if (!cancelled && !silent) setExamLoading(false);
       }
-    })();
+    };
+
+    fetchExams(false);
+
+    const handleFocus = () => fetchExams(true);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchExams(true);
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === "visible") fetchExams(true);
+    }, 20000);
 
     return () => {
       cancelled = true;
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [examCode]);
 
@@ -76,6 +253,10 @@ export default function Exam() {
     if (!examCode) {
       setQuestions([]);
       setLoading(false);
+      setExamDurationSeconds(null);
+      setTimeLeft(null);
+      setExamStartAt(null);
+      setAutoSubmitted(false);
       return () => {
         cancelled = true;
       };
@@ -86,12 +267,15 @@ export default function Exam() {
     setAnswers({});
     setCurrent(0);
     setSubmitSuccess(null);
+    setAutoSubmitted(false);
 
     (async () => {
       try {
         const { data } = await questionApi.byExamCode(examCode);
+        const durationMinutes = data?.exam?.durationMinutes || 60;
         const list = data?.questions || data?.data || [];
         if (!cancelled) {
+          setExamDurationSeconds(durationMinutes * 60);
           setQuestions(list);
           if (!list.length) {
             setError("No questions found for this exam.");
@@ -110,6 +294,25 @@ export default function Exam() {
       cancelled = true;
     };
   }, [examCode]);
+
+  useEffect(() => {
+    if (!examStartAt || examDurationSeconds === null) return;
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - examStartAt.getTime()) / 1000);
+      const remaining = Math.max(examDurationSeconds - elapsed, 0);
+      setTimeLeft(remaining);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [examStartAt, examDurationSeconds]);
+
+  const formatTimeLeft = (sec) => {
+    const safe = Math.max(0, Number.isFinite(sec) ? sec : 0);
+    const m = Math.floor(safe / 60);
+    const s = safe % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
 
   const visibleQuestions = useMemo(() => {
     if (!questions.length) return [];
@@ -212,7 +415,7 @@ export default function Exam() {
   };
 
   const markSkipped = () => {
-    if (!q) return;
+    if (!q || q.type === "branch_parent") return;
     updateAnswer(q.questionNumber, {
       status: "skipped",
       selectedAnswer: null,
@@ -226,7 +429,36 @@ export default function Exam() {
     updateAnswer(q.questionNumber, { confidence: level });
   };
 
-  const handleSubmit = async () => {
+  const hasSelectionFor = (question, answer) => {
+    if (!question) return false;
+    if (question.type === "multiple") {
+      return (answer?.selectedAnswers || []).length > 0;
+    }
+    return !!answer?.selectedAnswer;
+  };
+
+  const handleSkipAndNext = () => {
+    if (!q || q.type === "branch_parent") return;
+    if (aid?.status !== "skipped") {
+      markSkipped();
+    }
+    if (current < visibleQuestions.length - 1) {
+      setCurrent((c) => c + 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (!q || branchMustSelect) return;
+    const hasSelection = hasSelectionFor(q, aid);
+    if (!hasSelection && aid?.status !== "skipped" && q.type !== "branch_parent") {
+      markSkipped();
+    }
+    if (current < visibleQuestions.length - 1) {
+      setCurrent((c) => c + 1);
+    }
+  };
+
+  const handleSubmit = async (auto = false) => {
     if (!examCode.trim()) {
       setError("Exam not selected. Please choose from dashboard.");
       return;
@@ -234,6 +466,11 @@ export default function Exam() {
     setError("");
     setSubmitLoading(true);
     try {
+      const endTime = new Date();
+      const startedAtIso = examStartAt ? examStartAt.toISOString() : null;
+      const timeTakenSeconds = examStartAt
+        ? Math.max(0, Math.floor((endTime.getTime() - examStartAt.getTime()) / 1000))
+        : null;
       const payload = questions.map((question) => {
         const a = answers[question.questionNumber] || {};
         let selectedAnswer = a.selectedAnswer || null;
@@ -275,6 +512,11 @@ export default function Exam() {
       const submitBody = {
         examCode: examCode.trim(),
         attempts: payload,
+        autoSubmitted: !!auto,
+        startedAt: startedAtIso,
+        endedAt: endTime.toISOString(),
+        durationSeconds: examDurationSeconds || null,
+        timeTakenSeconds,
       };
       if (studentId.trim()) {
         submitBody.studentId = studentId.trim();
@@ -284,6 +526,10 @@ export default function Exam() {
 
       if (data.success) {
         setSubmitSuccess({ attemptId: data.attemptId, result: data });
+        clearExamStart();
+        setExamStartAt(null);
+        setTimeLeft(null);
+        setExamDurationSeconds(null);
       } else {
         setError(data.message || "Submit failed");
       }
@@ -296,7 +542,158 @@ export default function Exam() {
       }
   };
 
+  useEffect(() => {
+    if (timeLeft !== 0) return;
+    if (loading || !questions.length) return;
+    if (autoSubmitted || submitLoading) return;
+    setAutoSubmitted(true);
+    handleSubmit(true);
+  }, [timeLeft, loading, questions.length, autoSubmitted, submitLoading, handleSubmit]);
+
   if (!examCode) {
+    if (pendingExamCode) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden relative">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#FFE6A3] rounded-full blur-3xl opacity-50 animate-blob"></div>
+            <div className="absolute top-40 -left-40 w-80 h-80 bg-[#FFEBD0] rounded-full blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+          </div>
+
+          <div className="relative z-10 min-h-screen">
+            <div className="max-w-5xl mx-auto px-4 py-10">
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] rounded-xl flex items-center justify-center shadow">
+                  <span className="text-xs font-bold text-gray-900">TTT</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">
+                  Question Types - Instructions
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Read all sets carefully before starting the exam.
+                </p>
+              </div>
+
+              <div className="mb-4 text-center text-xs text-gray-600">
+                Conventional MCQs | Multiple correct answers MCQs | Confidence-Weighted MCQs | Decision Tree MCQs
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 text-left">
+                <div className="rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm">
+                  <div className="text-[11px] uppercase tracking-wide text-amber-700/80">
+                    Section 1
+                  </div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    Conventional MCQs
+                  </h4>
+                  <ul className="text-xs text-gray-700 list-disc list-inside space-y-1">
+                    <li>Every question will have only one correct option as answer.</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm">
+                  <div className="text-[11px] uppercase tracking-wide text-amber-700/80">
+                    Section 2
+                  </div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    Multiple Correct Answers MCQs
+                  </h4>
+                  <ul className="text-xs text-gray-700 list-disc list-inside space-y-1">
+                    <li>Questions may have one or more correct options, up to all four.</li>
+                    <li>Candidates must select all correct options.</li>
+                    <li>Partial marking is applicable if no incorrect option is selected.</li>
+                    <li>Any incorrect option makes the response incorrect and negative marking applies.</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm">
+                  <div className="text-[11px] uppercase tracking-wide text-amber-700/80">
+                    Section 3
+                  </div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    Confidence-Weighted MCQs
+                  </h4>
+                  <ul className="text-xs text-gray-700 list-disc list-inside space-y-1">
+                    <li>Select one answer option for every question.</li>
+                    <li>Select one confidence level: High, Average, or Low.</li>
+                    <li>Confidence selection is mandatory for every question.</li>
+                    <li>Correct: High +2, Average +1, Low +0.5.</li>
+                    <li>Incorrect: High -1, Average -0.5, Low -0.1.</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm">
+                  <div className="text-[11px] uppercase tracking-wide text-amber-700/80">
+                    Section 4
+                  </div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                    Decision Tree MCQs - Instructions
+                  </h4>
+                  <ul className="text-xs text-gray-700 list-disc list-inside space-y-1">
+                    <li>Starts with Question X (no marks).</li>
+                    <li>Question X decides the next set of 5 MCQs.</li>
+                    <li>Once selected, Question X cannot be changed.</li>
+                    <li>Each of the 5 MCQs has one correct answer.</li>
+                    <li>Correct answer: +2 marks. Incorrect answer: -0.5 marks.</li>
+                    <li>You may answer or skip these questions like conventional MCQs.</li>
+                    <li>Marks apply only to attempted questions.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-[#FFE6A3] bg-white/90 p-4 shadow-sm">
+                <label className="flex items-start gap-3 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={introAccepted}
+                    onChange={(e) => setIntroAccepted(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-[#FFCD2C]"
+                  />
+                  <span>
+                   I have read and understood all the instructions carefully. I am ready to take the exam now.
+                  </span>
+                </label>
+              </div>
+
+              <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => {
+                    const now = new Date();
+                    localStorage.setItem("examCode", pendingExamCode);
+                    localStorage.setItem("examStartAt", now.toISOString());
+                    localStorage.setItem("examStartExamCode", pendingExamCode);
+                    setExamStartAt(now);
+                    setExamCode(pendingExamCode);
+                    setPendingExamCode("");
+                    setIntroAccepted(false);
+                  }}
+                  disabled={!introAccepted}
+                  className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                    introAccepted
+                      ? "bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 hover:shadow-lg"
+                      : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  Start Exam
+                </button>
+                <button
+                  onClick={() => {
+                    setPendingExamCode("");
+                    setIntroAccepted(false);
+                    localStorage.removeItem("examCode");
+                    clearExamStart();
+                    setExamStartAt(null);
+                  }}
+                  className="px-6 py-3 rounded-lg border border-[#FFE6A3] bg-white text-gray-800 hover:bg-[#FFF3C4] transition"
+                >
+                  Change Exam
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden relative">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -362,8 +759,8 @@ export default function Exam() {
 
                       <button
                         onClick={() => {
-                          localStorage.setItem("examCode", exam.examCode);
-                          setExamCode(exam.examCode);
+                          setPendingExamCode(exam.examCode);
+                          setIntroAccepted(false);
                         }}
                         className="mt-1 text-[11px] px-3 py-2 rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
                       >
@@ -480,6 +877,7 @@ export default function Exam() {
               onClick={() => {
                 setError("");
                 localStorage.removeItem("examCode");
+                clearExamStart();
                 setExamCode("");
                 navigate("/student");
               }}
@@ -521,24 +919,53 @@ export default function Exam() {
 
                 <div className="p-6">
                   {/* Question Header */}
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-base font-bold text-gray-900">
-                        {q?.type === "branch_parent"
-                          ? "Branch Choice"
-                          : `Question ${displayIndex}`}
-                      </h2>
-                      <p className="text-xs text-gray-600">
-                        Type: {TYPE_LABELS[q?.type] || q?.type || "-"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-600">Progress</div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {displayIndex || 0}/{displayTotal}
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-base font-bold text-gray-900">
+                      {q?.type === "branch_parent"
+                        ? "Question X"
+                        : `Question ${displayIndex}`}
+                    </h2>
+                    {timeLeft !== null && (
+                      <div
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          timeLeft <= 60
+                            ? "bg-rose-100 text-rose-700"
+                            : "bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        Time Left: {formatTimeLeft(timeLeft)}
+                      </div>
+                    )}
+                  </div>
+
+                  {SECTION_INFO[q?.type] && (
+                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2">
+                      <div className="text-[11px] font-semibold text-amber-800">
+                        {SECTION_INFO[q?.type].title}
+                      </div>
+                      <div className="mt-1 space-y-1">
+                        {SECTION_INFO[q?.type].blocks.map((block, idx) => {
+                          if (block.type === "text") {
+                            return (
+                              <p key={`t-${idx}`} className="text-[11px] text-amber-800">
+                                {block.text}
+                              </p>
+                            );
+                          }
+                          return (
+                            <ul
+                              key={`l-${idx}`}
+                              className="text-[11px] text-amber-800 list-disc list-inside space-y-0.5"
+                            >
+                              {block.items.map((line) => (
+                                <li key={line}>{line}</li>
+                              ))}
+                            </ul>
+                          );
+                        })}
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Question Text */}
                   <div className="mb-6 p-4 bg-[#FFF9E6] rounded-xl border border-[#FFE6A3]">
@@ -658,7 +1085,7 @@ export default function Exam() {
                   {/* Navigation Buttons */}
                   <div className="flex gap-3">
                     <button
-                      onClick={markSkipped}
+                      onClick={handleSkipAndNext}
                       disabled={q?.type === "branch_parent"}
                       className={`px-4 py-2.5 bg-gradient-to-br from-amber-100 to-orange-100 text-amber-800 font-medium rounded-lg hover:shadow transition-all duration-200 hover:-translate-y-0.5 ${
                         q?.type === "branch_parent"
@@ -679,7 +1106,7 @@ export default function Exam() {
                       )}
                       {current < visibleQuestions.length - 1 && (
                         <button
-                          onClick={() => !branchMustSelect && setCurrent((c) => c + 1)}
+                          onClick={handleNext}
                           disabled={branchMustSelect}
                           className={`px-4 py-2.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-lg hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 ${
                             branchMustSelect ? "opacity-60 cursor-not-allowed" : ""
@@ -691,7 +1118,7 @@ export default function Exam() {
                     </div>
                   </div>
                   <button
-                    onClick={handleSubmit}
+                    onClick={() => handleSubmit(false)}
                     disabled={submitLoading}
                     className="mt-4 w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
@@ -840,11 +1267,6 @@ export default function Exam() {
     </div>
   );
 }
-
-
-
-
-
 
 
 

@@ -2,6 +2,36 @@
 import { useState, useEffect } from "react";
 import { olympiadExamApi, examApi } from "../../api";
 
+const EXAM_CACHE_KEY = "examListCacheV1";
+const EXAM_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const readExamListCache = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(EXAM_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.data) || !parsed.ts) return null;
+    if (Date.now() - parsed.ts > EXAM_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+};
+
+const writeExamListCache = (list) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      EXAM_CACHE_KEY,
+      JSON.stringify({ data: Array.isArray(list) ? list : [], ts: Date.now() })
+    );
+  } catch {
+    // ignore cache write errors
+  }
+};
+import { FaYoutube, FaInstagram, FaLinkedinIn, FaTwitter } from "react-icons/fa";
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const [recentResults, setRecentResults] = useState([]);
@@ -10,21 +40,6 @@ export default function StudentDashboard() {
   const [examList, setExamList] = useState([]);
   const [examLoading, setExamLoading] = useState(false);
   const [examError, setExamError] = useState("");
-
-  const student = {
-    name: "Rahul Sharma",
-    rollNo: "STU-1023",
-    class: "Class 8",
-    school: "ABC Public School",
-    testsCompleted: 12,
-    averageScore: 87,
-    overallRank: 15,
-  };
-
-  const youtubeStatus = {
-    isSubscribed: true,
-    channelName: "StudentOlympiad Official",
-  };
 
   const availableTests = examList;
 
@@ -71,30 +86,56 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     let cancelled = false;
-    setExamLoading(true);
+    let fetching = false;
+    const cached = readExamListCache();
+    const hasCache = Array.isArray(cached) && cached.length > 0;
+    if (hasCache) setExamList(cached);
+    setExamLoading(!hasCache);
     setExamError("");
 
-    (async () => {
+    const fetchExams = async (silent = false) => {
+      if (fetching || cancelled) return;
+      fetching = true;
+      if (!silent && !hasCache) setExamLoading(true);
       try {
         const { data } = await examApi.list();
         if (!cancelled) {
           if (data.success) {
-            setExamList(data.data || []);
-          } else {
+            const list = data.data || [];
+            setExamList(list);
+            writeExamListCache(list);
+          } else if (!hasCache && !silent) {
             setExamError(data.message || "Failed to load exams");
           }
         }
       } catch (e) {
-        if (!cancelled) {
+        if (!cancelled && !hasCache && !silent) {
           setExamError(e.response?.data?.message || "Failed to load exams");
         }
       } finally {
-        if (!cancelled) setExamLoading(false);
+        fetching = false;
+        if (!cancelled && !silent) setExamLoading(false);
       }
-    })();
+    };
+
+    fetchExams(false);
+
+    const handleFocus = () => fetchExams(true);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchExams(true);
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === "visible") fetchExams(true);
+    }, 20000);
 
     return () => {
       cancelled = true;
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
@@ -144,135 +185,58 @@ export default function StudentDashboard() {
       <div className="relative z-10">
         {/* MAIN */}
         <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-          {/* WELCOME + SUMMARY */}
-          <section className="flex flex-col gap-4 md:flex-row md:items-start">
-            <div className="flex-1 space-y-2">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-gray-500">
-                Dashboard | Home View
-              </p>
-              <h1 className="text-xl font-semibold text-gray-900">
-                Welcome back, {student.name.split(" ")[0]}
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-3 text-xs">
-              <div className="rounded-2xl bg-white/80 border border-[#FFE6A3] px-4 py-2 shadow-sm">
+          {/* Social Links */}
+          <section className="rounded-2xl bg-white/90 border border-[#FFE6A3] backdrop-blur-xl p-4 shadow-md">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Official Socials
+                </h3>
                 <p className="text-[11px] text-gray-600">
-                  Overall Progress
-                </p>
-                <p className="mt-1 font-semibold text-emerald-600">
-                  {student.averageScore}% avg | {student.testsCompleted} tests
+                  Follow The True Topper for updates and resources.
                 </p>
               </div>
-            </div>
-          </section>
-
-          {/* FIRST ROW: Profile + YT Subscription */}
-          <section className="grid md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)] gap-4">
-            {/* Student Profile Card */}
-            <div className="relative overflow-hidden rounded-2xl border border-[#FFE6A3] bg-white/90 backdrop-blur-xl shadow-lg">
-              <div className="absolute inset-0 opacity-40 bg-gradient-to-br from-[#FFEBB5]/60 via-transparent to-[#FFE0D9]/80" />
-              <div className="relative p-5 flex gap-4 items-start">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-sm font-bold text-gray-900 shadow-md">
-                  ST
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-amber-700/80">
-                        Student Profile
-                      </p>
-                      <h2 className="text-lg font-semibold mt-0.5 text-gray-900">
-                        {student.name}
-                      </h2>
-                    </div>
-                    <button
-                      onClick={() => navigate("/student/profile")}
-                      className="text-[11px] px-3 py-1 rounded-full border border-[#FFE6A3] bg-white/80 hover:bg-[#FFF3C4] transition"
-                    >
-                      Edit Profile
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-gray-700 mt-2">
-                    <span>
-                      Roll No:{" "}
-                      <span className="font-medium text-gray-900">
-                        {student.rollNo}
-                      </span>
-                    </span>
-                    <span>
-                      Class:{" "}
-                      <span className="font-medium text-gray-900">
-                        {student.class}
-                      </span>
-                    </span>
-                    <span className="col-span-2 truncate">
-                      School:{" "}
-                      <span className="font-medium text-gray-900">
-                        {student.school}
-                      </span>
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
-                    <div className="rounded-xl bg-[#FFF9E6] border border-[#FFE6A3] p-2">
-                      <p className="text-gray-600">Tests Completed</p>
-                      <p className="mt-1 text-sm font-semibold text-emerald-600">
-                        {student.testsCompleted}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-[#FFF9E6] border border-[#FFE6A3] p-2">
-                      <p className="text-gray-600">Average Score</p>
-                      <p className="mt-1 text-sm font-semibold text-amber-700">
-                        {student.averageScore}%
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-[#FFF9E6] border border-[#FFE6A3] p-2">
-                      <p className="text-gray-600">Overall Rank</p>
-                      <p className="mt-1 text-sm font-semibold text-indigo-700">
-                        #{student.overallRank}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-500">
+                @TheTrueTopper
               </div>
             </div>
-
-            {/* YouTube Subscription Status */}
-            <div className="relative overflow-hidden rounded-2xl border border-emerald-300/70 bg-emerald-50/90 backdrop-blur-xl shadow-lg">
-              <div className="absolute right-[-40px] top-[-40px] w-40 h-40 bg-emerald-300/40 rounded-full blur-3xl" />
-              <div className="relative p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wide text-emerald-800/80">
-                    YouTube Subscription
-                  </p>
-                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800">
-                    {youtubeStatus.isSubscribed ? "Verified" : "Not Verified"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center text-[10px] font-bold text-white shadow-md">
-                    YT
-                  </div>
-                  <div className="text-xs text-gray-800">
-                    <p className="font-medium">{youtubeStatus.channelName}</p>
-                    <p className="text-gray-700 mt-1">
-                      Subscription is verified, so exam access is enabled.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() =>
-                    window.open("https://youtube.com", "_blank")
-                  }
-                  className="w-full mt-2 text-[11px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white py-2 font-medium shadow-lg shadow-emerald-300/60 hover:shadow-emerald-400/80 hover:-translate-y-[1px] transition-all"
-                >
-                  Open YouTube Channel
-                </button>
-              </div>
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <a
+                href="https://www.youtube.com/@TheTrueTopper"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-xs font-medium text-red-600 hover:bg-[#FFF3C4] transition"
+              >
+                <FaYoutube className="text-sm" />
+                YouTube
+              </a>
+              <a
+                href="https://www.instagram.com/thetruetopperpvtltd/"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-xs font-medium text-pink-600 hover:bg-[#FFF3C4] transition"
+              >
+                <FaInstagram className="text-sm" />
+                Instagram
+              </a>
+              <a
+                href="https://www.linkedin.com/company/thetruetopper/posts/?feedView=all"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-xs font-medium text-sky-700 hover:bg-[#FFF3C4] transition"
+              >
+                <FaLinkedinIn className="text-sm" />
+                LinkedIn
+              </a>
+              <a
+                href="https://x.com/TheTrueTopper"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-xs font-medium text-gray-800 hover:bg-[#FFF3C4] transition"
+              >
+                <FaTwitter className="text-sm" />
+                X (Twitter)
+              </a>
             </div>
           </section>
 
