@@ -1,0 +1,3 @@
+button
+            onClick={() => navigate("/admin")}
+            className="group px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white font-semibold rounded-xl hover:shadow-xl transition-a
