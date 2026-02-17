@@ -78,9 +78,9 @@ export const checkStudent = async (query) => {
 =================================================== */
 
 export const examApi = {
-  register: (body) => API.post("/exam/register", body),
-  submit: (body) => API.post("/exam/olympiad/submit", body),
-  list: () => API.get("/exam/list"),
+  register: (body) => API.post("/olympiad/register", body),
+  submit: (body) => API.post("/olympiad/submit", body),
+  list: () => API.get("/olympiad/list"),
 };
 
 /* ===================================================
@@ -90,9 +90,6 @@ export const examApi = {
 export const questionApi = {
   // ek-ek question add (humara AdminQuestionBuilder isi ko use karega)
   add: (body) => API.post("/question/add", body),
-
-  // future ke liye bulk import agar tum excel ya json se karna chaho
-  bulkAdd: (body) => API.post("/question/bulk-add", body),
 
   // sab questions (admin listing ke liye)
   all: () => API.get("/question/all"),
@@ -108,10 +105,10 @@ export const questionApi = {
 =================================================== */
 
 export const olympiadExamApi = {
-  submit: (body) => API.post("/exam/olympiad/submit", body),
-  attempts: (params) => API.get("/exam/olympiad/attempts", { params }),
+  submit: (body) => API.post("/olympiad/submit", body),
+  attempts: (params) => API.get("/olympiad/attempts", { params }),
   attemptDetails: (attemptId) =>
-    API.get(`/exam/olympiad/attempts/${attemptId}`),
+    API.get(`/olympiad/attempts/${attemptId}`),
 };
 
 /* ===================================================
@@ -123,8 +120,13 @@ export const analysisApi = {
   questions: () => API.get("/analysis/questions"),
   confidence: () => API.get("/analysis/confidence"),
   dashboard: () => API.get("/analysis/dashboard"),
-  studentExamDetails: (studentId) =>
-    API.get(`/analysis/student-details/${studentId}`),
+  studentExamDetails: (studentId, params) =>
+    API.get(`/analysis/student-details/${studentId}`, { params }),
+  examQuestionHighlights: (params) =>
+    API.get("/analysis/exam/question-highlights", { params }),
+  examStudentResults: (params) =>
+    API.get("/analysis/exam/student-results", { params }),
+  adminOverview: () => API.get("/analysis/admin/overview"),
 };
 
 export default API;

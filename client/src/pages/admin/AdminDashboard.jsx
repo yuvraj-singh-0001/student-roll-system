@@ -1,47 +1,120 @@
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+﻿import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { analysisApi } from "../../api";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [time, setTime] = useState(new Date());
-  const [activeIndex, setActiveIndex] = useState(null);
+  const [overview, setOverview] = useState(null);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const ACTIVITY_PAGE_SIZE = 5;
+
+  const fetchOverview = async (options = {}) => {
+    const { silent = false } = options;
+    try {
+      if (!silent) {
+        setLoading(true);
+        setError("");
+      }
+      const { data: res } = await analysisApi.adminOverview();
+      if (res.success) {
+        setOverview(res.data);
+        setRecentActivities(res.data.recentActivities || []);
+      }
+    } catch (e) {
+      if (!silent) {
+        setError(e.response?.data?.message || "Failed to load dashboard");
+      }
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
+  };
+  useEffect(() => {
+    fetchOverview();
+    const intervalId = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      fetchOverview({ silent: true });
+    }, 15000);
+    const handleFocus = () => fetchOverview({ silent: true });
+    window.addEventListener("focus", handleFocus);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchOverview({ silent: true });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    setActivitiesPage(1);
+  }, [recentActivities.length]);
+
+  const totals = overview?.totals || {};
+  const today = overview?.today || {};
 
   const stats = [
     {
       label: "Total Students",
-      value: "1,248",
-      change: "+12%",
+      value: totals.totalStudents ?? 0,
+      change: `+${today.students ?? 0} today`,
       icon: "👥",
       color: "from-blue-500 to-cyan-500",
     },
     {
-      label: "Exams Created",
-      value: "48",
-      change: "+5",
+      label: "Total Questions",
+      value: totals.totalQuestions ?? 0,
+      change: `+${today.questions ?? 0} today`,
       icon: "📋",
       color: "from-purple-500 to-pink-500",
     },
     {
-      label: "Avg Score",
-      value: "78.5%",
-      change: "+3.2%",
-      icon: "📊",
+      label: "Total Olympiad Exams",
+      value: totals.totalExams ?? 0,
+      change: `+${today.exams ?? 0} today`,
+      icon: "🏆",
       color: "from-green-500 to-emerald-500",
     },
     {
-      label: "Active Sessions",
-      value: "12",
-      change: "Live",
+      label: "Total Attempts (Students)",
+      value: totals.totalAttempts ?? 0,
+      change: `+${today.attempts ?? 0} today`,
       icon: "⚡",
       color: "from-orange-500 to-red-500",
     },
   ];
+
+  const activitiesTotal = recentActivities.length;
+  const activitiesTotalPages = Math.max(
+    1,
+    Math.ceil(activitiesTotal / ACTIVITY_PAGE_SIZE)
+  );
+  const activitiesPageSafe = Math.min(activitiesPage, activitiesTotalPages);
+  const activitiesStart =
+    activitiesTotal === 0
+      ? 0
+      : (activitiesPageSafe - 1) * ACTIVITY_PAGE_SIZE + 1;
+  const activitiesEnd = Math.min(
+    activitiesPageSafe * ACTIVITY_PAGE_SIZE,
+    activitiesTotal
+  );
+  const pagedActivities = useMemo(() => {
+    const start = (activitiesPageSafe - 1) * ACTIVITY_PAGE_SIZE;
+    return recentActivities.slice(start, start + ACTIVITY_PAGE_SIZE);
+  }, [recentActivities, activitiesPageSafe]);
+  const activityPages = useMemo(
+    () => Array.from({ length: activitiesTotalPages }, (_, i) => i + 1),
+    [activitiesTotalPages]
+  );
 
   const quickLinks = [
     {
@@ -88,62 +161,14 @@ export default function AdminDashboard() {
     },
   ];
 
-  const recentActivities = [
-    {
-      id: 1,
-      user: "John Doe",
-      action: "completed exam",
-      time: "2 min ago",
-      exam: "Mathematics Final",
-      status: "completed",
-      score: "85%",
-    },
-    {
-      id: 2,
-      user: "Sarah Smith",
-      action: "registered",
-      time: "15 min ago",
-      exam: "New Student",
-      status: "registered",
-      score: "-",
-    },
-    {
-      id: 3,
-      user: "Mike Johnson",
-      action: "scored 92% in",
-      time: "1 hour ago",
-      exam: "Physics Test",
-      status: "scored",
-      score: "92%",
-    },
-    {
-      id: 4,
-      user: "Emma Wilson",
-      action: "started exam",
-      time: "2 hours ago",
-      exam: "Chemistry Quiz",
-      status: "in-progress",
-      score: "-",
-    },
-    {
-      id: 5,
-      user: "David Brown",
-      action: "failed exam",
-      time: "3 hours ago",
-      exam: "Biology Test",
-      status: "failed",
-      score: "42%",
-    },
-    {
-      id: 6,
-      user: "Lisa Taylor",
-      action: "updated profile",
-      time: "4 hours ago",
-      exam: "Profile Update",
-      status: "updated",
-      score: "-",
-    },
-  ];
+  const formatScore = (value) => {
+    if (value === null || value === undefined || value === "-" || value === "") {
+      return "-";
+    }
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "-";
+    return num.toFixed(2);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -182,332 +207,294 @@ export default function AdminDashboard() {
         return "📝";
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] px-4 sm:px-6 lg:px-8 py-6">
-      {/* Top bar */}
-      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Admin Dashboard
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Monitor exams, students and system health in real-time.
-          </p>
-        </div>
-        <div className="bg-white/80 backdrop-blur-sm border border-[#FFE6A3] rounded-xl px-4 py-2 flex items-center gap-2 shadow-sm">
-          <span className="text-xs text-gray-500">Current Time</span>
-          <span className="text-sm font-semibold text-gray-900">
-            {time.toLocaleTimeString()}
-          </span>
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-14 h-14 mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
+    );
+  }
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat, index) => (
+  if (error) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-6 text-center max-w-md">
+          <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center">
+            <span className="text-2xl text-red-600">⚠️</span>
+          </div>
+          <p className="text-red-700 font-medium">{error}</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="w-full space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+            Admin Dashboard
+          </h1>
+          <p className="text-xs text-gray-600 mt-0.5">
+            Live totals and recent activity (auto-updates).
+          </p>
+        </div>
+        <button
+          onClick={() => fetchOverview()}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#FFE6A3] bg-white/80 text-gray-700 hover:bg-white transition"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        {stats.map((stat) => (
           <div
-            key={index}
-            className="group relative bg-white/90 rounded-xl shadow-md border border-[#FFEBD0] p-4 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 animate-fade-in-up"
-            style={{ animationDelay: `${index * 0.08}s` }}
+            key={stat.label}
+            className="group relative flex items-center justify-between rounded-xl border border-[#FFE6A3] bg-white/90 px-3 py-2 shadow-md transition-all duration-500 hover:shadow-lg hover:-translate-y-1"
           >
-            <div className="flex items-center justify-between mb-2.5">
-              <div
-                className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
-              >
-                <span className="text-lg text-white">{stat.icon}</span>
+            <div>
+              <div className="text-[11px] text-gray-500">{stat.label}</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {stat.value}
               </div>
-              <span
-                className={`px-2 py-1 text-[11px] font-medium rounded-full ${
-                  stat.label === "Active Sessions"
-                    ? "bg-red-50 text-red-600 animate-pulse"
-                    : "bg-emerald-50 text-emerald-700"
-                }`}
-              >
+              <div className="text-[11px] text-emerald-700">
                 {stat.change}
-              </span>
+              </div>
             </div>
-            <div className="text-xl font-bold text-gray-900 mb-0.5">
-              {stat.value}
-            </div>
-            <div className="text-xs text-gray-500">{stat.label}</div>
             <div
-              className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r ${stat.color} rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-            ></div>
+              className={`w-8 h-8 rounded-md bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+            >
+              <span className="text-sm text-white">{stat.icon}</span>
+            </div>
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white/90 rounded-2xl shadow-lg border border-[#FFEBD0] overflow-hidden mb-8">
-        <div className="px-5 py-4 border-b border-[#FFE6A3] flex items-center justify-between bg-[#FFF9E6]/60">
-          <h2 className="text-lg font-bold text-gray-900">Quick Actions</h2>
-          <span className="text-xs sm:text-sm text-gray-500">
-            {quickLinks.length} actions available
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-900">Quick Actions</h2>
+          <span className="text-xs text-gray-500">
+            {quickLinks.length} actions
           </span>
         </div>
-
-        <div className="p-5">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {quickLinks.map((link, index) => (
-              <button
-                key={link.path}
-                onClick={() => navigate(link.path)}
-                onMouseEnter={() => setActiveIndex(index)}
-                onMouseLeave={() => setActiveIndex(null)}
-                className={`group relative p-4 bg-gradient-to-br from-white to-[#FFFDF2] rounded-xl border border-[#FFEBD0] text-left transition-all duration-300 hover:border-transparent hover:shadow-xl hover:-translate-y-1 ${
-                  activeIndex === index ? "ring-2 ring-[#FFCD2C]" : ""
-                }`}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {quickLinks.map((link) => (
+            <button
+              key={link.path}
+              onClick={() => navigate(link.path)}
+              className="group flex items-center gap-2 rounded-xl border border-[#FFE6A3] bg-white/90 px-3 py-2 text-left shadow-md transition-all duration-500 hover:bg-white hover:shadow-lg hover:-translate-y-1"
+            >
+              <div
+                className={`w-7 h-7 rounded-md ${link.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
               >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-11 h-11 rounded-xl ${link.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <span className="text-lg text-white">{link.icon}</span>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-0.5">
-                      {link.label}
-                    </h3>
-                    <p className="text-xs text-gray-500">{link.desc}</p>
-                  </div>
-                  <span className="text-gray-400 group-hover:text-gray-700 transform group-hover:translate-x-1 transition-all duration-300">
-                    →
-                  </span>
+                <span className="text-xs text-white">{link.icon}</span>
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-gray-900 truncate">
+                  {link.label}
                 </div>
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#FFCD2C]/5 to-[#E0AC00]/5 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-300"></div>
-              </button>
-            ))}
-          </div>
+                <div className="text-[10px] text-gray-500 truncate">
+                  {link.desc}
+                </div>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Left - Recent Activities */}
-        <div className="lg:w-2/3">
-          <div className="bg-white/90 rounded-2xl shadow-lg border border-[#FFEBD0] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#FFE6A3] bg-[#FFF9E6]/60">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900">
-                    Recent Activities
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Real-time student activities monitoring
-                  </p>
-                </div>
-                <button className="px-3 py-1.5 text-xs font-medium text-gray-900 bg-[#FFEBB5] hover:bg-[#FFDF85] rounded-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm">
-                  View All →
-                </button>
-              </div>
-            </div>
+      {/* Recent Activities */}
+      <div className="rounded-2xl border border-[#FFE6A3] bg-white/90 overflow-hidden shadow-md transition-all duration-500 hover:shadow-lg hover:-translate-y-0.5">
+        <div className="px-3 py-2 border-b border-[#FFE6A3] bg-[#FFF9E6]/50 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">
+              Recent Activities
+            </h2>
+            <p className="text-[11px] text-gray-500">
+              Real-time student activity (latest first)
+            </p>
+          </div>
+          <button className="text-xs font-medium text-gray-800 px-2 py-1 rounded-md border border-[#FFE6A3] bg-white/80 hover:bg-white transition">
+            View All
+          </button>
+        </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[#FFF9E6]/60">
-                  <tr className="border-b border-[#FFE6A3]">
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                      <div className="flex items-center gap-1">
-                        <span>USER</span>
-                        <span className="text-gray-400 text-xs">↓</span>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-[#FFF9E6]/50">
+              <tr className="border-b border-[#FFE6A3] text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                <th className="py-2 px-3">User</th>
+                <th className="py-2 px-3">Activity</th>
+                <th className="py-2 px-3">Exam/Details</th>
+                <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3">Score</th>
+                <th className="py-2 px-3">Time</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#FFF1CC]">
+              {pagedActivities.map((activity, index) => {
+                const rawScore = activity.score;
+                const scoreNum =
+                  typeof rawScore === "number" ? rawScore : Number(rawScore);
+                const hasScore =
+                  rawScore !== null &&
+                  rawScore !== undefined &&
+                  rawScore !== "-" &&
+                  rawScore !== "" &&
+                  Number.isFinite(scoreNum);
+                const scoreClass = !hasScore
+                  ? "text-gray-400"
+                  : scoreNum >= 80
+                  ? "text-emerald-600"
+                  : scoreNum >= 60
+                  ? "text-green-600"
+                  : scoreNum >= 40
+                  ? "text-yellow-600"
+                  : "text-red-600";
+                const rowId =
+                  activity.id ||
+                  activity.createdAt ||
+                  `${activity.type || "activity"}-${index}`;
+                const statusText = activity.status
+                  ? activity.status.charAt(0).toUpperCase() +
+                    activity.status.slice(1)
+                  : "Update";
+                return (
+                  <tr
+                    key={rowId}
+                    onMouseEnter={() => setHoveredRow(rowId)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                    className={`transition-colors ${
+                      hoveredRow === rowId ? "bg-[#FFF9E6]/40" : "hover:bg-[#FFFDF2]"
+                    }`}
+                  >
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-6 h-6 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center ${
+                            hoveredRow === rowId ? "scale-105" : ""
+                          } transition-transform`}
+                        >
+                          <span className="text-[10px]">👤</span>
+                        </div>
+                        <span className="text-xs font-medium text-gray-900">
+                          {activity.user}
+                        </span>
                       </div>
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                      ACTIVITY
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                      EXAM/DETAILS
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                      STATUS
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                      SCORE
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                      TIME
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#FFF1CC]">
-                  {recentActivities.slice(0, 3).map((activity, index) => (
-                    <tr
-                      key={activity.id}
-                      onMouseEnter={() => setHoveredRow(activity.id)}
-                      onMouseLeave={() => setHoveredRow(null)}
-                      className={`group transition-all duration-300 animate-fade-in ${
-                        hoveredRow === activity.id
-                          ? "bg-gradient-to-r from-[#FFF9E6] to-transparent transform scale-[1.002]"
-                          : "hover:bg-[#FFFDF2]"
-                      }`}
-                      style={{ animationDelay: `${index * 0.05}s` }}
-                    >
-                      <td className="py-2.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-7 h-7 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-sm transition-transform duration-300 ${
-                              hoveredRow === activity.id ? "scale-110" : ""
-                            }`}
-                          >
-                            <span className="text-xs">👤</span>
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {activity.user}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`w-5 h-5 rounded flex items-center justify-center text-xs ${getStatusColor(
-                              activity.status
-                            )}`}
-                          >
-                            {getStatusIcon(activity.status)}
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            {activity.action}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {activity.exam}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-4">
+                    </td>
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-1.5">
                         <span
-                          className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(
+                          className={`w-5 h-5 rounded flex items-center justify-center text-[10px] ${getStatusColor(
                             activity.status
                           )}`}
                         >
-                          {activity.status.charAt(0).toUpperCase() +
-                            activity.status.slice(1)}
+                          {getStatusIcon(activity.status)}
                         </span>
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <div
-                          className={`text-sm font-medium ${
-                            activity.score !== "-"
-                              ? activity.score >= "90%"
-                                ? "text-emerald-600"
-                                : activity.score >= "70%"
-                                ? "text-green-600"
-                                : activity.score >= "50%"
-                                ? "text-yellow-600"
-                                : "text-red-600"
-                              : "text-gray-400"
-                          }`}
-                        >
-                          {activity.score}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-gray-500">
-                            {activity.time}
-                          </span>
-                          <span className="text-gray-300 group-hover:text-gray-400 transition-all duration-300 transform group-hover:translate-x-0.5">
-                            →
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="border-t border-[#FFE6A3] px-4 py-2.5 bg-[#FFF9E6]/70">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">
-                  Showing {recentActivities.slice(0, 3).length} of 1248 activities
-                </span>
-                <div className="flex items-center gap-1">
-                  <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-all duration-300 hover:-translate-y-0.5">
-                    ←
-                  </button>
-                  <span className="px-2 py-0.5 bg-white border border-[#FFE6A3] rounded text-gray-700 font-medium">
-                    1
-                  </span>
-                  <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-all duration-300 hover:-translate-y-0.5">
-                    →
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+                        <span className="text-xs text-gray-700">
+                          {activity.action}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-2 px-3">
+                      <div className="text-xs font-medium text-gray-900">
+                        {activity.exam}
+                      </div>
+                    </td>
+                    <td className="py-2 px-3">
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${getStatusColor(
+                          activity.status
+                        )}`}
+                      >
+                        {statusText}
+                      </span>
+                    </td>
+                    <td className="py-2 px-3">
+                      <div className={`text-xs font-medium ${scoreClass}`}>
+                        {hasScore ? formatScore(scoreNum) : "-"}
+                      </div>
+                    </td>
+                    <td className="py-2 px-3">
+                      <span className="text-[11px] text-gray-500">
+                        {activity.time}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        {/* Right - System Status + Emergency Actions */}
-        <div className="lg:w-1/3 space-y-6">
-          <div className="bg-white/90 rounded-2xl shadow-lg border border-[#FFEBD0] p-5">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              System Status
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Server Load</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] rounded-full"
-                      style={{ width: "65%" }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">
-                    65%
-                  </span>
-                </div>
+        <div className="border-t border-[#FFE6A3] px-3 py-2 bg-[#FFF9E6]/40">
+          <div className="flex items-center justify-between text-[11px] text-gray-600">
+            <span>
+              Showing {activitiesStart}-{activitiesEnd} of {activitiesTotal} activities
+            </span>
+            {activitiesTotalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() =>
+                    setActivitiesPage((prev) => Math.max(1, prev - 1))
+                  }
+                  disabled={activitiesPageSafe === 1}
+                  className={`px-2 py-0.5 rounded border ${
+                    activitiesPageSafe === 1
+                      ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                      : "border-gray-300 text-gray-700 hover:bg-white"
+                  }`}
+                >
+                  Prev
+                </button>
+                {activityPages.map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setActivitiesPage(page)}
+                    className={`px-2 py-0.5 rounded border ${
+                      page === activitiesPageSafe
+                        ? "border-gray-900 bg-gray-900 text-white"
+                        : "border-gray-300 text-gray-700 hover:bg-white"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() =>
+                    setActivitiesPage((prev) =>
+                      Math.min(activitiesTotalPages, prev + 1)
+                    )
+                  }
+                  disabled={activitiesPageSafe === activitiesTotalPages}
+                  className={`px-2 py-0.5 rounded border ${
+                    activitiesPageSafe === activitiesTotalPages
+                      ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                      : "border-gray-300 text-gray-700 hover:bg-white"
+                  }`}
+                >
+                  Next
+                </button>
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Database</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-                  <span className="text-sm font-medium text-green-600">
-                    Connected
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Storage</span>
-                <span className="text-sm font-medium text-gray-900">
-                  2.4 GB / 10 GB
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Uptime</span>
-                <span className="text-sm font-medium text-gray-900">
-                  99.8%
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#FFE0D9] to-[#FFF1CC] rounded-2xl border border-[#FFC8B8] p-5">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">
-              Emergency Actions
-            </h3>
-            <p className="text-xs text-gray-600 mb-3">
-              Use these actions carefully. They affect live exams and students.
-            </p>
-            <div className="space-y-3">
-              <button className="w-full p-3 bg-white/90 border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:border-red-300 transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-md">
-                ⚠️ Emergency Lockdown
-              </button>
-              <button className="w-full p-3 bg-white/90 border border-orange-200 text-orange-600 text-sm font-medium rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 flex items-center justify-center gap-2 hover:-translate-y-0.5 hover:shadow-md">
-                📧 Broadcast Alert
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
