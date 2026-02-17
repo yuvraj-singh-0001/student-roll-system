@@ -18,10 +18,10 @@ const getInitialQuestionState = () => ({
     { key: "C", text: "" },
     { key: "D", text: "" },
   ],
-  correctAnswer: "", // simple / confidence / branch_child
-  correctAnswers: [], // multiple
-  parentQuestion: "", // branch_child
-  branchKey: "A", // branch_child (A or B)
+  correctAnswer: "",
+  correctAnswers: [],
+  parentQuestion: "",
+  branchKey: "A",
 });
 
 const initialTypeCounts = {
@@ -42,25 +42,29 @@ function AdminQuestionBuilder() {
   const [latestBranchParent, setLatestBranchParent] = useState(null);
   const [examCodeNotice, setExamCodeNotice] = useState("");
   const [message, setMessage] = useState("");
+
   const cardStyle = {
-    background: "#fff",
-    border: "1px solid #eee",
-    borderRadius: "10px",
-    padding: "12px",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+    background: "#ffffff",
+    borderRadius: "12px",
+    padding: "16px 18px",
+    boxShadow: "0 4px 12px rgba(15, 23, 42, 0.06)",
+    border: "1px solid #e5e7eb",
   };
-  const labelStyle = { fontSize: "12px", color: "#555", fontWeight: 600 };
+  const labelStyle = {
+    fontSize: "12px",
+    color: "#4b5563",
+    fontWeight: 600,
+    display: "block",
+    marginBottom: "4px",
+  };
   const inputStyle = {
     width: "100%",
-    padding: "7px 10px",
-    marginTop: "6px",
-    border: "1px solid #ddd",
-    borderRadius: "6px",
+    padding: "8px 10px",
+    border: "1px solid #d1d5db",
+    borderRadius: "8px",
     outline: "none",
+    fontSize: "13px",
   };
-
-  // jab examCode change ho, hum total question count fetch kar sakte the,
-  // abhi simple rakh rahe hain, manual update karenge response se.
 
   useEffect(() => {
     setMessage("");
@@ -129,18 +133,15 @@ function AdminQuestionBuilder() {
     };
   }, [examInfo.examCode]);
 
-  // exam basic info change
   const handleExamInfoChange = (e) => {
     const { name, value } = e.target;
     setExamInfo((prev) => ({ ...prev, [name]: value }));
   };
 
-  // question text change
   const handleQuestionTextChange = (e) => {
     setQuestion((prev) => ({ ...prev, questionText: e.target.value }));
   };
 
-  // option text change
   const handleOptionChange = (index, value) => {
     setQuestion((prev) => {
       const newOptions = prev.options.map((opt, i) =>
@@ -150,19 +151,16 @@ function AdminQuestionBuilder() {
     });
   };
 
-  // question type change
   const handleTypeChange = (e) => {
     const value = e.target.value;
-    // type change karte hi type-specific fields reset
     setQuestion((prev) => ({
       ...getInitialQuestionState(),
       type: value,
-      questionText: prev.questionText, // agar tum chaho to clear bhi kar sakte ho
+      questionText: prev.questionText,
       options: prev.options.map((opt) => ({ ...opt })),
     }));
   };
 
-  // simple / confidence / branch_child  single correct
   const handleCorrectAnswerChange = (key) => {
     setQuestion((prev) => ({
       ...prev,
@@ -170,7 +168,6 @@ function AdminQuestionBuilder() {
     }));
   };
 
-  // multiple  multi select correctAnswers
   const handleMultipleCorrectToggle = (key) => {
     setQuestion((prev) => {
       const exists = prev.correctAnswers.includes(key);
@@ -184,7 +181,6 @@ function AdminQuestionBuilder() {
     });
   };
 
-  // branch_child fields
   const handleBranchKeyChange = (e) => {
     setQuestion((prev) => ({
       ...prev,
@@ -192,7 +188,6 @@ function AdminQuestionBuilder() {
     }));
   };
 
-  // submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
@@ -202,7 +197,6 @@ function AdminQuestionBuilder() {
       return;
     }
 
-    // basic validation frontend
     if (!question.questionText.trim()) {
       setMessage("Please enter question text.");
       return;
@@ -218,8 +212,11 @@ function AdminQuestionBuilder() {
       return;
     }
 
-    // type wise checks
-    if (question.type === "simple" || question.type === "confidence" || question.type === "branch_child") {
+    if (
+      question.type === "simple" ||
+      question.type === "confidence" ||
+      question.type === "branch_child"
+    ) {
       if (!question.correctAnswer) {
         setMessage("Please select one correct option.");
         return;
@@ -244,7 +241,6 @@ function AdminQuestionBuilder() {
       }
     }
 
-    // body prepare
     const payloadOptions =
       question.type === "branch_parent"
         ? question.options.slice(0, 2)
@@ -289,7 +285,10 @@ function AdminQuestionBuilder() {
       setLoading(false);
 
       if (res.data && res.data.success) {
-        setMessage("Question added successfully. Question no: " + res.data.data.questionNumber);
+        setMessage(
+          "Question added successfully. Question no: " +
+            res.data.data.questionNumber
+        );
         setTotalQuestions((prev) => prev + 1);
 
         setTypeCounts((prev) => ({
@@ -298,10 +297,11 @@ function AdminQuestionBuilder() {
         }));
 
         if (question.type === "branch_parent") {
-          setLatestBranchParent(res.data.data?.questionNumber || latestBranchParent);
+          setLatestBranchParent(
+            res.data.data?.questionNumber || latestBranchParent
+          );
         }
 
-        // question text + options clear, type same rehne do
         setQuestion((prev) => ({
           ...getInitialQuestionState(),
           type: prev.type,
@@ -329,27 +329,47 @@ function AdminQuestionBuilder() {
       style={{
         maxWidth: "1200px",
         width: "100%",
-        margin: "12px auto",
-        padding: "12px",
-        border: "1px solid #e6e6e6",
-        borderRadius: "10px",
-        background: "#fff",
+        margin: "16px auto",
+        padding: "16px",
+        borderRadius: "16px",
+        background: "#f9fafb",
+        border: "1px solid #e5e7eb",
       }}
     >
-      {/* Exam Info */}
-      <h2>Olympiad Exam Setup (Admin)</h2>
-      <p style={{ color: "#555", marginTop: "4px" }}>
-        Fill the basic exam details first. Then add questions below by type. After each submit, the question number auto-increments.
-      </p>
+      {/* Header */}
+      <div style={{ marginBottom: "16px" }}>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: "20px",
+            fontWeight: 700,
+            color: "#111827",
+          }}
+        >
+          Olympiad Exam Setup (Admin)
+        </h2>
+        <p
+          style={{
+            color: "#6b7280",
+            marginTop: "4px",
+            fontSize: "13px",
+          }}
+        >
+          Step 1: Fill exam details. Step 2: Choose question type and add
+          questions one by one.
+        </p>
+      </div>
 
+      {/* Top grid: Exam info + summary */}
       <div
         style={{
-          marginBottom: "16px",
+          marginBottom: "18px",
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-          gap: "10px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "14px",
         }}
       >
+        {/* Exam details card */}
         <div style={cardStyle}>
           <div
             style={{
@@ -359,9 +379,37 @@ function AdminQuestionBuilder() {
               marginBottom: "10px",
             }}
           >
-            <h3 style={{ margin: 0 }}>Exam Details</h3>
-            <span style={{ fontSize: "12px", color: "#888" }}>
-              Required
+            <div>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  color: "#111827",
+                }}
+              >
+                Exam Details
+              </h3>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "#6b7280",
+                }}
+              >
+                Required before adding questions
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#047857",
+                background: "#ecfdf3",
+                padding: "2px 8px",
+                borderRadius: "999px",
+                border: "1px solid #bbf7d0",
+              }}
+            >
+              Step 1
             </span>
           </div>
 
@@ -389,13 +437,30 @@ function AdminQuestionBuilder() {
                 style={inputStyle}
               />
               {examCodeNotice && (
-                <div style={{ marginTop: "6px", fontSize: "12px", color: "#b45309" }}>
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "12px",
+                    color: "#b45309",
+                    background: "#fffbeb",
+                    padding: "6px 8px",
+                    borderRadius: "6px",
+                    border: "1px solid #fcd34d",
+                  }}
+                >
                   {examCodeNotice}
                 </div>
               )}
             </div>
 
-            <div style={{ display: "grid", gap: "10px", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+            <div
+              style={{
+                display: "grid",
+                gap: "10px",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(160px, 1fr))",
+              }}
+            >
               <div>
                 <label style={labelStyle}>Total Time (minutes)</label>
                 <input
@@ -423,51 +488,157 @@ function AdminQuestionBuilder() {
           </div>
         </div>
 
+        {/* Summary card */}
         <div style={cardStyle}>
-          <h3 style={{ margin: 0, marginBottom: "10px" }}>
-            Question Summary
-          </h3>
-          <div style={{ fontSize: "13px", color: "#666", marginBottom: "8px" }}>
-            Exam Code:{" "}
-            <b style={{ color: "#222" }}>{examInfo.examCode || "Not set"}</b>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "10px",
+              alignItems: "center",
+            }}
+          >
+            <h3
+              style={{
+                margin: 0,
+                fontSize: "15px",
+                fontWeight: 600,
+                color: "#111827",
+              }}
+            >
+              Question Summary
+            </h3>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#2563eb",
+                background: "#eff6ff",
+                padding: "2px 8px",
+                borderRadius: "999px",
+                border: "1px solid #bfdbfe",
+              }}
+            >
+              Live
+            </span>
           </div>
-          <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>
-            Latest Branch Parent (X):{" "}
-            <b style={{ color: "#222" }}>
-              {latestBranchParent ? `Q${latestBranchParent}` : metaLoading ? "Loading..." : "Not added"}
+
+          <div
+            style={{
+              fontSize: "13px",
+              color: "#4b5563",
+              marginBottom: "6px",
+            }}
+          >
+            Exam Code:{" "}
+            <b style={{ color: "#111827" }}>
+              {examInfo.examCode || "Not set"}
             </b>
           </div>
           <div
             style={{
+              fontSize: "12px",
+              color: "#4b5563",
+              marginBottom: "10px",
+            }}
+          >
+            Latest Branch Parent (X):{" "}
+            <b style={{ color: "#111827" }}>
+              {latestBranchParent
+                ? `Q${latestBranchParent}`
+                : metaLoading
+                ? "Loading..."
+                : "Not added"}
+            </b>
+          </div>
+
+          <div
+            style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(120px, 1fr))",
               gap: "8px",
               fontSize: "13px",
             }}
           >
-            <div style={{ padding: "8px", border: "1px solid #f0f0f0", borderRadius: "6px" }}>
+            <div
+              style={{
+                padding: "8px",
+                borderRadius: "8px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+              }}
+            >
               Total Added
-              <div style={{ fontSize: "18px", fontWeight: 700 }}>{totalQuestions}</div>
+              <div
+                style={{ fontSize: "18px", fontWeight: 700, color: "#111827" }}
+              >
+                {totalQuestions}
+              </div>
             </div>
-            <div style={{ padding: "8px", border: "1px solid #f0f0f0", borderRadius: "6px" }}>
+            <div
+              style={{
+                padding: "8px",
+                borderRadius: "8px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+              }}
+            >
               Simple
-              <div style={{ fontSize: "18px", fontWeight: 700 }}>{typeCounts.simple}</div>
+              <div style={{ fontSize: "18px", fontWeight: 700 }}>
+                {typeCounts.simple}
+              </div>
             </div>
-            <div style={{ padding: "8px", border: "1px solid #f0f0f0", borderRadius: "6px" }}>
+            <div
+              style={{
+                padding: "8px",
+                borderRadius: "8px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+              }}
+            >
               Multiple
-              <div style={{ fontSize: "18px", fontWeight: 700 }}>{typeCounts.multiple}</div>
+              <div style={{ fontSize: "18px", fontWeight: 700 }}>
+                {typeCounts.multiple}
+              </div>
             </div>
-            <div style={{ padding: "8px", border: "1px solid #f0f0f0", borderRadius: "6px" }}>
+            <div
+              style={{
+                padding: "8px",
+                borderRadius: "8px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+              }}
+            >
               Confidence
-              <div style={{ fontSize: "18px", fontWeight: 700 }}>{typeCounts.confidence}</div>
+              <div style={{ fontSize: "18px", fontWeight: 700 }}>
+                {typeCounts.confidence}
+              </div>
             </div>
-            <div style={{ padding: "8px", border: "1px solid #f0f0f0", borderRadius: "6px" }}>
+            <div
+              style={{
+                padding: "8px",
+                borderRadius: "8px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+              }}
+            >
               Branch Parent
-              <div style={{ fontSize: "18px", fontWeight: 700 }}>{typeCounts.branch_parent}</div>
+              <div style={{ fontSize: "18px", fontWeight: 700 }}>
+                {typeCounts.branch_parent}
+              </div>
             </div>
-            <div style={{ padding: "8px", border: "1px solid #f0f0f0", borderRadius: "6px" }}>
+            <div
+              style={{
+                padding: "8px",
+                borderRadius: "8px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+              }}
+            >
               Branch Child
-              <div style={{ fontSize: "18px", fontWeight: 700 }}>{typeCounts.branch_child}</div>
+              <div style={{ fontSize: "18px", fontWeight: 700 }}>
+                {typeCounts.branch_child}
+              </div>
             </div>
           </div>
         </div>
@@ -475,190 +646,412 @@ function AdminQuestionBuilder() {
 
       {/* Question Form */}
       <form onSubmit={handleSubmit}>
-        <h3>Step 2: Add Questions</h3>
-
-        {/* Question Type */}
-        <div style={{ marginBottom: "12px" }}>
-          <label>Question Type</label>
-          <select
-            value={question.type}
-            onChange={handleTypeChange}
-            style={{ display: "block", marginTop: "4px", padding: "6px" }}
-          >
-            <option value="simple">Set 1 - Simple (single correct)</option>
-            <option value="multiple">Set 2 - Multiple correct</option>
-            <option value="confidence">Set 3 - Confidence based</option>
-            <option value="branch_parent">Set 4 - Branch parent (X choice)</option>
-            <option value="branch_child">Set 4 - Branch child (A/B path question)</option>
-          </select>
-
-          <small style={{ color: "#777" }}>
-            Simple: 1 right option. Multiple: 1-3 right options. Confidence: answer + confidence on student side. Branch: X chooses A/B path, then child questions.
-          </small>
-        </div>
-
-        {/* Question Text */}
-        <div style={{ marginBottom: "12px" }}>
-          <label>Question Text</label>
-          <textarea
-            value={question.questionText}
-            onChange={handleQuestionTextChange}
-            rows={3}
-            placeholder="Enter your question here..."
-            style={{ width: "100%", padding: "6px", marginTop: "4px" }}
-          />
-        </div>
-
-        {/* Branch child extra fields */}
-        {question.type === "branch_child" && (
-          <div style={{ display: "flex", gap: "12px", marginBottom: "12px", flexWrap: "wrap" }}>
-            <div style={{ fontSize: "12px", color: "#666" }}>
-              Linked Parent (X):{" "}
-              <b style={{ color: latestBranchParent ? "#222" : "#c00" }}>
-                {latestBranchParent ? `Q${latestBranchParent}` : "Not found"}
-              </b>
-            </div>
-            <div>
-              <label>Branch Key</label>
-              <select
-                value={question.branchKey}
-                onChange={handleBranchKeyChange}
-                style={{ padding: "6px", marginTop: "4px" }}
-              >
-                <option value="A">A path</option>
-                <option value="B">B path</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {/* Options */}
-        <div style={{ marginBottom: "12px", padding: "10px", border: "1px solid #eee", borderRadius: "6px" }}>
-          <label>
-            Options ({question.type === "branch_parent" ? "A, B" : "A, B, C, D"})
-          </label>
-          {question.type === "branch_parent" && (
-            <div style={{ fontSize: "12px", color: "#777", marginTop: "4px" }}>
-              Branch parent me sirf A/B options required hain.
-            </div>
-          )}
-          {optionList.map((opt, index) => (
-            <div
-              key={opt.key}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginTop: "6px",
-              }}
-            >
-              <div style={{ width: "40px", fontWeight: "bold" }}>{opt.key}.</div>
-              <input
-                type="text"
-                value={opt.text}
-                onChange={(e) => handleOptionChange(index, e.target.value)}
-                placeholder={`Option ${opt.key}`}
-                style={{ flex: 1, padding: "6px" }}
-              />
-
-              {/* Right answer selection UI */}
-              {question.type === "simple" ||
-              question.type === "confidence" ||
-              question.type === "branch_child" ? (
-                <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "14px" }}>
-                  <input
-                    type="radio"
-                    name="correctSingle"
-                    checked={question.correctAnswer === opt.key}
-                    onChange={() => handleCorrectAnswerChange(opt.key)}
-                  />
-                  Correct
-                </label>
-              ) : null}
-
-              {question.type === "multiple" && (
-                <label style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "14px" }}>
-                  <input
-                    type="checkbox"
-                    checked={question.correctAnswers.includes(opt.key)}
-                    onChange={() => handleMultipleCorrectToggle(opt.key)}
-                  />
-                  Correct
-                </label>
-              )}
-
-            </div>
-          ))}
-        </div>
-
-        {/* Info about type behaviour for admin samajh ke liye */}
         <div
           style={{
-            marginBottom: "12px",
-            padding: "10px",
-            background: "#f9f9f9",
-            borderRadius: "6px",
-            fontSize: "13px",
-            color: "#444",
+            ...cardStyle,
+            marginBottom: "14px",
           }}
         >
-          {question.type === "simple" && (
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>Student must choose 1 correct option.</li>
-              <li>Marks: correct = +1, wrong = -0.25, skip = 0.</li>
-            </ul>
-          )}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "10px",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  color: "#111827",
+                }}
+              >
+                Step 2: Add Question
+              </h3>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "12px",
+                  color: "#6b7280",
+                }}
+              >
+                Choose question type, write question, fill options, then mark
+                correct answer(s).
+              </p>
+            </div>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#0369a1",
+                background: "#e0f2fe",
+                padding: "2px 8px",
+                borderRadius: "999px",
+                border: "1px solid #7dd3fc",
+              }}
+            >
+              Step 2
+            </span>
+          </div>
 
-          {question.type === "multiple" && (
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>1, 2, or 3 options can be correct.</li>
-              <li>Marks: total 2 marks. Each correct option = 2 / (total correct).</li>
-              <li>If any wrong option is selected, the whole question = -0.25.</li>
-            </ul>
-          )}
+          {/* Type + Question text in 2-column layout */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 260px) minmax(0, 1fr)",
+              gap: "14px",
+              alignItems: "flex-start",
+            }}
+          >
+            {/* Left: type and helper description */}
+            <div>
+              <label style={labelStyle}>Question Type</label>
+              <select
+                value={question.type}
+                onChange={handleTypeChange}
+                style={{
+                  ...inputStyle,
+                  padding: "8px 10px",
+                }}
+              >
+                <option value="simple">
+                  Set 1 - Simple (single correct)
+                </option>
+                <option value="multiple">
+                  Set 2 - Multiple correct
+                </option>
+                <option value="confidence">
+                  Set 3 - Confidence based
+                </option>
+                <option value="branch_parent">
+                  Set 4 - Branch parent (X choice)
+                </option>
+                <option value="branch_child">
+                  Set 4 - Branch child (A/B path question)
+                </option>
+              </select>
 
-          {question.type === "confidence" && (
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>Student selects an answer, then chooses confidence (low/mid/high).</li>
-              <li>High: correct +2, wrong -0.5. Mid: correct +1, wrong -0.25. Low: correct +0.25, wrong -0.10.</li>
-            </ul>
-          )}
+              <div
+                style={{
+                  marginTop: "8px",
+                  fontSize: "11px",
+                  color: "#6b7280",
+                  background: "#f9fafb",
+                  borderRadius: "8px",
+                  padding: "8px",
+                  border: "1px dashed #e5e7eb",
+                }}
+              >
+                {question.type === "simple" && (
+                  <>
+                    Simple: 1 correct option. Student gets +1 / -0.25 /
+                    0 based on answer.
+                  </>
+                )}
+                {question.type === "multiple" && (
+                  <>
+                    Multiple: 1–3 options correct. Total 2 marks, wrong
+                    selection = -0.25.
+                  </>
+                )}
+                {question.type === "confidence" && (
+                  <>
+                    Confidence: student chooses answer + confidence
+                    level. Marks vary by confidence.
+                  </>
+                )}
+                {question.type === "branch_parent" && (
+                  <>
+                    Branch parent (X): student chooses A or B only,
+                    no direct marks.
+                  </>
+                )}
+                {question.type === "branch_child" && (
+                  <>
+                    Branch child: appears after X, behaves like simple
+                    question (+1 / -0.25).
+                  </>
+                )}
+              </div>
+            </div>
 
-          {question.type === "branch_parent" && (
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>This is an X (branch) question. The student only chooses A or B.</li>
-              <li>No marks for this question. It only decides the branch.</li>
-            </ul>
-          )}
+            {/* Right: Question text + branch child small section */}
+            <div>
+              <label style={labelStyle}>Question Text</label>
+              <textarea
+                value={question.questionText}
+                onChange={handleQuestionTextChange}
+                rows={4}
+                placeholder="Enter your question here..."
+                style={{
+                  ...inputStyle,
+                  resize: "vertical",
+                  minHeight: "80px",
+                }}
+              />
 
-          {question.type === "branch_child" && (
-            <ul style={{ margin: 0, paddingLeft: "18px" }}>
-              <li>These are simple questions that appear after X (for A or B path).</li>
-              <li>Marks like simple: correct +1, wrong -0.25.</li>
-            </ul>
-          )}
+              {question.type === "branch_child" && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                    alignItems: "center",
+                    fontSize: "12px",
+                    color: "#1e3a8a",
+                  }}
+                >
+                  <span>
+                    Linked Parent (X):{" "}
+                    <b>
+                      {latestBranchParent
+                        ? `Q${latestBranchParent}`
+                        : "Not found"}
+                    </b>
+                  </span>
+                  <span style={{ marginLeft: "auto" }}>
+                    Branch Key:{" "}
+                    <select
+                      value={question.branchKey}
+                      onChange={handleBranchKeyChange}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: "999px",
+                        border: "1px solid #93c5fd",
+                      }}
+                    >
+                      <option value="A">A path</option>
+                      <option value="B">B path</option>
+                    </select>
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Options block */}
+          <div
+            style={{
+              marginTop: "14px",
+              padding: "10px 12px",
+              borderRadius: "10px",
+              background: "#f9fafb",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "6px",
+                alignItems: "center",
+              }}
+            >
+              <label style={labelStyle}>
+                Options (
+                {question.type === "branch_parent" ? "A, B" : "A, B, C, D"})
+              </label>
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "#6b7280",
+                }}
+              >
+                Mark correct using radio / checkbox
+              </span>
+            </div>
+
+            {question.type === "branch_parent" && (
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "#6b7280",
+                  marginBottom: "6px",
+                }}
+              >
+                Branch parent me sirf A/B options required hain.
+              </div>
+            )}
+
+            {optionList.map((opt, index) => (
+              <div
+                key={opt.key}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "40px minmax(0,1fr) max-content",
+                  gap: "8px",
+                  alignItems: "center",
+                  marginTop: "6px",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "14px",
+                    color: "#111827",
+                  }}
+                >
+                  {opt.key}.
+                </div>
+                <input
+                  type="text"
+                  value={opt.text}
+                  onChange={(e) => handleOptionChange(index, e.target.value)}
+                  placeholder={`Option ${opt.key}`}
+                  style={{
+                    ...inputStyle,
+                    padding: "6px 8px",
+                    fontSize: "13px",
+                  }}
+                />
+
+                {(question.type === "simple" ||
+                  question.type === "confidence" ||
+                  question.type === "branch_child") && (
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "12px",
+                      color: "#374151",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="correctSingle"
+                      checked={question.correctAnswer === opt.key}
+                      onChange={() => handleCorrectAnswerChange(opt.key)}
+                    />
+                    Correct
+                  </label>
+                )}
+
+                {question.type === "multiple" && (
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "12px",
+                      color: "#374151",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={question.correctAnswers.includes(opt.key)}
+                      onChange={() => handleMultipleCorrectToggle(opt.key)}
+                    />
+                    Correct
+                  </label>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={loading}
+        {/* Bottom info + submit */}
+        <div
           style={{
-            padding: "8px 16px",
-            backgroundColor: "#007bff",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          {loading ? "Saving..." : "Add Question"}
-        </button>
+          <div
+            style={{
+              flex: "1 1 260px",
+              fontSize: "12px",
+              color: "#4b5563",
+              background: "#f9fafb",
+              borderRadius: "10px",
+              padding: "10px 12px",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            {question.type === "simple" && (
+              <>
+                Simple: 1 correct option. Marks: correct +1, wrong -0.25,
+                skip 0.
+              </>
+            )}
+            {question.type === "multiple" && (
+              <>
+                Multiple: total 2 marks. Har correct option ke marks
+                equally split; koi bhi galat option select hua to -0.25.
+              </>
+            )}
+            {question.type === "confidence" && (
+              <>
+                Confidence: High / Mid / Low confidence ke hisaab se
+                marks change hote hain (admin ke note ke according).
+              </>
+            )}
+            {question.type === "branch_parent" && (
+              <>
+                Branch parent: sirf A / B choose hota hai, is pe marks
+                nahi milte. Ye bas path decide karta hai.
+              </>
+            )}
+            {question.type === "branch_child" && (
+              <>
+                Branch child: simple jaisa behave karta hai, X ke baad
+                show hota hai (A/B path ke according).
+              </>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              padding: "9px 18px",
+              background:
+                "linear-gradient(to right, #2563eb, #1d4ed8)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "999px",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: 600,
+              boxShadow: "0 4px 10px rgba(37, 99, 235, 0.35)",
+              opacity: loading ? 0.8 : 1,
+              minWidth: "150px",
+            }}
+          >
+            {loading ? "Saving..." : "Add Question"}
+          </button>
+        </div>
       </form>
 
-      {/* Message */}
       {message && (
-        <div style={{ marginTop: "12px", color: message.startsWith("Error") ? "red" : "green" }}>
+        <div
+          style={{
+            marginTop: "12px",
+            padding: "8px 10px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            color: message.startsWith("Error") ? "#b91c1c" : "#166534",
+            background: message.startsWith("Error")
+              ? "#fef2f2"
+              : "#ecfdf3",
+            border: `1px solid ${
+              message.startsWith("Error") ? "#fecaca" : "#bbf7d0"
+            }`,
+          }}
+        >
           {message}
         </div>
       )}
@@ -667,4 +1060,3 @@ function AdminQuestionBuilder() {
 }
 
 export default AdminQuestionBuilder;
-
