@@ -1,5 +1,8 @@
 const express = require("express");
-const { addStudent, getAllStudents, getStudentByRollNumber, trackEmailOpen } = require("../../api/student");
+const addStudent = require("../../api/student/addStudent");
+const getAllStudents = require("../../api/student/getAllStudents");
+const getStudentByRollNumber = require("../../api/student/getStudentByRollNumber");
+const trackEmailOpen = require("../../api/student/trackEmailOpen");
 
 const router = express.Router();
 

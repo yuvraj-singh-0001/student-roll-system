@@ -1,4 +1,5 @@
-// backend/api/exam/submitOlympiad.js
+// यह API olympiad exam submit करता है
+// backend/api/olympiad/submitOlympiadExam.js
 const Question = require("../../models/Question");
 const ExamAttempt = require("../../models/ExamAttempt");
 
@@ -96,7 +97,7 @@ function calcBranchChild(q, attempt) {
   return calcSimple(q, attempt);
 }
 
-async function submitOlympiad(req, res) {
+async function submitOlympiadExam(req, res) {
   try {
     const {
       examCode,
@@ -283,7 +284,7 @@ async function submitOlympiad(req, res) {
       });
     }
 
-    // 🔴 IMPORTANT: db me attempt save karo
+    // ðŸ”´ IMPORTANT: db me attempt save karo
     const attemptDoc = new ExamAttempt({
       studentId: normalizedStudentId || null, // optional
       examCode: normalizedExamCode,
@@ -341,4 +342,4 @@ async function submitOlympiad(req, res) {
   }
 }
 
-module.exports = submitOlympiad;
+module.exports = submitOlympiadExam;

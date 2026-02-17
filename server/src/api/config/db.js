@@ -1,3 +1,4 @@
+// यह API database से कनेक्शन बनाता है
 const mongoose = require("mongoose");
 const Question = require("../../models/Question");
 const ExamConfig = require("../../models/ExamConfig");

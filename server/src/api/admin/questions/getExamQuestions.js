@@ -1,4 +1,4 @@
-// backend/api/question/getExamQuestions.js
+// यह API examCode के हिसाब से questions देता है
 const Question = require("../../../models/Question");
 const ExamConfig = require("../../../models/ExamConfig");
 

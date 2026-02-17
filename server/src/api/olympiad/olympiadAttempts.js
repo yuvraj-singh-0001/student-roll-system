@@ -1,4 +1,5 @@
-// backend/api/exam/attempts.js
+// यह API olympiad attempts की सूची और detail देता है
+// backend/api/olympiad/olympiadAttempts.js
 const ExamAttempt = require("../../models/ExamAttempt");
 
 const BRANCH_KEYS = ["A", "B"];
@@ -38,7 +39,7 @@ function buildSummary(attempt) {
   return { attemptedCount, skippedCount, correctCount, wrongCount, notVisitedCount };
 }
 
-async function listAttempts(req, res) {
+async function listOlympiadAttempts(req, res) {
   try {
     const { studentId, examCode } = req.query;
 
@@ -78,7 +79,7 @@ async function listAttempts(req, res) {
   }
 }
 
-async function getAttemptDetails(req, res) {
+async function getOlympiadAttemptDetails(req, res) {
   try {
     const { attemptId } = req.params;
     const attempt = await ExamAttempt.findById(attemptId).lean();
@@ -114,4 +115,4 @@ async function getAttemptDetails(req, res) {
   }
 }
 
-module.exports = { listAttempts, getAttemptDetails };
+module.exports = { listOlympiadAttempts, getOlympiadAttemptDetails };

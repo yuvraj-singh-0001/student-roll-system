@@ -1,3 +1,4 @@
+// यह API नया user register करता है
 const Student = require("../../models/Student");
 const jwt = require("jsonwebtoken");
 

@@ -1,3 +1,4 @@
+// यह API exam के लिए typed question जोड़ता है
 const Question = require("../../../models/Question");
 const ExamConfig = require("../../../models/ExamConfig");
 
