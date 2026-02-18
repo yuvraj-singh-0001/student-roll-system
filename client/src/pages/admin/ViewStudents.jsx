@@ -164,7 +164,7 @@ export default function ViewStudents() {
           {error && (
             <div className="mb-4 p-3 bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 text-red-700 rounded-lg text-xs animate-fade-in">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm">âš ï¸</span>
+                <span className="text-sm">error</span>
                 <span>{error}</span>
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function ViewStudents() {
                     <button 
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-white rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-gray-900 hover:text-gray-700 hover:bg-white rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous 
                     </button>
@@ -323,7 +323,7 @@ export default function ViewStudents() {
                     <button 
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
-                      className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-white rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-gray-900 hover:text-gray-700 hover:bg-white rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next 
                     </button>
