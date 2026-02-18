@@ -43,7 +43,7 @@ export default function SendNotification() {
             {message && (
               <div
                 className={`mb-6 p-4 rounded-xl text-sm font-semibold text-center ${
-                  message.startsWith("âœ…")
+                  message.startsWith("hello ")
                     ? "bg-green-50 text-green-800 border border-green-200"
                     : "bg-red-50 text-red-800 border border-red-200"
                 }`}
@@ -59,8 +59,8 @@ export default function SendNotification() {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin">â³</span>
-                  Sendingâ€¦
+                  <span className="animate-spin"></span>
+                  Sending¦
                 </span>
               ) : (
                 "Send now"
@@ -72,15 +72,15 @@ export default function SendNotification() {
               disabled={loading}
               className="mt-3 w-full py-3 px-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition disabled:opacity-60"
             >
-              â† Admin Panel
+              Admin Panel
             </button>
 
             <div className="mt-6 pt-4 border-t border-slate-200">
               <h3 className="font-semibold text-slate-800 text-sm mb-2">What will be sent</h3>
               <ul className="text-slate-600 text-sm space-y-1.5">
-                <li>âœ“ Roll number</li>
-                <li>âœ“ Course info</li>
-                <li>âœ“ Instructions</li>
+                <li>Roll number</li>
+                <li>Course info</li>
+                <li>Instructions</li>
               </ul>
             </div>
           </div>
