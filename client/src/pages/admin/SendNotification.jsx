@@ -60,7 +60,7 @@ export default function SendNotification() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin"></span>
-                  Sending¦
+                  Sending 
                 </span>
               ) : (
                 "Send now"
