@@ -9,24 +9,24 @@ export default function ViewStudents() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
-  const [time, setTime] = useState(new Date());
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [actionError, setActionError] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
   useEffect(() => {
-    fetchStudents();
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    const interval = setInterval(fetchStudents, 10000);
+    fetchStudents({ showLoader: true });
+    const interval = setInterval(() => fetchStudents({ showLoader: false }), 10000);
     return () => {
-      clearInterval(timer);
       clearInterval(interval);
     };
   }, []);
 
-  const fetchStudents = async () => {
+  const fetchStudents = async (options = {}) => {
+    const showLoader = options.showLoader ?? students.length === 0;
     try {
-      setLoading(false);
+      if (showLoader) setLoading(true);
       const response = await API.get("/student/all");
       if (response.data.success) {
         setStudents(response.data.data);
@@ -34,70 +34,75 @@ export default function ViewStudents() {
       }
     } catch (err) {
       setError(err.response?.data?.message || "Error fetching students");
+    } finally {
+      if (showLoader) setLoading(false);
     }
   };
 
-  const filteredStudents = students.filter(
-    (student) =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const displayValue = (value, fallback = "-") => {
+    if (value === null || value === undefined || value === "") return fallback;
+    return value;
+  };
+
+  const getInitial = (value) => {
+    const text = String(value || "").trim();
+    return text ? text.charAt(0).toUpperCase() : "S";
+  };
+
+  const searchValue = searchTerm.toLowerCase();
+  const filteredStudents = students.filter((student) => {
+    const name = String(student.name || "").toLowerCase();
+    const number = String(student.rollNumber || student.mobile || "").toLowerCase();
+    const studentClass = String(student.class || student.course || "").toLowerCase();
+    const studentId = String(student._id || "").toLowerCase();
+    return (
+      name.includes(searchValue) ||
+      number.includes(searchValue) ||
+      studentClass.includes(searchValue) ||
+      studentId.includes(searchValue)
+    );
+  });
 
   // Pagination Logic
-  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentStudents = filteredStudents.slice(startIndex, startIndex + itemsPerPage);
 
-  const getStatusBadge = (emailStatus, emailOpenedAt) => {
-    const statusConfig = {
-      pending: { 
-        bg: "bg-gray-100", 
-        text: "text-gray-700", 
-        label: "Pending", 
-        icon: "â³",
-        dot: "bg-gray-400"
-      },
-      sent: { 
-        bg: "bg-blue-100", 
-        text: "text-blue-700", 
-        label: "Sent", 
-        icon: "ðŸ“¨",
-        dot: "bg-blue-500"
-      },
-      opened: { 
-        bg: "bg-green-100", 
-        text: "text-green-700", 
-        label: "Opened", 
-        icon: "âœ…",
-        dot: "bg-green-500"
-      },
-      bounced: { 
-        bg: "bg-red-100", 
-        text: "text-red-700", 
-        label: "Bounced", 
-        icon: "âš ï¸",
-        dot: "bg-red-500"
-      },
-    };
-
-    const config = statusConfig[emailStatus] || statusConfig.pending;
-    return (
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 ${config.dot} rounded-full`}></div>
-        <span className={`px-2 py-1 ${config.bg} ${config.text} rounded text-xs font-medium`}>
-          {config.icon} {config.label}
-        </span>
-      </div>
-    );
-  };
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleViewDetails = (student) => {
     setSelectedStudent(student);
+    setActionError("");
   };
 
   const closeDetailsModal = () => {
     setSelectedStudent(null);
+    setActionError("");
+  };
+
+  const handleDeleteStudent = async (student) => {
+    if (!student?._id) return;
+    const confirmed = window.confirm(
+      `Delete ${student.name || "this student"}? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setDeletingId(student._id);
+    setActionError("");
+    try {
+      await API.delete(`/student/${student._id}`);
+      setStudents((prev) => prev.filter((s) => s._id !== student._id));
+      if (selectedStudent?._id === student._id) {
+        closeDetailsModal();
+      }
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Error deleting student");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -132,15 +137,15 @@ export default function ViewStudents() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                   />
-                  <span className="absolute left-3 top-2.5 text-gray-400 text-sm">ðŸ”</span>
+                  {/* <span className="absolute left-3 top-2.5 text-gray-400 text-sm"></span> */}
                 </div>
                 
                 <div className="flex gap-2">
                   <button 
-                    onClick={fetchStudents}
+                    onClick={() => fetchStudents({ showLoader: true })}
                     className="group px-3 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm font-medium rounded-lg hover:shadow transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-1.5"
                   >
-                    <span className="group-hover:rotate-180 transition-transform duration-300 text-xs">â†»</span>
+                    <span className="group-hover:rotate-180 transition-transform duration-300 text-xs"></span>
                     <span>Refresh</span>
                   </button>
                   <button 
@@ -165,6 +170,15 @@ export default function ViewStudents() {
             </div>
           )}
 
+          {actionError && (
+            <div className="mb-4 p-3 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 text-amber-800 rounded-lg text-xs animate-fade-in">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">!</span>
+                <span>{actionError}</span>
+              </div>
+            </div>
+          )}
+
           {/* Loading State */}
           {loading ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center animate-fade-in-up">
@@ -175,7 +189,7 @@ export default function ViewStudents() {
           ) : currentStudents.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center animate-fade-in-up">
               <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                <span className="text-xl text-gray-500">ðŸ‘¤</span>
+                <span className="text-xl text-gray-500">00000</span>
               </div>
               <h3 className="text-sm font-medium text-gray-900 mb-1">
                 {students.length === 0 ? "No Students" : "No Results"}
@@ -202,22 +216,22 @@ export default function ViewStudents() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
                         #
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Roll No.
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+                        ID
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Student Details
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+                        Name
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Course
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+                        Number
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Status
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+                        Class
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -234,38 +248,50 @@ export default function ViewStudents() {
                             : 'hover:bg-gray-50'
                         }`}
                       >
-                        <td className="px-4 py-3">
-                          <div className="text-xs font-semibold text-gray-700">
+                        <td className="px-3 py-2">
+                          <div className="text-[11px] font-semibold text-gray-700">
                             {startIndex + index + 1}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-semibold">
-                            {student.rollNumber}
+                        <td className="px-3 py-2">
+                          <span
+                            title={displayValue(student._id)}
+                            className="block max-w-[140px] truncate text-[11px] font-mono text-gray-700"
+                          >
+                            {displayValue(student._id)}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-col">
-                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                            <div className="text-xs text-gray-500 truncate max-w-[180px]">{student.email}</div>
+                        <td className="px-3 py-2">
+                          <div className="text-sm font-medium text-gray-900">
+                            {displayValue(student.name)}
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-purple-100 text-purple-700 border border-purple-200 rounded text-xs font-semibold">
-                            {student.course}
+                        <td className="px-3 py-2">
+                          <span className="text-xs font-semibold text-gray-700">
+                            {displayValue(student.rollNumber || student.mobile)}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          {getStatusBadge(student.emailStatus, student.emailOpenedAt)}
+                        <td className="px-3 py-2">
+                          <span className="text-xs font-semibold text-gray-700">
+                            {displayValue(student.class || student.course)}
+                          </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleViewDetails(student)}
-                            className="group px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-medium rounded-lg hover:shadow transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-1"
-                          >
-                            <span>View</span>
-                            <span className="group-hover:translate-x-0.5 transition-transform duration-200">â†’</span>
-                          </button>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleViewDetails(student)}
+                              className="px-2.5 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-[11px] font-semibold rounded-md hover:shadow transition-all duration-200"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStudent(student)}
+                              disabled={deletingId === student._id}
+                              className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-rose-500 text-white text-[11px] font-semibold rounded-md hover:shadow transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                              {deletingId === student._id ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -285,7 +311,7 @@ export default function ViewStudents() {
                       disabled={currentPage === 1}
                       className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-white rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      â†
+                      Previous 
                     </button>
                     <span className="px-3 py-1 bg-white border border-gray-200 rounded text-gray-700 font-medium">
                       {currentPage}
@@ -299,7 +325,7 @@ export default function ViewStudents() {
                       disabled={currentPage === totalPages}
                       className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-white rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      â†’
+                      Next 
                     </button>
                   </div>
                 </div>
@@ -313,7 +339,7 @@ export default function ViewStudents() {
               onClick={() => navigate("/admin")}
               className="group px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:shadow transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-1.5 mx-auto"
             >
-              <span className="group-hover:-translate-x-0.5 transition-transform duration-200">â†</span>
+              <span className="group-hover:-translate-x-0.5 transition-transform duration-200"></span>
               <span>Back to Admin</span>
             </button>
           </div>
@@ -337,144 +363,58 @@ export default function ViewStudents() {
                 onClick={closeDetailsModal}
                 className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors duration-200"
               >
-                <span className="text-xl font-bold">Ã—</span>
+                <span className="text-xl font-bold">X</span>
               </button>
             </div>
 
             {/* Modal Content */}
             <div className="overflow-y-auto flex-1 p-6">
-              <div className="space-y-6">
-                {/* Student Profile Section */}
-                <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-                    <span className="text-2xl text-white">ðŸ‘¤</span>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow">
+                    <span className="text-lg text-white">{getInitial(selectedStudent.name)}</span>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">{selectedStudent.name}</h3>
-                    <p className="text-sm text-gray-600">{selectedStudent.email}</p>
-                    <div className="flex items-center gap-3 mt-2">
-                      <span className="px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold rounded-full">
-                        {selectedStudent.rollNumber}
-                      </span>
-                      <span className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold rounded-full">
-                        {selectedStudent.course}
-                      </span>
-                    </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">
+                      {displayValue(selectedStudent.name)}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Student ID: {displayValue(selectedStudent._id)}
+                    </p>
                   </div>
                 </div>
 
-                {/* Details Grid */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <span className="text-blue-500">ðŸ“§</span>
-                      Email Information
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Status:</span>
-                        <span className={`font-medium ${
-                          selectedStudent.emailStatus === 'opened' ? 'text-green-600' :
-                          selectedStudent.emailStatus === 'sent' ? 'text-blue-600' :
-                          selectedStudent.emailStatus === 'pending' ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
-                          {selectedStudent.emailStatus?.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Last Opened:</span>
-                        <span className="font-medium text-gray-900">
-                          {selectedStudent.emailOpenedAt 
-                            ? new Date(selectedStudent.emailOpenedAt).toLocaleString()
-                            : 'Not opened yet'
-                          }
-                        </span>
-                      </div>
-                    </div>
+                <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                    <p className="text-xs text-gray-500">Name</p>
+                    <p className="font-semibold text-gray-900">
+                      {displayValue(selectedStudent.name)}
+                    </p>
                   </div>
-
-                  <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <span className="text-green-500">ðŸ“Š</span>
-                      Academic Stats
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Exams Taken:</span>
-                        <span className="font-medium text-gray-900">12</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Average Score:</span>
-                        <span className="font-medium text-green-600">78.5%</span>
-                      </div>
-                    </div>
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                    <p className="text-xs text-gray-500">Number</p>
+                    <p className="font-semibold text-gray-900">
+                      {displayValue(selectedStudent.rollNumber || selectedStudent.mobile)}
+                    </p>
                   </div>
-
-                  <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <span className="text-purple-500">ðŸ“…</span>
-                      Account Information
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Joined:</span>
-                        <span className="font-medium text-gray-900">
-                          {new Date(selectedStudent.createdAt || Date.now()).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Account Status:</span>
-                        <span className="font-medium text-green-600">Active</span>
-                      </div>
-                    </div>
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                    <p className="text-xs text-gray-500">Class</p>
+                    <p className="font-semibold text-gray-900">
+                      {displayValue(selectedStudent.class || selectedStudent.course)}
+                    </p>
                   </div>
-
-                  <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <span className="text-amber-500">âš¡</span>
-                      Quick Actions
-                    </h4>
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-medium rounded-lg hover:shadow transition-all duration-200">
-                        Edit
-                      </button>
-                      <button className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-medium rounded-lg hover:shadow transition-all duration-200">
-                        Message
-                      </button>
-                      <button className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-rose-500 text-white text-xs font-medium rounded-lg hover:shadow transition-all duration-200">
-                        Deactivate
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recent Activity */}
-                <div className="p-4 bg-white rounded-lg border border-gray-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span className="text-gray-500">ðŸ“</span>
-                    Recent Activity
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Last Exam Taken:</span>
-                      <span className="font-medium text-gray-900">Mathematics Final</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Score:</span>
-                      <span className="font-medium text-green-600">85%</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-gray-600">Last Login:</span>
-                      <span className="font-medium text-gray-900">Today, 14:30</span>
-                    </div>
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                    <p className="text-xs text-gray-500">Student ID</p>
+                    <p className="font-semibold text-gray-900 break-all">
+                      {displayValue(selectedStudent._id)}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end gap-3">
+            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end">
               <button
                 onClick={closeDetailsModal}
                 className="px-5 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm font-semibold rounded-lg hover:shadow transition-all duration-200"

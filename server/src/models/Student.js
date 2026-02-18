@@ -8,14 +8,30 @@ const studentSchema = new mongoose.Schema(
       trim: true
     },
 
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true
+    },
+
+    course: {
+      type: String,
+      trim: true
+    },
+
+    rollNumber: {
+      type: String,
+      trim: true
+    },
+
     mobile: {
       type: String,
-      required: true
+      trim: true
     },
 
     class: {
       type: String,
-      required: true
+      trim: true
     },
 
     formASubmitted: {
@@ -37,12 +53,37 @@ const studentSchema = new mongoose.Schema(
         default: "pending"
       },
       paidAt: Date
-    }
+    },
+
+    trackingId: {
+      type: String
+    },
+
+    emailStatus: {
+      type: String,
+      enum: ["pending", "sent", "opened", "bounced"],
+      default: "pending"
+    },
+
+    emailSentAt: {
+      type: Date
+    },
+
+    emailOpenedAt: {
+      type: Date
+    },
+
+    notificationHistory: [
+      {
+        sentAt: Date,
+        openedAt: Date,
+        status: String
+      }
+    ]
   },
   { timestamps: true }
 );
 
-// 🔥 MAIN FIX: Compound Unique Index
 studentSchema.index({ name: 1, mobile: 1 }, { unique: true });
 
 module.exports = mongoose.model("Student", studentSchema);
