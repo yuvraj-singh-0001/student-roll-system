@@ -60,6 +60,18 @@ app.use(
 );
 
 /* ======================
+   HEALTH CHECK
+====================== */
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    uptime: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+/* ======================
    ROUTES
 ====================== */
 

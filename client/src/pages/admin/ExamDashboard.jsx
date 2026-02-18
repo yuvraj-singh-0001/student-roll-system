@@ -122,15 +122,6 @@ export default function ExamDashboard() {
   }, [examCode]);
 
   useEffect(() => {
-    if (!examCode) return;
-    const intervalId = setInterval(() => {
-      if (document.visibilityState !== "visible") return;
-      fetchExamAnalytics(examCode, { silent: true });
-    }, 15000);
-    return () => clearInterval(intervalId);
-  }, [examCode]);
-
-  useEffect(() => {
     setStudentsPage(1);
   }, [examCode]);
 

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { olympiadExamApi, examApi } from "../../api";
 
 const EXAM_CACHE_KEY = "examListCacheV1";
-const EXAM_CACHE_TTL_MS = 5 * 60 * 1000;
+const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const readExamListCache = () => {
   if (typeof window === "undefined") return null;
@@ -93,49 +93,40 @@ export default function StudentDashboard() {
     setExamLoading(!hasCache);
     setExamError("");
 
-    const fetchExams = async (silent = false) => {
+    const fetchExams = async () => {
       if (fetching || cancelled) return;
       fetching = true;
-      if (!silent && !hasCache) setExamLoading(true);
+      if (!hasCache) setExamLoading(true);
       try {
-        const { data } = await examApi.list();
+        const { data } = await examApi.list({
+          retries: 2,
+          retryDelayMs: 1500,
+        });
         if (!cancelled) {
           if (data.success) {
             const list = data.data || [];
             setExamList(list);
             writeExamListCache(list);
-          } else if (!hasCache && !silent) {
+          } else if (!hasCache) {
             setExamError(data.message || "Failed to load exams");
           }
         }
       } catch (e) {
-        if (!cancelled && !hasCache && !silent) {
+        if (!cancelled && !hasCache) {
           setExamError(e.response?.data?.message || "Failed to load exams");
         }
       } finally {
         fetching = false;
-        if (!cancelled && !silent) setExamLoading(false);
+        if (!cancelled) setExamLoading(false);
       }
     };
 
-    fetchExams(false);
-
-    const handleFocus = () => fetchExams(true);
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") fetchExams(true);
-    };
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    const intervalId = setInterval(() => {
-      if (document.visibilityState === "visible") fetchExams(true);
-    }, 20000);
+    if (!hasCache) {
+      fetchExams();
+    }
 
     return () => {
       cancelled = true;
-      clearInterval(intervalId);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 

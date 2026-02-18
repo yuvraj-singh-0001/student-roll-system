@@ -2,6 +2,10 @@
 const ExamConfig = require("../../models/ExamConfig");
 const Question = require("../../models/Question");
 
+const CACHE_TTL_MS = Number(process.env.EXAM_LIST_CACHE_TTL_MS) || 300000;
+let cachePayload = null;
+let cacheTs = 0;
+
 const VALID_TYPES = [
   "simple",
   "multiple",
@@ -96,6 +100,16 @@ function buildExamQuestionStats(questions) {
 
 async function listOlympiadExams(req, res) {
   try {
+    const now = Date.now();
+    if (
+      CACHE_TTL_MS > 0 &&
+      cachePayload &&
+      now - cacheTs < CACHE_TTL_MS
+    ) {
+      res.set("Cache-Control", "private, max-age=300, stale-while-revalidate=60");
+      return res.status(200).json(cachePayload);
+    }
+
     const configs = await ExamConfig.find().sort({ createdAt: -1 }).lean();
 
     const questions = await Question.find()
@@ -130,7 +144,11 @@ async function listOlympiadExams(req, res) {
       };
     });
 
-    return res.status(200).json({ success: true, data });
+    const payload = { success: true, data };
+    cachePayload = payload;
+    cacheTs = Date.now();
+    res.set("Cache-Control", "private, max-age=300, stale-while-revalidate=60");
+    return res.status(200).json(payload);
   } catch (err) {
     console.error("listExams error:", err);
     return res.status(500).json({

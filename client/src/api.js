@@ -31,11 +31,50 @@ const API = axios.create({
   timeout: 30000,
 });
 
-export const warmUpBackend = async () => {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isRetryableError = (error) => {
+  const status = error?.response?.status;
+  if (!status) return true;
+  if (status >= 500) return true;
+  if (status === 429) return true;
+  return false;
+};
+
+const requestWithRetry = async (requestFn, options = {}) => {
+  const retries = Number.isFinite(options.retries) ? options.retries : 2;
+  const delayMs = Number.isFinite(options.delayMs) ? options.delayMs : 1200;
+  const backoff = Number.isFinite(options.backoff) ? options.backoff : 2;
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await requestFn(attempt);
+    } catch (err) {
+      if (attempt >= retries || !isRetryableError(err)) {
+        throw err;
+      }
+      const wait = Math.round(delayMs * Math.pow(backoff, attempt));
+      await sleep(wait);
+      attempt += 1;
+    }
+  }
+};
+
+export const warmUpBackend = async (options = {}) => {
+  const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : 8000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    await fetch(ROOT_URL, { method: "GET" });
+    await fetch(`${ROOT_URL}/api/health`, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    });
   } catch {
     // ignore warmup errors
+  } finally {
+    clearTimeout(timer);
   }
 };
 
@@ -80,7 +119,21 @@ export const checkStudent = async (query) => {
 export const examApi = {
   register: (body) => API.post("/olympiad/register", body),
   submit: (body) => API.post("/olympiad/submit", body),
-  list: () => API.get("/olympiad/list"),
+  list: (options = {}) => {
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+      ? options.timeoutMs
+      : 45000;
+    return requestWithRetry(
+      () => API.get("/olympiad/list", { timeout: timeoutMs }),
+      {
+        retries: Number.isFinite(options.retries) ? options.retries : 2,
+        delayMs: Number.isFinite(options.retryDelayMs)
+          ? options.retryDelayMs
+          : 1500,
+        backoff: 2,
+      }
+    );
+  },
 };
 
 /* ===================================================
