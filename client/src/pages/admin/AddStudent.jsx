@@ -86,7 +86,7 @@ export default function AddStudent() {
                         <p className="text-sm text-gray-500 mt-1">Enter student's name and email</p>
                         {formData.name && formData.email && (
                           <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-                            <span>âœ“ Completed</span>
+                            <span> Completed</span>
                           </div>
                         )}
                       </div>
@@ -112,7 +112,7 @@ export default function AddStudent() {
                         } mt-1`}>Choose the academic course</p>
                         {formData.course && (
                           <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-                            <span>âœ“ Selected: {formData.course}</span>
+                            <span> Selected: {formData.course}</span>
                           </div>
                         )}
                       </div>
@@ -138,7 +138,7 @@ export default function AddStudent() {
                         } mt-1`}>Submit and create account</p>
                         {loading && (
                           <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
-                            <span>â³ Processing...</span>
+                            <span> Processing...</span>
                           </div>
                         )}
                       </div>
@@ -274,7 +274,7 @@ export default function AddStudent() {
                         onClick={() => navigate("/admin")}
                         className="group flex-1 py-3.5 px-4 bg-gradient-to-br from-white to-gray-50 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 flex items-center justify-center gap-2"
                       >
-                        <span className="group-hover:-translate-x-1 transition-transform duration-300">â†</span>
+                        <span className="group-hover:-translate-x-1 transition-transform duration-300"></span>
                         <span>Back to Dashboard</span>
                       </button>
 
@@ -292,7 +292,7 @@ export default function AddStudent() {
                         ) : (
                           <>
                             <span>Register Student</span>
-                            <span className="group-hover:translate-x-1 transition-transform duration-300">â†’</span>
+                            <span className="group-hover:translate-x-1 transition-transform duration-300"></span>
                           </>
                         )}
                       </button>
