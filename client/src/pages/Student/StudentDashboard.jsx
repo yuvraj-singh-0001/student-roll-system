@@ -1,19 +1,21 @@
 ﻿import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { olympiadExamApi, examApi } from "../../api";
 
 const EXAM_CACHE_KEY = "examListCacheV1";
 const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-const readExamListCache = () => {
+const readExamListCache = (options = {}) => {
   if (typeof window === "undefined") return null;
+  const allowStale = options.allowStale === true;
   try {
     const raw = localStorage.getItem(EXAM_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.data) || !parsed.ts) return null;
-    if (Date.now() - parsed.ts > EXAM_CACHE_TTL_MS) return null;
-    return parsed.data;
+    const ageMs = Date.now() - parsed.ts;
+    if (!allowStale && ageMs > EXAM_CACHE_TTL_MS) return null;
+    return { data: parsed.data, isStale: ageMs > EXAM_CACHE_TTL_MS };
   } catch {
     return null;
   }
@@ -40,6 +42,9 @@ export default function StudentDashboard() {
   const [examList, setExamList] = useState([]);
   const [examLoading, setExamLoading] = useState(false);
   const [examError, setExamError] = useState("");
+  const [examRefreshing, setExamRefreshing] = useState(false);
+  const fetchingRef = useRef(false);
+  const cancelledRef = useRef(false);
 
   const availableTests = examList;
 
@@ -82,53 +87,78 @@ export default function StudentDashboard() {
     },
   ];
 
+  const fetchExamList = useCallback(async (options = {}) => {
+    const silent = options.silent === true;
+    const forceRefresh = options.forceRefresh === true;
+
+    if (fetchingRef.current || cancelledRef.current) return;
+    fetchingRef.current = true;
+
+    const cachedNow = readExamListCache({ allowStale: true });
+    const hasCacheNow =
+      Array.isArray(cachedNow?.data) && cachedNow.data.length > 0;
+
+    if (forceRefresh) setExamRefreshing(true);
+    if (!silent && !hasCacheNow) setExamLoading(true);
+    if (!silent && !forceRefresh) setExamError("");
+
+    try {
+      const { data } = await examApi.list({
+        retries: 2,
+        retryDelayMs: 1500,
+        params: forceRefresh ? { refresh: 1 } : undefined,
+      });
+      if (cancelledRef.current) return;
+      if (data.success) {
+        const list = data.data || [];
+        setExamList(list);
+        writeExamListCache(list);
+      } else if (!silent && !hasCacheNow) {
+        setExamError(data.message || "Failed to load exams");
+      }
+    } catch (e) {
+      if (!cancelledRef.current && !silent && !hasCacheNow) {
+        setExamError(e.response?.data?.message || "Failed to load exams");
+      }
+    } finally {
+      if (!cancelledRef.current) {
+        if (!silent && !hasCacheNow) setExamLoading(false);
+        if (forceRefresh) setExamRefreshing(false);
+      }
+      fetchingRef.current = false;
+    }
+  }, []);
+
   // recent results will be loaded from backend
 
   useEffect(() => {
-    let cancelled = false;
-    let fetching = false;
-    const cached = readExamListCache();
-    const hasCache = Array.isArray(cached) && cached.length > 0;
-    if (hasCache) setExamList(cached);
+    cancelledRef.current = false;
+    const cachedFresh = readExamListCache();
+    const cachedStale = cachedFresh
+      ? null
+      : readExamListCache({ allowStale: true });
+    const activeCache = cachedFresh || cachedStale;
+    const hasCache =
+      Array.isArray(activeCache?.data) && activeCache.data.length > 0;
+    if (hasCache) setExamList(activeCache.data);
     setExamLoading(!hasCache);
     setExamError("");
 
-    const fetchExams = async () => {
-      if (fetching || cancelled) return;
-      fetching = true;
-      if (!hasCache) setExamLoading(true);
-      try {
-        const { data } = await examApi.list({
-          retries: 2,
-          retryDelayMs: 1500,
-        });
-        if (!cancelled) {
-          if (data.success) {
-            const list = data.data || [];
-            setExamList(list);
-            writeExamListCache(list);
-          } else if (!hasCache) {
-            setExamError(data.message || "Failed to load exams");
-          }
-        }
-      } catch (e) {
-        if (!cancelled && !hasCache) {
-          setExamError(e.response?.data?.message || "Failed to load exams");
-        }
-      } finally {
-        fetching = false;
-        if (!cancelled) setExamLoading(false);
-      }
-    };
-
     if (!hasCache) {
-      fetchExams();
+      fetchExamList({ silent: false });
+    } else if (activeCache?.isStale) {
+      fetchExamList({ silent: true });
     }
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
-  }, []);
+  }, [fetchExamList]);
+
+  const handleManualRefresh = () => {
+    setExamError("");
+    fetchExamList({ silent: true, forceRefresh: true });
+  };
 
   useEffect(() => {
     const studentId = (
@@ -244,12 +274,23 @@ export default function StudentDashboard() {
                     Start your exam directly from here.
                   </p>
                 </div>
-                <button
-                  onClick={() => navigate("/student/exam")}
-                  className="text-[11px] px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition"
-                >
-                  View All
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleManualRefresh}
+                    disabled={examRefreshing}
+                    className={`text-[11px] px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition ${
+                      examRefreshing ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    {examRefreshing ? "Refreshing..." : "Refresh"}
+                  </button>
+                  <button
+                    onClick={() => navigate("/student/exam")}
+                    className="text-[11px] px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition"
+                  >
+                    View All
+                  </button>
+                </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {examLoading ? (

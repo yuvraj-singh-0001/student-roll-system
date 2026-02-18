@@ -1,19 +1,21 @@
-﻿import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { questionApi, examApi } from "../../api";
 
 const EXAM_CACHE_KEY = "examListCacheV1";
-const EXAM_CACHE_TTL_MS = 5 * 60 * 1000;
+const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-const readExamListCache = () => {
+const readExamListCache = (options = {}) => {
   if (typeof window === "undefined") return null;
+  const allowStale = options.allowStale === true;
   try {
     const raw = localStorage.getItem(EXAM_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.data) || !parsed.ts) return null;
-    if (Date.now() - parsed.ts > EXAM_CACHE_TTL_MS) return null;
-    return parsed.data;
+    const ageMs = Date.now() - parsed.ts;
+    if (!allowStale && ageMs > EXAM_CACHE_TTL_MS) return null;
+    return { data: parsed.data, isStale: ageMs > EXAM_CACHE_TTL_MS };
   } catch {
     return null;
   }
@@ -146,6 +148,9 @@ export default function Exam() {
   const [examList, setExamList] = useState([]);
   const [examLoading, setExamLoading] = useState(false);
   const [examError, setExamError] = useState("");
+  const [examRefreshing, setExamRefreshing] = useState(false);
+  const fetchingRef = useRef(false);
+  const cancelledRef = useRef(false);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [time, setTime] = useState(new Date());
@@ -159,6 +164,48 @@ export default function Exam() {
     localStorage.removeItem("examStartAt");
     localStorage.removeItem("examStartExamCode");
   };
+
+  const fetchExamList = useCallback(async (options = {}) => {
+    const silent = options.silent === true;
+    const forceRefresh = options.forceRefresh === true;
+
+    if (fetchingRef.current || cancelledRef.current) return;
+    fetchingRef.current = true;
+
+    const cachedNow = readExamListCache({ allowStale: true });
+    const hasCacheNow =
+      Array.isArray(cachedNow?.data) && cachedNow.data.length > 0;
+
+    if (forceRefresh) setExamRefreshing(true);
+    if (!silent && !hasCacheNow) setExamLoading(true);
+    if (!silent && !forceRefresh) setExamError("");
+
+    try {
+      const { data } = await examApi.list({
+        retries: 2,
+        retryDelayMs: 1500,
+        params: forceRefresh ? { refresh: 1 } : undefined,
+      });
+      if (cancelledRef.current) return;
+      if (data.success) {
+        const list = data.data || [];
+        setExamList(list);
+        writeExamListCache(list);
+      } else if (!silent && !hasCacheNow) {
+        setExamError(data.message || "Failed to load exams");
+      }
+    } catch (e) {
+      if (!cancelledRef.current && !silent && !hasCacheNow) {
+        setExamError(e.response?.data?.message || "Failed to load exams");
+      }
+    } finally {
+      if (!cancelledRef.current) {
+        if (!silent && !hasCacheNow) setExamLoading(false);
+        if (forceRefresh) setExamRefreshing(false);
+      }
+      fetchingRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("examStudentId") || localStorage.getItem("studentId");
@@ -193,59 +240,33 @@ export default function Exam() {
 
   useEffect(() => {
     if (examCode) return;
-    let cancelled = false;
-    let fetching = false;
-    const cached = readExamListCache();
-    const hasCache = Array.isArray(cached) && cached.length > 0;
-    if (hasCache) setExamList(cached);
+    cancelledRef.current = false;
+    const cachedFresh = readExamListCache();
+    const cachedStale = cachedFresh
+      ? null
+      : readExamListCache({ allowStale: true });
+    const activeCache = cachedFresh || cachedStale;
+    const hasCache =
+      Array.isArray(activeCache?.data) && activeCache.data.length > 0;
+    if (hasCache) setExamList(activeCache.data);
     setExamLoading(!hasCache);
     setExamError("");
 
-    const fetchExams = async (silent = false) => {
-      if (fetching || cancelled) return;
-      fetching = true;
-      if (!silent && !hasCache) setExamLoading(true);
-      try {
-        const { data } = await examApi.list();
-        if (!cancelled) {
-          if (data.success) {
-            const list = data.data || [];
-            setExamList(list);
-            writeExamListCache(list);
-          } else if (!hasCache && !silent) {
-            setExamError(data.message || "Failed to load exams");
-          }
-        }
-      } catch (e) {
-        if (!cancelled && !hasCache && !silent) {
-          setExamError(e.response?.data?.message || "Failed to load exams");
-        }
-      } finally {
-        fetching = false;
-        if (!cancelled && !silent) setExamLoading(false);
-      }
-    };
-
-    fetchExams(false);
-
-    const handleFocus = () => fetchExams(true);
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") fetchExams(true);
-    };
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    const intervalId = setInterval(() => {
-      if (document.visibilityState === "visible") fetchExams(true);
-    }, 20000);
+    if (!hasCache) {
+      fetchExamList({ silent: false });
+    } else if (activeCache?.isStale) {
+      fetchExamList({ silent: true });
+    }
 
     return () => {
-      cancelled = true;
-      clearInterval(intervalId);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibility);
+      cancelledRef.current = true;
     };
-  }, [examCode]);
+  }, [examCode, fetchExamList]);
+
+  const handleManualRefresh = () => {
+    setExamError("");
+    fetchExamList({ silent: true, forceRefresh: true });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -713,6 +734,17 @@ export default function Exam() {
               <p className="text-gray-600 text-sm">
                 Pick an exam to start.
               </p>
+              <div className="mt-3 flex items-center justify-center">
+                <button
+                  onClick={handleManualRefresh}
+                  disabled={examRefreshing}
+                  className={`text-[11px] px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition ${
+                    examRefreshing ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {examRefreshing ? "Refreshing..." : "Refresh Exams"}
+                </button>
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 text-left">
@@ -1267,6 +1299,7 @@ export default function Exam() {
     </div>
   );
 }
+
 
 
 

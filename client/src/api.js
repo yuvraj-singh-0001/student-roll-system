@@ -123,8 +123,10 @@ export const examApi = {
     const timeoutMs = Number.isFinite(options.timeoutMs)
       ? options.timeoutMs
       : 45000;
+    const params = options.params;
+    const headers = options.headers;
     return requestWithRetry(
-      () => API.get("/olympiad/list", { timeout: timeoutMs }),
+      () => API.get("/olympiad/list", { timeout: timeoutMs, params, headers }),
       {
         retries: Number.isFinite(options.retries) ? options.retries : 2,
         delayMs: Number.isFinite(options.retryDelayMs)

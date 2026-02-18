@@ -101,7 +101,15 @@ function buildExamQuestionStats(questions) {
 async function listOlympiadExams(req, res) {
   try {
     const now = Date.now();
+    const refreshFlag = String(req.query?.refresh || "").toLowerCase();
+    const forceRefresh =
+      refreshFlag === "1" ||
+      refreshFlag === "true" ||
+      (req.headers["x-force-refresh"] || "") === "1" ||
+      String(req.headers["cache-control"] || "").includes("no-cache");
+
     if (
+      !forceRefresh &&
       CACHE_TTL_MS > 0 &&
       cachePayload &&
       now - cacheTs < CACHE_TTL_MS
