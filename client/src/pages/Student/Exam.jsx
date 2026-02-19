@@ -39,6 +39,9 @@ const CONFIDENCE_OPTS = [
   { value: "low", label: "Low Confidence", color: "from-red-500 to-rose-500" },
 ];
 
+const CONFIDENCE_REQUIRED_ERROR =
+  "Please select a confidence level before moving to the next question.";
+
 const SECTION_INFO = {
   simple: {
     title: "Conventional MCQs",
@@ -357,6 +360,15 @@ export default function Exam() {
   const branchMustSelect = q?.type === "branch_parent" && !aid?.selectedAnswer;
   const branchLocked = q?.type === "branch_parent" && !!aid?.selectedAnswer;
 
+  // Auto-clear confidence-specific error after a short delay
+  useEffect(() => {
+    if (error !== CONFIDENCE_REQUIRED_ERROR) return;
+    const timer = setTimeout(() => {
+      setError((prev) => (prev === CONFIDENCE_REQUIRED_ERROR ? "" : prev));
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [error, q?.questionNumber]);
+
   const scoredQuestions = useMemo(
     () => visibleQuestions.filter((vq) => vq.type !== "branch_parent"),
     [visibleQuestions]
@@ -464,10 +476,16 @@ export default function Exam() {
       setCurrent((c) => c + 1);
     }
   };
-
   const handleNext = () => {
     if (!q || branchMustSelect) return;
     const hasSelection = hasSelectionFor(q, aid);
+
+    // For confidence questions: if answer selected but confidence not chosen, block Next
+    if (q.type === "confidence" && hasSelection && !aid?.confidence) {
+      setError(CONFIDENCE_REQUIRED_ERROR);
+      return;
+    }
+
     if (!hasSelection && aid?.status !== "skipped" && q.type !== "branch_parent") {
       markSkipped();
     }
@@ -1087,9 +1105,16 @@ export default function Exam() {
                   {/* Confidence Level */}
                   {q?.type === "confidence" && (
                     <div className="mb-6">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                        Confidence Level
-                      </h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          Confidence Level
+                        </h3>
+                        {error === CONFIDENCE_REQUIRED_ERROR && (
+                          <span className="text-[11px] text-red-600 font-medium">
+                            Please choose a confidence option before moving ahead.
+                          </span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-3 gap-2">
                         {CONFIDENCE_OPTS.map((c) => (
                           <button
