@@ -410,10 +410,7 @@ export default function Exam() {
         status: "attempted",
         selectedAnswer: opt,
         selectedAnswers: [],
-        confidence:
-          q.type === "confidence"
-            ? prevAns.confidence || "mid"
-            : prevAns.confidence || null,
+        confidence: q.type === "confidence" ? prevAns.confidence : null,
       };
     });
   };
@@ -522,10 +519,7 @@ export default function Exam() {
           type: question.type,
           selectedAnswer,
           selectedAnswers,
-          confidence:
-            question.type === "confidence"
-              ? a.confidence || "mid"
-              : a.confidence || null,
+          confidence: a.confidence || null,
           status,
         };
       });

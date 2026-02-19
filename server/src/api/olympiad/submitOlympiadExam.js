@@ -209,7 +209,11 @@ async function submitOlympiadExam(req, res) {
       const att = attemptMap[q.questionNumber] || {};
       let selectedAnswer = normalizeSelectedAnswer(att.selectedAnswer);
       let selectedAnswers = normalizeSelectedAnswers(att.selectedAnswers);
-      const confidence = normalizeConfidence(att.confidence);
+
+      // Raw confidence jo frontend se aaya
+      const rawConfidence = att.confidence;
+      // Scoring ke liye normalized confidence (yaha abhi bhi missing ko "mid" treat kar sakte hain)
+      const scoringConfidence = normalizeConfidence(rawConfidence);
 
       if (safeType === "branch_parent" && !BRANCH_KEYS.includes(selectedAnswer)) {
         selectedAnswer = null;
@@ -238,10 +242,15 @@ async function submitOlympiadExam(req, res) {
 
       let result = { marks: 0, isCorrect: null, reason: "" };
 
+      // Store side ke liye confidence: attempted questions me normalized, baaki me null
+      const storedConfidence = status === "attempted"
+        ? normalizeConfidence(rawConfidence)
+        : null;
+
       const normalizedAttempt = {
         selectedAnswer,
         selectedAnswers,
-        confidence,
+        confidence: scoringConfidence,
       };
 
       const qSafe = {
@@ -276,7 +285,8 @@ async function submitOlympiadExam(req, res) {
         selectedAnswers,
         correctAnswer: safeCorrectAnswer || null,
         correctAnswers: safeCorrectAnswers || [],
-        confidence: confidence || null,
+        // Result / analysis ke liye sirf user-selected confidence store karein
+        confidence: storedConfidence,
         status,
         marks: result.marks,
         isCorrect: result.isCorrect,
