@@ -417,11 +417,18 @@ export default function ExamDashboard() {
   const st = studentResults || [];
   const selectedExamMeta = examList.find((e) => e.examCode === examCode);
   const displayTotalQuestions = useMemo(() => {
+    const count = Number(totalQuestions);
+    return Number.isFinite(count) && count >= 0 ? count : 0;
+  }, [totalQuestions]);
+  const questionsPerStudent = useMemo(() => {
+    const apiCount = Number(questionData?.questionsPerStudent);
+    if (Number.isFinite(apiCount) && apiCount >= 0) return apiCount;
     const metaCount = Number(selectedExamMeta?.totalQuestions);
     if (Number.isFinite(metaCount) && metaCount > 0) return metaCount;
-    const count = Number(totalQuestions);
-    return Number.isFinite(count) ? count : 0;
-  }, [selectedExamMeta, totalQuestions]);
+    const uniqueCount = Number(questionData?.uniqueQuestions);
+    if (Number.isFinite(uniqueCount) && uniqueCount >= 0) return uniqueCount;
+    return 0;
+  }, [selectedExamMeta, questionData]);
 
   const studentsTotal = st.length;
   const studentsTotalPages = Math.max(
@@ -649,6 +656,10 @@ export default function ExamDashboard() {
               <div className="flex items-center justify-between p-2 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100">
                 <span className="text-gray-600">Total Questions</span>
                 <span className="font-semibold">{displayTotalQuestions}</span>
+              </div>
+              <div className="flex items-center justify-between p-2 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100">
+                <span className="text-gray-600">Questions / Student</span>
+                <span className="font-semibold">{questionsPerStudent}</span>
               </div>
               <div className="flex items-center justify-between p-2 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100">
                 <span className="text-gray-600">Total Students</span>

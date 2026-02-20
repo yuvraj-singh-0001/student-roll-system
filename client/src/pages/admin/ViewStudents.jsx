@@ -10,6 +10,17 @@ export default function ViewStudents() {
   const [searchTerm, setSearchTerm] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [savingUpdate, setSavingUpdate] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState("");
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    rollNumber: "",
+    mobile: "",
+    class: "",
+    course: "",
+  });
   const [actionError, setActionError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,14 +85,95 @@ export default function ViewStudents() {
     }
   }, [currentPage, totalPages]);
 
+  const buildEditForm = (student = {}) => ({
+    name: student.name || "",
+    email: student.email || "",
+    rollNumber: student.rollNumber || "",
+    mobile: student.mobile || "",
+    class: student.class || "",
+    course: student.course || "",
+  });
+
   const handleViewDetails = (student) => {
     setSelectedStudent(student);
+    setEditForm(buildEditForm(student));
+    setIsEditing(false);
     setActionError("");
+    setUpdateSuccess("");
+  };
+
+  const handleStartEdit = (student) => {
+    setSelectedStudent(student);
+    setEditForm(buildEditForm(student));
+    setIsEditing(true);
+    setActionError("");
+    setUpdateSuccess("");
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCancelEdit = () => {
+    if (selectedStudent) {
+      setEditForm(buildEditForm(selectedStudent));
+    }
+    setIsEditing(false);
+    setActionError("");
+    setUpdateSuccess("");
   };
 
   const closeDetailsModal = () => {
     setSelectedStudent(null);
+    setIsEditing(false);
+    setSavingUpdate(false);
+    setUpdateSuccess("");
+    setEditForm(buildEditForm());
     setActionError("");
+  };
+
+  const handleUpdateStudent = async () => {
+    if (!selectedStudent?._id) return;
+
+    const trimmedName = editForm.name.trim();
+    if (!trimmedName) {
+      setActionError("Name is required");
+      return;
+    }
+
+    const payload = {
+      name: trimmedName,
+      email: editForm.email.trim(),
+      rollNumber: editForm.rollNumber.trim(),
+      mobile: editForm.mobile.trim(),
+      class: editForm.class.trim(),
+      course: editForm.course.trim(),
+    };
+
+    setSavingUpdate(true);
+    setActionError("");
+    setUpdateSuccess("");
+
+    try {
+      const response = await API.put(`/student/${selectedStudent._id}`, payload);
+      const updatedStudent = response.data?.data || { ...selectedStudent, ...payload };
+
+      setStudents((prev) =>
+        prev.map((student) =>
+          student._id === selectedStudent._id ? updatedStudent : student
+        )
+      );
+
+      setSelectedStudent(updatedStudent);
+      setEditForm(buildEditForm(updatedStudent));
+      setIsEditing(false);
+      setUpdateSuccess("Student details updated successfully");
+    } catch (err) {
+      setActionError(err.response?.data?.message || "Error updating student");
+    } finally {
+      setSavingUpdate(false);
+    }
   };
 
   const handleDeleteStudent = async (student) => {
@@ -92,6 +184,7 @@ export default function ViewStudents() {
     if (!confirmed) return;
     setDeletingId(student._id);
     setActionError("");
+    setUpdateSuccess("");
     try {
       await API.delete(`/student/${student._id}`);
       setStudents((prev) => prev.filter((s) => s._id !== student._id));
@@ -175,6 +268,15 @@ export default function ViewStudents() {
               <div className="flex items-center gap-1.5">
                 <span className="text-sm">!</span>
                 <span>{actionError}</span>
+              </div>
+            </div>
+          )}
+
+          {updateSuccess && (
+            <div className="mb-4 p-3 bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs animate-fade-in">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">OK</span>
+                <span>{updateSuccess}</span>
               </div>
             </div>
           )}
@@ -285,6 +387,12 @@ export default function ViewStudents() {
                               View
                             </button>
                             <button
+                              onClick={() => handleStartEdit(student)}
+                              className="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-semibold rounded-md hover:shadow transition-all duration-200"
+                            >
+                              Edit
+                            </button>
+                            <button
                               onClick={() => handleDeleteStudent(student)}
                               disabled={deletingId === student._id}
                               className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-rose-500 text-white text-[11px] font-semibold rounded-md hover:shadow transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
@@ -357,7 +465,9 @@ export default function ViewStudents() {
             <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold">Student Details</h2>
-                <p className="text-sm text-gray-300">Complete student information</p>
+                <p className="text-sm text-gray-300">
+                  {isEditing ? "Edit and save student information" : "Complete student information"}
+                </p>
               </div>
               <button
                 onClick={closeDetailsModal}
@@ -372,11 +482,13 @@ export default function ViewStudents() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow">
-                    <span className="text-lg text-white">{getInitial(selectedStudent.name)}</span>
+                    <span className="text-lg text-white">
+                      {getInitial(isEditing ? editForm.name : selectedStudent.name)}
+                    </span>
                   </div>
                   <div>
                     <h3 className="text-base font-semibold text-gray-900">
-                      {displayValue(selectedStudent.name)}
+                      {displayValue(isEditing ? editForm.name : selectedStudent.name)}
                     </h3>
                     <p className="text-xs text-gray-500">
                       Student ID: {displayValue(selectedStudent._id)}
@@ -384,43 +496,160 @@ export default function ViewStudents() {
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-500">Name</p>
-                    <p className="font-semibold text-gray-900">
-                      {displayValue(selectedStudent.name)}
-                    </p>
+                {actionError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
+                    {actionError}
                   </div>
-                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-500">Number</p>
-                    <p className="font-semibold text-gray-900">
-                      {displayValue(selectedStudent.rollNumber || selectedStudent.mobile)}
-                    </p>
+                )}
+
+                {updateSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-xs">
+                    {updateSuccess}
                   </div>
-                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-500">Class</p>
-                    <p className="font-semibold text-gray-900">
-                      {displayValue(selectedStudent.class || selectedStudent.course)}
-                    </p>
+                )}
+
+                {isEditing ? (
+                  <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Name *</label>
+                      <input
+                        name="name"
+                        value={editForm.name}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Student name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Email</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={editForm.email}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="student@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Mobile</label>
+                      <input
+                        name="mobile"
+                        value={editForm.mobile}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Mobile number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Roll Number</label>
+                      <input
+                        name="rollNumber"
+                        value={editForm.rollNumber}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Roll number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Class</label>
+                      <input
+                        name="class"
+                        value={editForm.class}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Class"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Course</label>
+                      <input
+                        name="course"
+                        value={editForm.course}
+                        onChange={handleEditInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Course"
+                      />
+                    </div>
                   </div>
-                  <div className="p-3 bg-white border border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-500">Student ID</p>
-                    <p className="font-semibold text-gray-900 break-all">
-                      {displayValue(selectedStudent._id)}
-                    </p>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                    <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="font-semibold text-gray-900">
+                        {displayValue(selectedStudent.name)}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="font-semibold text-gray-900 break-all">
+                        {displayValue(selectedStudent.email)}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                      <p className="text-xs text-gray-500">Number</p>
+                      <p className="font-semibold text-gray-900">
+                        {displayValue(selectedStudent.rollNumber || selectedStudent.mobile)}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white border border-gray-200 rounded-lg">
+                      <p className="text-xs text-gray-500">Class</p>
+                      <p className="font-semibold text-gray-900">
+                        {displayValue(selectedStudent.class || selectedStudent.course)}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white border border-gray-200 rounded-lg sm:col-span-2">
+                      <p className="text-xs text-gray-500">Student ID</p>
+                      <p className="font-semibold text-gray-900 break-all">
+                        {displayValue(selectedStudent._id)}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {isEditing && (
+                  <p className="text-xs text-gray-500">
+                    Note: Name required hai. Empty value bhejne par field blank ho sakti hai.
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end">
-              <button
-                onClick={closeDetailsModal}
-                className="px-5 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm font-semibold rounded-lg hover:shadow transition-all duration-200"
-              >
-                Close
-              </button>
+            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end gap-2">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleCancelEdit}
+                    disabled={savingUpdate}
+                    className="px-5 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:shadow transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdateStudent}
+                    disabled={savingUpdate}
+                    className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white text-sm font-semibold rounded-lg hover:shadow transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {savingUpdate ? "Saving..." : "Save Changes"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleStartEdit(selectedStudent)}
+                    className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-lg hover:shadow transition-all duration-200"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={closeDetailsModal}
+                    className="px-5 py-2 bg-gradient-to-r from-gray-800 to-gray-900 text-white text-sm font-semibold rounded-lg hover:shadow transition-all duration-200"
+                  >
+                    Close
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -428,4 +657,3 @@ export default function ViewStudents() {
     </div>
   );
 }
-
