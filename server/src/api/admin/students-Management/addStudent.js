@@ -1,6 +1,6 @@
 // यह API छात्र जोड़ता है
-const Student = require("../../models/Student");
-const generateRollNumber = require("../../../utils/rollNumber");
+const Student = require("../../../models/Student");
+const generateRollNumber = require("../../../../utils/rollNumber");
 
 // Add Student API
 const addStudent = async (req, res) => {

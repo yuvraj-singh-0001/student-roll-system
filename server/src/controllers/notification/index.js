@@ -1,5 +1,5 @@
 const express = require("express");
-const sendNotification = require("../../api/admin/sendNotification");
+const sendNotification = require("../../api/admin/notification/sendNotification");
 
 const router = express.Router();
 

@@ -1,6 +1,6 @@
 // This API returns the list of olympiad exams
-const ExamConfig = require("../../models/ExamConfig");
-const Question = require("../../models/Question");
+const ExamConfig = require("../../../models/ExamConfig");
+const Question = require("../../../models/Question");
 
 const CACHE_TTL_MS = Number(process.env.EXAM_LIST_CACHE_TTL_MS) || 300000;
 let cachePayload = null;

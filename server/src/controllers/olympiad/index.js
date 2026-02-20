@@ -2,10 +2,10 @@
 const express = require("express");
 const router = express.Router();
 
-const submitOlympiadExam = require("../../api/olympiad/submitOlympiadExam");
-const { listOlympiadAttempts, getOlympiadAttemptDetails } = require("../../api/olympiad/olympiadAttempts");
-const listOlympiadExams = require("../../api/olympiad/listOlympiadExams");
-const registerOlympiadStudent = require("../../api/olympiad/registerOlympiadStudent");
+const submitOlympiadExam = require("../../api/student/olympiad/submitOlympiadExam");
+const { listOlympiadAttempts, getOlympiadAttemptDetails } = require("../../api/student/olympiad/olympiadAttempts");
+const listOlympiadExams = require("../../api/student/olympiad/listOlympiadExams");
+const registerOlympiadStudent = require("../../api/student/olympiad/registerOlympiadStudent");
 
 router.post("/submit", submitOlympiadExam);
 router.get("/list", listOlympiadExams);

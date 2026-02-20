@@ -1,5 +1,5 @@
 // यह API सभी छात्रों की सूची देता है
-const Student = require("../../models/Student");
+const Student = require("../../../models/Student");
 
 // Get All Students API
 const getAllStudents = async (req, res) => {

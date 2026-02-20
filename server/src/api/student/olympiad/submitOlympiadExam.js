@@ -1,7 +1,7 @@
 // यह API olympiad exam submit करता है
-// backend/api/olympiad/submitOlympiadExam.js
-const Question = require("../../models/Question");
-const ExamAttempt = require("../../models/ExamAttempt");
+// backend/api/student/olympiad/submitOlympiadExam.js
+const Question = require("../../../models/Question");
+const ExamAttempt = require("../../../models/ExamAttempt");
 
 // --- scoring functions same ---
 

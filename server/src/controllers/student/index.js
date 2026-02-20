@@ -1,10 +1,10 @@
 const express = require("express");
-const addStudent = require("../../api/student/addStudent");
-const getAllStudents = require("../../api/student/getAllStudents");
+const addStudent = require("../../api/admin/students-Management/addStudent");
+const getAllStudents = require("../../api/admin/students-Management/getAllStudents");
 const getStudentByRollNumber = require("../../api/student/getStudentByRollNumber");
 const trackEmailOpen = require("../../api/student/trackEmailOpen");
-const updateStudent = require("../../api/student/updateStudent");
-const deleteStudent = require("../../api/student/deleteStudent");
+const updateStudent = require("../../api/admin/students-Management/updateStudent");
+const deleteStudent = require("../../api/admin/students-Management/deleteStudent");
 
 const router = express.Router();
 

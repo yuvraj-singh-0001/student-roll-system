@@ -1,6 +1,6 @@
 // यह API छात्रों को notification email भेजता है
-const Student = require("../../models/Student");
-const { sendMail } = require("../../../utils/email");
+const Student = require("../../../models/Student");
+const { sendMail } = require("../../../../utils/email");
 const { v4: uuidv4 } = require("uuid");
 const serverBaseUrl = (process.env.SERVER_BASE_URL || `http://localhost:${process.env.PORT || 5000}`)
   .replace(/\/+$/, "");

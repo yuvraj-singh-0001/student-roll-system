@@ -1,6 +1,6 @@
 // यह API olympiad attempts की सूची और detail देता है
-// backend/api/olympiad/olympiadAttempts.js
-const ExamAttempt = require("../../models/ExamAttempt");
+// backend/api/student/olympiad/olympiadAttempts.js
+const ExamAttempt = require("../../../models/ExamAttempt");
 
 const BRANCH_KEYS = ["A", "B"];
 

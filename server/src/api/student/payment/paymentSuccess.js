@@ -1,5 +1,5 @@
 // यह API payment success handle करता है
-const Student = require("../../models/Student");
+const Student = require("../../../models/Student");
 
 const paymentSuccess = async (req, res) => {
   try {
