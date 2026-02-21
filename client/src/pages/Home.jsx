@@ -59,14 +59,25 @@ export default function Home() {
         return;
       }
 
+      localStorage.setItem("formAName", String(form.name || "").trim());
+      localStorage.setItem("formAMobile", String(form.mobile || "").trim());
       setMsg("Form A submitted successfully. Redirecting to payment...");
 
       setTimeout(() => {
         navigate("/payment");
-      }, 1200);
+      }, 800);
 
-    } catch {
-      setMsg("Registration failed. Try again.");
+    } catch (error) {
+      const status = error?.response?.status;
+      const apiMsg = error?.response?.data?.message;
+      if (status === 409) {
+        localStorage.setItem("formAName", String(form.name || "").trim());
+        localStorage.setItem("formAMobile", String(form.mobile || "").trim());
+        setMsg(apiMsg || "Already registered. Redirecting to payment...");
+        setTimeout(() => navigate("/payment"), 800);
+      } else {
+        setMsg(apiMsg || "Registration failed. Try again.");
+      }
     } finally {
       setLoading(false);
     }

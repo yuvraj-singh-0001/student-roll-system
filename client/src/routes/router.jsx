@@ -6,6 +6,7 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import Payment from "../pages/Payment";
 import PaymentSuccess from "../pages/PaymentSuccess";
+import RegisterFormB from "../pages/RegisterFormB";
 
 // Student pages
 import StudentDashboard from "../pages/Student/StudentDashboard";
@@ -38,6 +39,7 @@ export default function AppRouter() {
         <Route path="/register" element={<Register />} />
         <Route path="/payment" element={<Payment />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/register-form-b" element={<RegisterFormB />} />
 
         {/* Student + Layout (abhi ke liye always allowed) */}
         <Route

@@ -102,6 +102,15 @@ export const makePayment = async (body) => {
 };
 
 /* ===================================================
+   FORM B REGISTRATION
+=================================================== */
+
+export const submitFormB = async (body) => {
+  const res = await API.post("/student/form-b", body);
+  return res.data;
+};
+
+/* ===================================================
    ADMIN CHECK
 =================================================== */
 

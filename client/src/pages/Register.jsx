@@ -14,6 +14,11 @@ export default function Register() {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const storeFormA = () => {
+    localStorage.setItem("formAName", String(form.name || "").trim());
+    localStorage.setItem("formAMobile", String(form.mobile || "").trim());
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -28,13 +33,22 @@ export default function Register() {
         return;
       }
 
+      storeFormA();
       setMsg("Form A submitted successfully. Proceed to payment.");
 
       // cookie already set by backend
-      setTimeout(() => navigate("/payment"), 1000);
+      setTimeout(() => navigate("/payment"), 800);
 
-    } catch {
-      setMsg("Something went wrong.");
+    } catch (error) {
+      const status = error?.response?.status;
+      const apiMsg = error?.response?.data?.message;
+      if (status === 409) {
+        storeFormA();
+        setMsg(apiMsg || "Already registered. Redirecting to payment...");
+        setTimeout(() => navigate("/payment"), 800);
+      } else {
+        setMsg(apiMsg || "Registration failed. Try again.");
+      }
     } finally {
       setLoading(false);
     }
