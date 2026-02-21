@@ -317,6 +317,20 @@ export default function ExamDashboard() {
       type: a.type,
       parentQuestion: a.parentQuestion,
       branchKey: a.branchKey,
+      firstVisitMs: a.firstVisitMs ?? null,
+      revisitChangeMs: Array.isArray(a.revisitChangeMs) ? a.revisitChangeMs : [],
+      visitDurationsMs: Array.isArray(a.visitDurationsMs) ? a.visitDurationsMs : [],
+      totalTimeMs:
+        Number.isFinite(Number(a.totalTimeMs)) && Number(a.totalTimeMs) >= 0
+          ? Number(a.totalTimeMs)
+          : null,
+      answerHistory: Array.isArray(a.answerHistory) ? a.answerHistory : [],
+      answerChangeCount:
+        Number.isFinite(Number(a.answerChangeCount)) && Number(a.answerChangeCount) >= 0
+          ? Math.floor(Number(a.answerChangeCount))
+          : Array.isArray(a.answerHistory)
+          ? a.answerHistory.length
+          : 0,
     }));
   };
 
@@ -337,6 +351,43 @@ export default function ExamDashboard() {
     const num = Number(value);
     if (!Number.isFinite(num)) return "null";
     return num.toFixed(2);
+  };
+
+  const formatDurationMs = (value) => {
+    if (value === null || value === undefined || value === "") return "-";
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) return "-";
+    const totalSeconds = Math.round(num / 100) / 10;
+    if (totalSeconds < 60) {
+      const text = totalSeconds.toFixed(1);
+      return `${text.replace(/\.0$/, "")}s`;
+    }
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds % 60);
+    return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+  };
+
+  const formatDurationList = (list) => {
+    if (!Array.isArray(list) || list.length === 0) return "-";
+    return list.map(formatDurationMs).join(", ");
+  };
+
+  const formatHistory = (history) => {
+    if (!Array.isArray(history) || history.length === 0) return "-";
+    return history
+      .map((v) => (typeof v === "string" && v.trim() ? v.trim() : "-"))
+      .join(" -> ");
+  };
+
+  const getAnswerChangeCount = (detail) => {
+    let baseCount = null;
+    if (Number.isFinite(Number(detail.answerChangeCount))) {
+      baseCount = Math.max(0, Math.floor(Number(detail.answerChangeCount)));
+    } else if (Array.isArray(detail.answerHistory)) {
+      baseCount = detail.answerHistory.length;
+    }
+    if (baseCount === null) return 0;
+    return Math.max(baseCount - 1, 0);
   };
 
   const getStudentScore = (student) => {
@@ -1117,6 +1168,22 @@ export default function ExamDashboard() {
                                       {displayValue(bp.studentAnswer)}
                                     </span>
                                   </div>
+                                  <div className="mt-1 space-y-0.5 text-[10px] text-gray-600">
+                                    <div>
+                                      First visit: {formatDurationMs(bp.firstVisitMs)}
+                                    </div>
+                                    <div>
+                                      Visits: {formatDurationList(bp.visitDurationsMs)}
+                                    </div>
+                                    <div>
+                                      Total time: {formatDurationMs(bp.totalTimeMs)}
+                                    </div>
+                                    <div>
+                                      Revisit change: {formatDurationList(bp.revisitChangeMs)}
+                                    </div>
+                                    <div>Changes: {getAnswerChangeCount(bp)}</div>
+                                    <div>History: {formatHistory(bp.answerHistory)}</div>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -1146,8 +1213,8 @@ export default function ExamDashboard() {
                               No questions found in this section.
                             </p>
                           ) : (
-                            <div className="rounded-lg border border-gray-200">
-                              <table className="w-full text-[11px] text-gray-700 table-fixed">
+                            <div className="rounded-lg border border-gray-200 overflow-x-auto">
+                              <table className="min-w-[1200px] w-full text-[11px] text-gray-700">
                                 <thead className="bg-gray-50">
                                   <tr className="text-left text-[11px] text-gray-500">
                                     <th className="px-2 py-2 font-medium">Q.No</th>
@@ -1165,6 +1232,12 @@ export default function ExamDashboard() {
                                         Confidence
                                       </th>
                                     )}
+                                    <th className="px-2 py-2 font-medium">
+                                      Timing
+                                    </th>
+                                    <th className="px-2 py-2 font-medium">
+                                      Answer History
+                                    </th>
                                     <th className="px-2 py-2 font-medium">
                                       Result
                                     </th>
@@ -1220,6 +1293,32 @@ export default function ExamDashboard() {
                                             </span>
                                           </td>
                                         )}
+                                        <td className="px-2 py-2 align-top text-[10px] text-gray-600 break-words whitespace-normal">
+                                          <div className="space-y-0.5">
+                                            <div>
+                                              First: {formatDurationMs(detail.firstVisitMs)}
+                                            </div>
+                                            <div>
+                                              Visits:{" "}
+                                              {formatDurationList(detail.visitDurationsMs)}
+                                            </div>
+                                            <div>
+                                              Total: {formatDurationMs(detail.totalTimeMs)}
+                                            </div>
+                                            <div>
+                                              Revisit change:{" "}
+                                              {formatDurationList(detail.revisitChangeMs)}
+                                            </div>
+                                          </div>
+                                        </td>
+                                        <td className="px-2 py-2 align-top text-[10px] text-gray-600 break-words whitespace-normal">
+                                          <div className="space-y-0.5">
+                                            <div>
+                                              Changes: {getAnswerChangeCount(detail)}
+                                            </div>
+                                            <div>Seq: {formatHistory(detail.answerHistory)}</div>
+                                          </div>
+                                        </td>
                                         <td className="px-2 py-2 align-top">
                                           <span
                                             className={`px-2 py-1 rounded-full text-[10px] font-semibold ${resultMeta.badge}`}

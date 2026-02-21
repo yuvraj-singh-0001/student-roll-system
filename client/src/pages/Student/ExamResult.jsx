@@ -195,6 +195,65 @@ export default function ExamResult() {
     return fixed.replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
   };
 
+  const formatDurationMs = (value) => {
+    if (value === null || value === undefined || value === "") return "-";
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) return "-";
+    const totalSeconds = Math.round(num / 100) / 10;
+    if (totalSeconds < 60) {
+      const text = totalSeconds.toFixed(1);
+      return `${text.replace(/\.0$/, "")}s`;
+    }
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds % 60);
+    return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+  };
+
+  const formatDurationList = (list) => {
+    if (!Array.isArray(list) || list.length === 0) return "-";
+    return list.map(formatDurationMs).join(", ");
+  };
+
+  const formatHistory = (history) => {
+    if (!Array.isArray(history) || history.length === 0) return "-";
+    const cleaned = history
+      .map((v) => (typeof v === "string" && v.trim() ? v.trim() : "-"))
+      .filter((v) => v !== "-");
+    if (!cleaned.length) return "-";
+    return cleaned.join(" -> ");
+  };
+
+  const getAnswerChangeCount = (attempt) => {
+    let baseCount = null;
+    if (Number.isFinite(Number(attempt.answerChangeCount))) {
+      baseCount = Math.max(0, Math.floor(Number(attempt.answerChangeCount)));
+    } else if (Array.isArray(attempt.answerHistory)) {
+      baseCount = attempt.answerHistory.length;
+    }
+    if (baseCount === null) return 0;
+    return Math.max(baseCount - 1, 0);
+  };
+
+  const getVisitParts = (attempt) => {
+    const list = Array.isArray(attempt.visitDurationsMs)
+      ? attempt.visitDurationsMs.filter((v) => Number.isFinite(Number(v)) && Number(v) >= 0)
+      : [];
+    const first = list.length ? list[0] : null;
+    const revisits = list.length > 1 ? list.slice(1) : [];
+    const total =
+      Number.isFinite(Number(attempt.totalTimeMs)) && Number(attempt.totalTimeMs) >= 0
+        ? Number(attempt.totalTimeMs)
+        : list.length
+        ? list.reduce((sum, v) => sum + Number(v), 0)
+        : null;
+    return { first, revisits, revisitCount: revisits.length, total };
+  };
+
+  const formatRevisitTimes = (revisits) => {
+    if (!Array.isArray(revisits) || revisits.length === 0) return "-";
+    return revisits.map((v) => `+${formatDurationMs(v)}`).join(", ");
+  };
+
   const getMaxMarksForAttempt = (attempt) => {
     const type = attempt?.type;
     if (type === "multiple") return 2;
@@ -652,6 +711,23 @@ export default function ExamResult() {
                                   {bp.selectedAnswer || "-"}
                                 </span>
                               </div>
+                              {(() => {
+                                const visit = getVisitParts(bp);
+                                return (
+                                  <div className="mt-1 space-y-0.5 text-[10px] text-gray-600">
+                                    <div>
+                                      First visit: {formatDurationMs(visit.first)}
+                                    </div>
+                                    <div>
+                                      Revisits ({visit.revisitCount}):{" "}
+                                      {formatRevisitTimes(visit.revisits)}
+                                    </div>
+                                    <div>
+                                      Total visit time: {formatDurationMs(visit.total)}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ))}
                         </div>
@@ -681,7 +757,7 @@ export default function ExamResult() {
                         </p>
                       ) : (
                         <div className="overflow-x-auto">
-                          <table className="min-w-[860px] w-full text-[11px] text-gray-700">
+                          <table className="min-w-[1200px] w-full text-[11px] text-gray-700">
                             <thead>
                               <tr className="text-left text-[11px] text-gray-500 border-b border-[#FFE6A3]">
                                 <th className="py-2 pr-3 font-medium">Q.No</th>
@@ -699,6 +775,12 @@ export default function ExamResult() {
                                     Confidence
                                   </th>
                                 )}
+                                <th className="py-2 pr-3 font-medium">
+                                  Visit Time
+                                </th>
+                                <th className="py-2 pr-3 font-medium">
+                                  Answer Changes
+                                </th>
                                 <th className="py-2 pr-3 font-medium">
                                   Result
                                 </th>
@@ -784,6 +866,34 @@ export default function ExamResult() {
                                         </span>
                                       </td>
                                     )}
+                                    <td className="py-2 pr-3 align-top text-[10px] text-gray-600 break-words whitespace-normal">
+                                      {(() => {
+                                        const visit = getVisitParts(d);
+                                        return (
+                                          <div className="space-y-0.5">
+                                            <div>
+                                              First visit: {formatDurationMs(visit.first)}
+                                            </div>
+                                            <div>
+                                              Revisits ({visit.revisitCount}):{" "}
+                                              {formatRevisitTimes(visit.revisits)}
+                                            </div>
+                                            <div>
+                                              Total visit time: {formatDurationMs(visit.total)}
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
+                                    </td>
+                                    <td className="py-2 pr-3 align-top text-[10px] text-gray-600 break-words whitespace-normal">
+                                      <div className="space-y-0.5">
+                                        <div>
+                                          Changes: {getAnswerChangeCount(d)} times
+                                        </div>
+                                        <div>Sequence: {formatHistory(d.answerHistory)}</div>
+                                        <div>Final: {selectedText}</div>
+                                      </div>
+                                    </td>
                                     <td className="py-2 pr-3 align-top">
                                       <span
                                         className={`inline-flex px-2 py-1 rounded-full text-[10px] font-semibold ${labelClass}`}

@@ -29,6 +29,30 @@ function normalizeConfidence(level) {
   return "mid";
 }
 
+function normalizeMs(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return null;
+  return Math.round(num);
+}
+
+function normalizeMsArray(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(normalizeMs).filter((v) => v !== null);
+}
+
+function normalizeHistory(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((v) => (typeof v === "string" ? v.trim() : String(v || "").trim()))
+    .filter((v) => v.length > 0);
+}
+
+function normalizeCount(value, fallback = 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return fallback;
+  return Math.floor(num);
+}
+
 function calcSimple(q, attempt) {
   if (!attempt || !attempt.selectedAnswer) {
     return { marks: 0, isCorrect: null, reason: "Not answered." };
@@ -207,6 +231,18 @@ async function submitOlympiadExam(req, res) {
       const safeCorrectAnswers = normalizeSelectedAnswers(q.correctAnswers);
 
       const att = attemptMap[q.questionNumber] || {};
+      const visitDurationsMs = normalizeMsArray(att.visitDurationsMs);
+      const revisitChangeMs = normalizeMsArray(att.revisitChangeMs);
+      const totalTimeMs =
+        visitDurationsMs.length > 0
+          ? visitDurationsMs.reduce((sum, v) => sum + v, 0)
+          : normalizeMs(att.totalTimeMs);
+      const firstVisitMs = normalizeMs(att.firstVisitMs);
+      const answerHistory = normalizeHistory(att.answerHistory);
+      const answerChangeCount = normalizeCount(
+        att.answerChangeCount,
+        answerHistory.length
+      );
       let selectedAnswer = normalizeSelectedAnswer(att.selectedAnswer);
       let selectedAnswers = normalizeSelectedAnswers(att.selectedAnswers);
 
@@ -291,6 +327,12 @@ async function submitOlympiadExam(req, res) {
         marks: result.marks,
         isCorrect: result.isCorrect,
         marksReason: result.reason,
+        firstVisitMs,
+        revisitChangeMs,
+        visitDurationsMs,
+        totalTimeMs,
+        answerHistory,
+        answerChangeCount,
       });
     }
 

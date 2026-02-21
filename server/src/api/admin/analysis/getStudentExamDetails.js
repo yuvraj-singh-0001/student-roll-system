@@ -32,6 +32,12 @@ async function getStudentExamDetails(req, res) {
       type: a.type,
       parentQuestion: a.parentQuestion,
       branchKey: a.branchKey,
+      firstVisitMs: a.firstVisitMs ?? null,
+      revisitChangeMs: Array.isArray(a.revisitChangeMs) ? a.revisitChangeMs : [],
+      visitDurationsMs: Array.isArray(a.visitDurationsMs) ? a.visitDurationsMs : [],
+      totalTimeMs: a.totalTimeMs ?? null,
+      answerHistory: Array.isArray(a.answerHistory) ? a.answerHistory : [],
+      answerChangeCount: a.answerChangeCount ?? 0,
     }));
 
     return res.status(200).json({ success: true, data: details });

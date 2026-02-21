@@ -48,45 +48,6 @@ export default function StudentDashboard() {
 
   const availableTests = examList;
 
-  const upcomingOlympiads = [
-    {
-      id: 1,
-      name: "International Math Olympiad",
-      subject: "Mathematics",
-      regClose: "10 Feb 2026",
-      eventDate: "15 Feb 2026",
-      daysRemaining: 15,
-      status: "not_registered",
-    },
-    {
-      id: 2,
-      name: "National Science Olympiad",
-      subject: "Physics & Chemistry",
-      regClose: "20 Feb 2026",
-      eventDate: "25 Feb 2026",
-      daysRemaining: 25,
-      status: "registered",
-    },
-    {
-      id: 3,
-      name: "English Language Olympiad",
-      subject: "English",
-      regClose: "05 Mar 2026",
-      eventDate: "12 Mar 2026",
-      daysRemaining: 40,
-      status: "not_registered",
-    },
-    {
-      id: 4,
-      name: "Cyber Olympiad",
-      subject: "Computer Science",
-      regClose: "18 Mar 2026",
-      eventDate: "25 Mar 2026",
-      daysRemaining: 53,
-      status: "not_registered",
-    },
-  ];
-
   const fetchExamList = useCallback(async (options = {}) => {
     const silent = options.silent === true;
     const forceRefresh = options.forceRefresh === true;
@@ -261,8 +222,8 @@ export default function StudentDashboard() {
             </div>
           </section>
 
-          {/* SECOND ROW: Available Tests + Upcoming Olympiads */}
-          <section className="grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2.5fr)] gap-4">
+          {/* SECOND ROW: Available Tests */}
+          <section className="grid gap-4">
             {/* Available Tests */}
             <div className="rounded-2xl bg-white/90 border border-[#FFE6A3] backdrop-blur-xl p-4 shadow-md">
               <div className="flex items-center justify-between mb-3">
@@ -351,56 +312,6 @@ export default function StudentDashboard() {
                     No exams available yet.
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* Upcoming Olympiads */}
-            <div className="rounded-2xl bg-white/90 border border-[#FFE6A3] backdrop-blur-xl p-4 shadow-md">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    Upcoming Olympiads
-                  </h3>
-                  <p className="text-[11px] text-gray-600">
-                    Register for upcoming exams here.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                {upcomingOlympiads.map((olymp) => (
-                  <div
-                    key={olymp.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-3"
-                  >
-                    <div className="text-xs text-gray-800">
-                      <p className="font-medium">{olymp.name}</p>
-                      <p className="text-[11px] text-gray-600">
-                        Subject: {olymp.subject}
-                      </p>
-                      <p className="text-[11px] text-gray-500 mt-1">
-                        Reg closes: {olymp.regClose} | Event: {olymp.eventDate}
-                      </p>
-                      <p className="text-[11px] text-emerald-700 mt-0.5">
-                        {olymp.daysRemaining} days remaining
-                      </p>
-                    </div>
-                    <div>
-                      {olymp.status === "registered" ? (
-                        <button className="text-[11px] px-3 py-1.5 rounded-full bg-emerald-500 text-white font-medium">
-                          Registered
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => navigate("/student/register")}
-                          className="text-[11px] px-3 py-1.5 rounded-full bg-[#FFCD2C] text-gray-900 font-medium hover:bg-[#FFC107] transition"
-                        >
-                          Register Now
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </section>
@@ -560,10 +471,10 @@ export default function StudentDashboard() {
           </section>
         </main>
 
-        {/* FOOTER */}
+        {/* FOOTER
         <footer className="border-t border-[#FFE6A3] bg-white/80 backdrop-blur-xl py-4 text-center text-[11px] text-gray-600">
           Student Portal (c) {new Date().getFullYear()}
-        </footer>
+        </footer> */}
       </div>
     </div>
   );

@@ -154,6 +154,7 @@ export default function Exam() {
   const [examRefreshing, setExamRefreshing] = useState(false);
   const fetchingRef = useRef(false);
   const cancelledRef = useRef(false);
+  const activeQuestionRef = useRef(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [time, setTime] = useState(new Date());
@@ -360,6 +361,18 @@ export default function Exam() {
   const branchMustSelect = q?.type === "branch_parent" && !aid?.selectedAnswer;
   const branchLocked = q?.type === "branch_parent" && !!aid?.selectedAnswer;
 
+  useEffect(() => {
+    const currentNumber = q?.questionNumber;
+    const prevNumber = activeQuestionRef.current;
+    if (prevNumber !== null && prevNumber !== undefined && prevNumber !== currentNumber) {
+      endVisit(prevNumber);
+    }
+    if (currentNumber !== null && currentNumber !== undefined) {
+      startVisit(currentNumber);
+    }
+    activeQuestionRef.current = currentNumber ?? null;
+  }, [q?.questionNumber]);
+
   // Auto-clear confidence-specific error after a short delay
   useEffect(() => {
     if (error !== CONFIDENCE_REQUIRED_ERROR) return;
@@ -413,16 +426,107 @@ export default function Exam() {
     });
   };
 
+  const formatHistoryLabel = (questionType, selectedAnswer, selectedAnswers) => {
+    if (questionType === "multiple") {
+      const list = Array.isArray(selectedAnswers) ? selectedAnswers : [];
+      return list.length ? list.join(",") : "-";
+    }
+    return selectedAnswer || "-";
+  };
+
+  const updateTrackingOnChange = (prevTracking, meta) => {
+    const now = Date.now();
+    const tracking = { ...(prevTracking || {}) };
+    const visitDurationsMs = Array.isArray(tracking.visitDurationsMs)
+      ? tracking.visitDurationsMs
+      : [];
+    const visitIndex = visitDurationsMs.length + 1;
+
+    if (!tracking.currentVisitStartedAt) {
+      tracking.currentVisitStartedAt = now;
+      tracking.currentVisitFirstChangeMs = null;
+    }
+
+    const changeMs = Math.max(0, now - tracking.currentVisitStartedAt);
+    if (tracking.currentVisitFirstChangeMs === null || tracking.currentVisitFirstChangeMs === undefined) {
+      tracking.currentVisitFirstChangeMs = changeMs;
+      if (visitIndex === 1 && (tracking.firstVisitMs === null || tracking.firstVisitMs === undefined)) {
+        tracking.firstVisitMs = changeMs;
+      }
+      if (visitIndex > 1) {
+        const revisit = Array.isArray(tracking.revisitChangeMs) ? tracking.revisitChangeMs : [];
+        tracking.revisitChangeMs = [...revisit, changeMs];
+      }
+    }
+
+    const label = formatHistoryLabel(
+      meta.questionType,
+      meta.selectedAnswer || null,
+      meta.selectedAnswers || []
+    );
+    const history = Array.isArray(tracking.answerHistory) ? tracking.answerHistory : [];
+    tracking.answerHistory = [...history, label];
+    const prevCount = Number.isFinite(tracking.answerChangeCount)
+      ? tracking.answerChangeCount
+      : history.length;
+    tracking.answerChangeCount = prevCount + 1;
+    return tracking;
+  };
+
+  const startVisit = (questionNumber) => {
+    const now = Date.now();
+    updateAnswer(questionNumber, (prevAns) => {
+      const tracking = prevAns.tracking || {};
+      if (tracking.currentVisitStartedAt) return prevAns;
+      return {
+        ...prevAns,
+        tracking: {
+          ...tracking,
+          currentVisitStartedAt: now,
+          currentVisitFirstChangeMs: null,
+        },
+      };
+    });
+  };
+
+  const endVisit = (questionNumber, endAt = Date.now()) => {
+    updateAnswer(questionNumber, (prevAns) => {
+      const tracking = prevAns.tracking || {};
+      if (!tracking.currentVisitStartedAt) return prevAns;
+      const durationMs = Math.max(0, endAt - tracking.currentVisitStartedAt);
+      const visitDurationsMs = Array.isArray(tracking.visitDurationsMs)
+        ? [...tracking.visitDurationsMs, durationMs]
+        : [durationMs];
+      const totalTimeMs = (Number(tracking.totalTimeMs) || 0) + durationMs;
+      return {
+        ...prevAns,
+        tracking: {
+          ...tracking,
+          visitDurationsMs,
+          totalTimeMs,
+          currentVisitStartedAt: null,
+          currentVisitFirstChangeMs: null,
+        },
+      };
+    });
+  };
+
   const markSingleAttempted = (opt) => {
     if (!q) return;
     updateAnswer(q.questionNumber, (prevAns) => {
       if (q.type === "branch_parent" && prevAns.selectedAnswer) return prevAns;
+      const nextTracking = updateTrackingOnChange(prevAns.tracking, {
+        questionType: q.type,
+        selectedAnswer: opt,
+        selectedAnswers: [],
+      });
       return {
         ...prevAns,
         status: "attempted",
         selectedAnswer: opt,
         selectedAnswers: [],
         confidence: q.type === "confidence" ? prevAns.confidence : null,
+        tracking: nextTracking,
       };
     });
   };
@@ -435,22 +539,43 @@ export default function Exam() {
       const updated = exists
         ? prevSelected.filter((k) => k !== opt)
         : [...prevSelected, opt];
+      const nextTracking = updateTrackingOnChange(prevAns.tracking, {
+        questionType: q.type,
+        selectedAnswer: null,
+        selectedAnswers: updated,
+      });
       return {
         ...prevAns,
         selectedAnswer: null,
         selectedAnswers: updated,
         status: updated.length ? "attempted" : "not_visited",
+        tracking: nextTracking,
       };
     });
   };
 
   const markSkipped = () => {
     if (!q || q.type === "branch_parent") return;
-    updateAnswer(q.questionNumber, {
-      status: "skipped",
-      selectedAnswer: null,
-      selectedAnswers: [],
-      confidence: null,
+    updateAnswer(q.questionNumber, (prevAns) => {
+      const hadSelection =
+        !!prevAns.selectedAnswer ||
+        (Array.isArray(prevAns.selectedAnswers) &&
+          prevAns.selectedAnswers.length > 0);
+      const nextTracking = hadSelection
+        ? updateTrackingOnChange(prevAns.tracking, {
+            questionType: q.type,
+            selectedAnswer: null,
+            selectedAnswers: [],
+          })
+        : prevAns.tracking;
+      return {
+        ...prevAns,
+        status: "skipped",
+        selectedAnswer: null,
+        selectedAnswers: [],
+        confidence: null,
+        tracking: nextTracking,
+      };
     });
   };
 
@@ -465,6 +590,34 @@ export default function Exam() {
       return (answer?.selectedAnswers || []).length > 0;
     }
     return !!answer?.selectedAnswer;
+  };
+
+  const finalizeAnswersForSubmit = (snapshotAnswers, activeQuestionNumber, endTimeMs) => {
+    if (activeQuestionNumber === null || activeQuestionNumber === undefined) {
+      return snapshotAnswers;
+    }
+    const currentAns = snapshotAnswers[activeQuestionNumber];
+    if (!currentAns?.tracking?.currentVisitStartedAt) return snapshotAnswers;
+    const tracking = currentAns.tracking || {};
+    const durationMs = Math.max(0, endTimeMs - tracking.currentVisitStartedAt);
+    const visitDurationsMs = Array.isArray(tracking.visitDurationsMs)
+      ? [...tracking.visitDurationsMs, durationMs]
+      : [durationMs];
+    const totalTimeMs = (Number(tracking.totalTimeMs) || 0) + durationMs;
+
+    return {
+      ...snapshotAnswers,
+      [activeQuestionNumber]: {
+        ...currentAns,
+        tracking: {
+          ...tracking,
+          visitDurationsMs,
+          totalTimeMs,
+          currentVisitStartedAt: null,
+          currentVisitFirstChangeMs: null,
+        },
+      },
+    };
   };
 
   const handleSkipAndNext = () => {
@@ -503,18 +656,23 @@ export default function Exam() {
     setSubmitLoading(true);
     try {
       const endTime = new Date();
+      const finalizedAnswers = finalizeAnswersForSubmit(
+        answers,
+        q?.questionNumber,
+        endTime.getTime()
+      );
       const startedAtIso = examStartAt ? examStartAt.toISOString() : null;
       const timeTakenSeconds = examStartAt
         ? Math.max(0, Math.floor((endTime.getTime() - examStartAt.getTime()) / 1000))
         : null;
       const payload = questions.map((question) => {
-        const a = answers[question.questionNumber] || {};
+        const a = finalizedAnswers[question.questionNumber] || {};
         let selectedAnswer = a.selectedAnswer || null;
         let selectedAnswers = a.selectedAnswers || [];
 
         const branchAllowed =
           question.type !== "branch_child" ||
-          answers[question.parentQuestion]?.selectedAnswer === question.branchKey;
+          finalizedAnswers[question.parentQuestion]?.selectedAnswer === question.branchKey;
 
         if (!branchAllowed) {
           selectedAnswer = null;
@@ -532,6 +690,34 @@ export default function Exam() {
         }
         if (!branchAllowed) status = "not_visited";
 
+        const tracking = a.tracking || {};
+        const firstVisitMs =
+          Number.isFinite(Number(tracking.firstVisitMs)) &&
+          Number(tracking.firstVisitMs) >= 0
+            ? Math.round(Number(tracking.firstVisitMs))
+            : null;
+        const visitDurationsMs = Array.isArray(tracking.visitDurationsMs)
+          ? tracking.visitDurationsMs
+              .map((v) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : null))
+              .filter((v) => v !== null)
+          : [];
+        const revisitChangeMs = Array.isArray(tracking.revisitChangeMs)
+          ? tracking.revisitChangeMs
+              .map((v) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : null))
+              .filter((v) => v !== null)
+          : [];
+        const totalTimeMs = visitDurationsMs.length
+          ? visitDurationsMs.reduce((sum, v) => sum + v, 0)
+          : Number.isFinite(Number(tracking.totalTimeMs)) && Number(tracking.totalTimeMs) >= 0
+          ? Math.round(Number(tracking.totalTimeMs))
+          : null;
+        const answerHistory = Array.isArray(tracking.answerHistory)
+          ? tracking.answerHistory.map((v) => String(v || "").trim()).filter((v) => v)
+          : [];
+        const answerChangeCount = Number.isFinite(Number(tracking.answerChangeCount))
+          ? Math.max(0, Math.floor(Number(tracking.answerChangeCount)))
+          : answerHistory.length;
+
         return {
           questionNumber: question.questionNumber,
           type: question.type,
@@ -539,6 +725,12 @@ export default function Exam() {
           selectedAnswers,
           confidence: a.confidence || null,
           status,
+          firstVisitMs,
+          revisitChangeMs,
+          visitDurationsMs,
+          totalTimeMs,
+          answerHistory,
+          answerChangeCount,
         };
       });
 
@@ -563,9 +755,9 @@ export default function Exam() {
         setExamStartAt(null);
         setTimeLeft(null);
         setExamDurationSeconds(null);
-      } else {
-        setError(data.message || "Submit failed");
-      }
+        } else {
+          setError(data.message || "Submit failed");
+        }
       } catch (e) {
         const serverMsg =
           e.response?.data?.error || e.response?.data?.message || "Submit failed";

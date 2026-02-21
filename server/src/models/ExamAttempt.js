@@ -39,6 +39,14 @@ const answerSchema = new mongoose.Schema(
     marks: { type: Number, default: 0 },
     isCorrect: { type: Boolean, default: null },
     marksReason: { type: String, default: "" },
+
+    // timing + history tracking
+    firstVisitMs: { type: Number, default: null },
+    revisitChangeMs: [{ type: Number }],
+    visitDurationsMs: [{ type: Number }],
+    totalTimeMs: { type: Number, default: null },
+    answerHistory: [{ type: String }],
+    answerChangeCount: { type: Number, default: 0 },
   },
   { _id: false }
 );
