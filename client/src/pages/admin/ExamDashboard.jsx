@@ -818,7 +818,7 @@ export default function ExamDashboard() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-2">
               <div className="group p-2 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                 <div className="text-xs text-gray-600 mb-1">
-                  Sabse zyada time (select karne me)
+                  Slowest Select Time (Avg)
                 </div>
                 <div className="text-lg font-bold text-gray-900">
                   {timeHighlights.mostSelectTime
@@ -839,7 +839,7 @@ export default function ExamDashboard() {
 
               <div className="group p-2 bg-gradient-to-br from-cyan-50 to-sky-50 rounded-xl border border-cyan-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                 <div className="text-xs text-gray-600 mb-1">
-                  Sabse kam time (select karne me)
+                  Fastest Select Time (Avg)
                 </div>
                 <div className="text-lg font-bold text-gray-900">
                   {timeHighlights.leastSelectTime
@@ -860,7 +860,7 @@ export default function ExamDashboard() {
 
               <div className="group p-2 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                 <div className="text-xs text-gray-600 mb-1">
-                  Skip karne me sabse zyada time
+                  Slowest Skip Time (Avg)
                 </div>
                 <div className="text-lg font-bold text-gray-900">
                   {timeHighlights.mostSkipTime
@@ -881,7 +881,7 @@ export default function ExamDashboard() {
 
               <div className="group p-2 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border border-yellow-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                 <div className="text-xs text-gray-600 mb-1">
-                  Skip karne me sabse kam time
+                  Fastest Skip Time (Avg)
                 </div>
                 <div className="text-lg font-bold text-gray-900">
                   {timeHighlights.leastSkipTime
@@ -902,7 +902,7 @@ export default function ExamDashboard() {
 
               <div className="group p-2 bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl border border-purple-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                 <div className="text-xs text-gray-600 mb-1">
-                  Sabse zyada answer change (avg)
+                  Most Answer Changes (Avg)
                 </div>
                 <div className="text-lg font-bold text-gray-900">
                   {timeHighlights.mostChanges
@@ -920,7 +920,7 @@ export default function ExamDashboard() {
 
                 <div className="group p-2 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-slate-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                   <div className="text-xs text-gray-600 mb-1">
-                    Sabse kam answer change (avg)
+                    Least Answer Changes (Avg)
                   </div>
                   <div className="text-lg font-bold text-gray-900">
                     {timeHighlights.leastChanges
@@ -938,7 +938,7 @@ export default function ExamDashboard() {
 
                 <div className="group p-2 bg-gradient-to-br from-rose-50 to-pink-50 rounded-xl border border-rose-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                   <div className="text-xs text-gray-600 mb-1">
-                    Pehle sahi tha, change karke galat hua
+                    Correct → Wrong (Most)
                   </div>
                   <div className="text-lg font-bold text-gray-900">
                     {timeHighlights.mostCorrectToWrong
@@ -960,7 +960,7 @@ export default function ExamDashboard() {
 
                 <div className="group p-2 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                   <div className="text-xs text-gray-600 mb-1">
-                    Pehle galat tha, change karke sahi hua
+                    Wrong → Correct (Most)
                   </div>
                   <div className="text-lg font-bold text-gray-900">
                     {timeHighlights.mostWrongToCorrect
@@ -994,12 +994,12 @@ export default function ExamDashboard() {
               {showTimeDetails && (
                 <div className="mt-3 rounded-xl border border-gray-200 overflow-x-auto">
                   <div className="px-3 py-2 text-[11px] text-gray-600 bg-gray-50 border-b border-gray-200">
-                    Is table me har question ka time aur change behavior ka
-                    summary diya hai. "Avg Select Time" pehli baar select karne
-                    ka average time hai, "Avg Skip Time" skip karne tak ka
-                    average time. Changes aur behavior columns me % ke saath
-                    total count diya hai (jo students ne exam attempt kiya).
-                    Example: 20% = 2/10 students.
+                    This table summarizes time and change behavior for each
+                    question. "Avg Select Time" means the average time to select
+                    an answer the first time, and "Avg Skip Time" means the
+                    average time before skipping. The Changes and Behavior
+                    columns show percentage with total count (students who
+                    attempted the exam). Example: 20% = 2/10 students.
                   </div>
                   <table className="min-w-[1300px] w-full text-[11px] text-gray-700">
                     <thead className="bg-gradient-to-r from-emerald-50 to-teal-50">
@@ -1009,31 +1009,31 @@ export default function ExamDashboard() {
                         <th className="px-2 py-2 font-medium">
                           Avg Select Time
                           <div className="text-[10px] text-gray-500">
-                            Pehli baar select karne ka avg time
+                            Average time to select first answer
                           </div>
                         </th>
                         <th className="px-2 py-2 font-medium">
                           Avg Skip Time
                           <div className="text-[10px] text-gray-500">
-                            Skip karne tak ka avg time
+                            Average time before skipping
                           </div>
                         </th>
                         <th className="px-2 py-2 font-medium">
                           Changes %
                           <div className="text-[10px] text-gray-500">
-                            Attempted students me se kitne ne change kiya
+                            % of attempted students who changed answers
                           </div>
                         </th>
                         <th className="px-2 py-2 font-medium">
                           Wrong → Correct
                           <div className="text-[10px] text-gray-500">
-                            Attempted students me se (count + %)
+                            From attempted students (count + %)
                           </div>
                         </th>
                         <th className="px-2 py-2 font-medium">
                           Correct → Wrong
                           <div className="text-[10px] text-gray-500">
-                            Attempted students me se (count + %)
+                            From attempted students (count + %)
                           </div>
                         </th>
                         
