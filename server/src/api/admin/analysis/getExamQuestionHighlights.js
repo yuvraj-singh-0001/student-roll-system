@@ -131,6 +131,231 @@ function buildStats(attempts) {
   return { stats, visibleQuestionNumbers };
 }
 
+function normalizeMs(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return null;
+  return Math.round(num);
+}
+
+function normalizeMsArray(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((v) => normalizeMs(v))
+    .filter((v) => v !== null);
+}
+
+function getTotalVisitMs(answer) {
+  const explicit = normalizeMs(answer?.totalTimeMs);
+  if (explicit !== null) return explicit;
+  const visits = normalizeMsArray(answer?.visitDurationsMs);
+  if (!visits.length) return null;
+  return visits.reduce((sum, v) => sum + v, 0);
+}
+
+function getFirstSelectMs(answer) {
+  const first = normalizeMs(answer?.firstVisitMs);
+  if (first !== null) return first;
+  const revisits = normalizeMsArray(answer?.revisitChangeMs);
+  return revisits.length ? revisits[0] : null;
+}
+
+function getHistoryList(answer) {
+  const history = Array.isArray(answer?.answerHistory)
+    ? answer.answerHistory
+        .map((v) => (typeof v === "string" ? v.trim() : String(v || "").trim()))
+        .filter((v) => v)
+    : [];
+  if (history.length) return history;
+
+  if (answer?.type === "multiple") {
+    const selected = Array.isArray(answer?.selectedAnswers)
+      ? answer.selectedAnswers.filter((x) => x)
+      : [];
+    if (selected.length) return [selected.join(",")];
+  }
+
+  if (answer?.selectedAnswer) {
+    return [String(answer.selectedAnswer).trim()];
+  }
+  return [];
+}
+
+function parseSelectionList(value) {
+  if (!value) return [];
+  return String(value)
+    .split(",")
+    .map((v) => v.trim().toUpperCase())
+    .filter((v) => v);
+}
+
+function isSelectionCorrect(answer, selection) {
+  if (!selection) return null;
+  if (answer?.type === "multiple") {
+    const selected = parseSelectionList(selection);
+    const correct = Array.isArray(answer?.correctAnswers)
+      ? answer.correctAnswers.map((v) => String(v).trim().toUpperCase()).filter((v) => v)
+      : [];
+    if (!selected.length || !correct.length) return null;
+    if (selected.length !== correct.length) return false;
+    const correctSet = new Set(correct);
+    return selected.every((v) => correctSet.has(v));
+  }
+
+  const correct = answer?.correctAnswer
+    ? String(answer.correctAnswer).trim().toUpperCase()
+    : null;
+  if (!correct) return null;
+  return String(selection).trim().toUpperCase() === correct;
+}
+
+function getChangeCount(answer) {
+  if (Array.isArray(answer?.answerHistory) && answer.answerHistory.length > 0) {
+    return Math.max(answer.answerHistory.length - 1, 0);
+  }
+  const raw = Number(answer?.answerChangeCount);
+  if (Number.isFinite(raw) && raw >= 0) return Math.max(Math.floor(raw) - 1, 0);
+  return null;
+}
+
+function computeTimeAnalysis(attempts, questionTextByNumber) {
+  const map = new Map();
+
+  for (const attempt of attempts) {
+    const scored = getVisibleScoredAnswers(attempt.answers || []);
+    for (const a of scored) {
+      const qn = Number(a.questionNumber);
+      if (!Number.isFinite(qn)) continue;
+      const key = String(qn);
+      let entry = map.get(key);
+      if (!entry) {
+        const q = questionTextByNumber.get(key) || {};
+        entry = {
+          questionNumber: qn,
+          questionText: q.questionText || "",
+          selectSumMs: 0,
+          selectCount: 0,
+          skipSumMs: 0,
+          skipCount: 0,
+          changeSum: 0,
+          changeCount: 0,
+          changeStudents: 0,
+          selectionCount: 0,
+          wrongToCorrect: 0,
+          correctToWrong: 0,
+          correctToWrongAfter3: 0,
+        };
+        map.set(key, entry);
+      }
+
+      const selectMs = getFirstSelectMs(a);
+      if (selectMs !== null) {
+        entry.selectSumMs += selectMs;
+        entry.selectCount += 1;
+      }
+
+      if (a.status === "skipped") {
+        const skipMs = getTotalVisitMs(a);
+        if (skipMs !== null) {
+          entry.skipSumMs += skipMs;
+          entry.skipCount += 1;
+        }
+      }
+
+      const changes = getChangeCount(a);
+      if (changes !== null) {
+        entry.changeSum += changes;
+        entry.changeCount += 1;
+        if (changes > 0) entry.changeStudents += 1;
+      }
+
+      const history = getHistoryList(a);
+      if (history.length) {
+        entry.selectionCount += 1;
+        const firstCorrect = isSelectionCorrect(a, history[0]);
+        const lastCorrect = isSelectionCorrect(a, history[history.length - 1]);
+        if (firstCorrect === false && lastCorrect === true) entry.wrongToCorrect += 1;
+        if (firstCorrect === true && lastCorrect === false) entry.correctToWrong += 1;
+        if (changes !== null && changes >= 3) {
+          if (firstCorrect === true && lastCorrect === false) {
+            entry.correctToWrongAfter3 += 1;
+          }
+        }
+      }
+    }
+  }
+
+  const list = Array.from(map.values())
+    .map((entry) => {
+      const selectAvgMs =
+        entry.selectCount > 0 ? Math.round(entry.selectSumMs / entry.selectCount) : null;
+      const skipAvgMs =
+        entry.skipCount > 0 ? Math.round(entry.skipSumMs / entry.skipCount) : null;
+      const changeAvg =
+        entry.changeCount > 0 ? Number((entry.changeSum / entry.changeCount).toFixed(2)) : null;
+      const wrongToCorrectPercent =
+        entry.selectionCount > 0
+          ? Number(((entry.wrongToCorrect / entry.selectionCount) * 100).toFixed(1))
+          : 0;
+      const correctToWrongPercent =
+        entry.selectionCount > 0
+          ? Number(((entry.correctToWrong / entry.selectionCount) * 100).toFixed(1))
+          : 0;
+      const correctToWrongAfter3Percent =
+        entry.selectionCount > 0
+          ? Number(((entry.correctToWrongAfter3 / entry.selectionCount) * 100).toFixed(1))
+          : 0;
+
+      return {
+        questionNumber: entry.questionNumber,
+        questionText: entry.questionText,
+        selectAvgMs,
+        selectCount: entry.selectCount,
+        skipAvgMs,
+        skipCount: entry.skipCount,
+        changeAvg,
+        changeTotal: entry.changeSum,
+        changeStudents: entry.changeStudents,
+        wrongToCorrectCount: entry.wrongToCorrect,
+        wrongToCorrectPercent,
+        correctToWrongCount: entry.correctToWrong,
+        correctToWrongPercent,
+        correctToWrongAfter3Count: entry.correctToWrongAfter3,
+        correctToWrongAfter3Percent,
+        selectionCount: entry.selectionCount,
+      };
+    })
+    .sort((a, b) => a.questionNumber - b.questionNumber);
+
+  const pickByPositive = (items, key) => {
+    const filtered = items.filter((i) => Number(i[key]) > 0);
+    if (!filtered.length) return null;
+    return filtered.reduce((best, cur) => (cur[key] > best[key] ? cur : best));
+  };
+
+  const pickBy = (items, key, dir = "max") => {
+    const filtered = items.filter((i) => i[key] !== null && i[key] !== undefined);
+    if (!filtered.length) return null;
+    return filtered.reduce((best, cur) => {
+      if (!best) return cur;
+      return dir === "min" ? (cur[key] < best[key] ? cur : best) : (cur[key] > best[key] ? cur : best);
+    }, null);
+  };
+
+  const highlights = {
+    mostSelectTime: pickBy(list, "selectAvgMs", "max"),
+    leastSelectTime: pickBy(list, "selectAvgMs", "min"),
+    mostSkipTime: pickBy(list, "skipAvgMs", "max"),
+    leastSkipTime: pickBy(list, "skipAvgMs", "min"),
+    mostChanges: pickBy(list, "changeAvg", "max"),
+    leastChanges: pickBy(list, "changeAvg", "min"),
+    mostWrongToCorrect: pickByPositive(list, "wrongToCorrectCount"),
+    mostCorrectToWrong: pickByPositive(list, "correctToWrongCount"),
+    mostCorrectToWrongAfter3: pickByPositive(list, "correctToWrongAfter3Count"),
+  };
+
+  return { list, highlights };
+}
+
 function getVisibleScoredAnswers(answers) {
   const branchChoices = buildBranchChoices(answers);
   const byQuestion = new Map();
@@ -294,6 +519,7 @@ async function getExamQuestionHighlights(req, res) {
           },
           list: [],
           branchSummary: [],
+          timeAnalysis: { list: [], highlights: {} },
         },
       });
     }
@@ -317,6 +543,7 @@ async function getExamQuestionHighlights(req, res) {
       branchParents
     );
     const { stats: statsMap, visibleQuestionNumbers } = buildStats(attempts);
+    const timeAnalysis = computeTimeAnalysis(attempts, questionTextByNumber);
     const totalStudents = attempts.length;
     const questionsPerStudent = computeQuestionsPerStudent(questionsWithType);
 
@@ -378,6 +605,7 @@ async function getExamQuestionHighlights(req, res) {
         highlights,
         list,
         branchSummary,
+        timeAnalysis,
       },
     });
   } catch (e) {
