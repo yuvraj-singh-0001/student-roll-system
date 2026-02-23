@@ -47,6 +47,7 @@ export default function ExamDashboard() {
   const [time, setTime] = useState(new Date());
   const [lastUpdated, setLastUpdated] = useState(null);
   const [studentsPage, setStudentsPage] = useState(1);
+  const [showTimeDetails, setShowTimeDetails] = useState(false);
 
   const STUDENTS_PAGE_SIZE = 4;
 
@@ -372,6 +373,18 @@ export default function ExamDashboard() {
     return list.map(formatDurationMs).join(", ");
   };
 
+  const formatPercent = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "-";
+    return `${num.toFixed(1)}%`;
+  };
+
+  const formatAvgChanges = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "-";
+    return num.toFixed(2);
+  };
+
   const formatHistory = (history) => {
     if (!Array.isArray(history) || history.length === 0) return "-";
     return history
@@ -465,7 +478,22 @@ export default function ExamDashboard() {
 
   const qw = questionData?.highlights || null;
   const branchSummary = questionData?.branchSummary || [];
+  const timeAnalysis = questionData?.timeAnalysis || null;
+  const timeHighlights = timeAnalysis?.highlights || {};
+  const timeList = Array.isArray(timeAnalysis?.list) ? timeAnalysis.list : [];
+  const attemptedStudents = Number.isFinite(Number(questionData?.totalStudents))
+    ? Number(questionData?.totalStudents)
+    : Number.isFinite(Number(totalStudents))
+    ? Number(totalStudents)
+    : 0;
+  const attemptedStudentsSafe = attemptedStudents > 0 ? attemptedStudents : 0;
+  const formatPercentOfAttempted = (count) => {
+    if (!attemptedStudentsSafe) return "-";
+    const num = Number(count) || 0;
+    return formatPercent((num / attemptedStudentsSafe) * 100);
+  };
   const st = studentResults || [];
+
   const selectedExamMeta = examList.find((e) => e.examCode === examCode);
   const displayTotalQuestions = useMemo(() => {
     const count = Number(totalQuestions);
@@ -773,6 +801,300 @@ export default function ExamDashboard() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {timeAnalysis && timeList.length > 0 && (
+        <div
+          className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-2 animate-fade-in-up"
+          style={{ animationDelay: "0.27s" }}
+        >
+          <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+            <div className="p-2">
+              <h2 className="text-lg font-bold text-gray-900 mb-2">
+                Time-wise Analysis
+              </h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-2">
+              <div className="group p-2 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                <div className="text-xs text-gray-600 mb-1">
+                  Sabse zyada time (select karne me)
+                </div>
+                <div className="text-lg font-bold text-gray-900">
+                  {timeHighlights.mostSelectTime
+                    ? `Q${timeHighlights.mostSelectTime.questionNumber}`
+                    : "-"}
+                </div>
+                <div className="text-xs text-emerald-700 font-medium">
+                  {timeHighlights.mostSelectTime?.selectAvgMs !== null
+                    ? `Average: ${formatDurationMs(
+                        timeHighlights.mostSelectTime.selectAvgMs
+                      )}`
+                    : "Average: -"}{" "}
+                  {timeHighlights.mostSelectTime?.selectCount
+                    ? `(n=${timeHighlights.mostSelectTime.selectCount})`
+                    : ""}
+                </div>
+              </div>
+
+              <div className="group p-2 bg-gradient-to-br from-cyan-50 to-sky-50 rounded-xl border border-cyan-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                <div className="text-xs text-gray-600 mb-1">
+                  Sabse kam time (select karne me)
+                </div>
+                <div className="text-lg font-bold text-gray-900">
+                  {timeHighlights.leastSelectTime
+                    ? `Q${timeHighlights.leastSelectTime.questionNumber}`
+                    : "-"}
+                </div>
+                <div className="text-xs text-cyan-700 font-medium">
+                  {timeHighlights.leastSelectTime?.selectAvgMs !== null
+                    ? `Average: ${formatDurationMs(
+                        timeHighlights.leastSelectTime.selectAvgMs
+                      )}`
+                    : "Average: -"}{" "}
+                  {timeHighlights.leastSelectTime?.selectCount
+                    ? `(n=${timeHighlights.leastSelectTime.selectCount})`
+                    : ""}
+                </div>
+              </div>
+
+              <div className="group p-2 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                <div className="text-xs text-gray-600 mb-1">
+                  Skip karne me sabse zyada time
+                </div>
+                <div className="text-lg font-bold text-gray-900">
+                  {timeHighlights.mostSkipTime
+                    ? `Q${timeHighlights.mostSkipTime.questionNumber}`
+                    : "-"}
+                </div>
+                <div className="text-xs text-amber-700 font-medium">
+                  {timeHighlights.mostSkipTime?.skipAvgMs !== null
+                    ? `Average: ${formatDurationMs(
+                        timeHighlights.mostSkipTime.skipAvgMs
+                      )}`
+                    : "Average: -"}{" "}
+                  {timeHighlights.mostSkipTime?.skipCount
+                    ? `(n=${timeHighlights.mostSkipTime.skipCount})`
+                    : ""}
+                </div>
+              </div>
+
+              <div className="group p-2 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl border border-yellow-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                <div className="text-xs text-gray-600 mb-1">
+                  Skip karne me sabse kam time
+                </div>
+                <div className="text-lg font-bold text-gray-900">
+                  {timeHighlights.leastSkipTime
+                    ? `Q${timeHighlights.leastSkipTime.questionNumber}`
+                    : "-"}
+                </div>
+                <div className="text-xs text-amber-700 font-medium">
+                  {timeHighlights.leastSkipTime?.skipAvgMs !== null
+                    ? `Average: ${formatDurationMs(
+                        timeHighlights.leastSkipTime.skipAvgMs
+                      )}`
+                    : "Average: -"}{" "}
+                  {timeHighlights.leastSkipTime?.skipCount
+                    ? `(n=${timeHighlights.leastSkipTime.skipCount})`
+                    : ""}
+                </div>
+              </div>
+
+              <div className="group p-2 bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl border border-purple-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                <div className="text-xs text-gray-600 mb-1">
+                  Sabse zyada answer change (avg)
+                </div>
+                <div className="text-lg font-bold text-gray-900">
+                  {timeHighlights.mostChanges
+                    ? `Q${timeHighlights.mostChanges.questionNumber}`
+                    : "-"}
+                </div>
+                <div className="text-xs text-purple-700 font-medium">
+                  {timeHighlights.mostChanges?.changeAvg !== null
+                    ? `Average changes: ${formatAvgChanges(
+                        timeHighlights.mostChanges.changeAvg
+                      )}`
+                    : "Average changes: -"}
+                </div>
+              </div>
+
+                <div className="group p-2 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-slate-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="text-xs text-gray-600 mb-1">
+                    Sabse kam answer change (avg)
+                  </div>
+                  <div className="text-lg font-bold text-gray-900">
+                    {timeHighlights.leastChanges
+                      ? `Q${timeHighlights.leastChanges.questionNumber}`
+                      : "-"}
+                  </div>
+                  <div className="text-xs text-gray-700 font-medium">
+                    {timeHighlights.leastChanges?.changeAvg !== null
+                      ? `Average changes: ${formatAvgChanges(
+                          timeHighlights.leastChanges.changeAvg
+                        )}`
+                      : "Average changes: -"}
+                  </div>
+                </div>
+
+                <div className="group p-2 bg-gradient-to-br from-rose-50 to-pink-50 rounded-xl border border-rose-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="text-xs text-gray-600 mb-1">
+                    Pehle sahi tha, change karke galat hua
+                  </div>
+                  <div className="text-lg font-bold text-gray-900">
+                    {timeHighlights.mostCorrectToWrong
+                      ? `Q${timeHighlights.mostCorrectToWrong.questionNumber}`
+                      : "-"}
+                  </div>
+                  <div className="text-xs text-rose-700 font-medium">
+                    {timeHighlights.mostCorrectToWrong
+                      ? `Count: ${timeHighlights.mostCorrectToWrong.correctToWrongCount} (${formatPercentOfAttempted(
+                          timeHighlights.mostCorrectToWrong.correctToWrongCount
+                        )}${
+                          attemptedStudentsSafe
+                            ? `, ${timeHighlights.mostCorrectToWrong.correctToWrongCount}/${attemptedStudentsSafe} students`
+                            : ""
+                        })`
+                      : "-"}
+                  </div>
+                </div>
+
+                <div className="group p-2 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="text-xs text-gray-600 mb-1">
+                    Pehle galat tha, change karke sahi hua
+                  </div>
+                  <div className="text-lg font-bold text-gray-900">
+                    {timeHighlights.mostWrongToCorrect
+                      ? `Q${timeHighlights.mostWrongToCorrect.questionNumber}`
+                      : "-"}
+                  </div>
+                  <div className="text-xs text-emerald-700 font-medium">
+                    {timeHighlights.mostWrongToCorrect
+                      ? `Count: ${timeHighlights.mostWrongToCorrect.wrongToCorrectCount} (${formatPercentOfAttempted(
+                          timeHighlights.mostWrongToCorrect.wrongToCorrectCount
+                        )}${
+                          attemptedStudentsSafe
+                            ? `, ${timeHighlights.mostWrongToCorrect.wrongToCorrectCount}/${attemptedStudentsSafe} students`
+                            : ""
+                        })`
+                      : "-"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTimeDetails((prev) => !prev)}
+                  className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 transition"
+                >
+                  {showTimeDetails ? "Hide Depth Analysis" : "Depth Analysis"}
+                </button>
+              </div>
+
+              {showTimeDetails && (
+                <div className="mt-3 rounded-xl border border-gray-200 overflow-x-auto">
+                  <div className="px-3 py-2 text-[11px] text-gray-600 bg-gray-50 border-b border-gray-200">
+                    Is table me har question ka time aur change behavior ka
+                    summary diya hai. "Avg Select Time" pehli baar select karne
+                    ka average time hai, "Avg Skip Time" skip karne tak ka
+                    average time. Changes aur behavior columns me % ke saath
+                    total count diya hai (jo students ne exam attempt kiya).
+                    Example: 20% = 2/10 students.
+                  </div>
+                  <table className="min-w-[1300px] w-full text-[11px] text-gray-700">
+                    <thead className="bg-gradient-to-r from-emerald-50 to-teal-50">
+                      <tr className="text-left text-[11px] text-gray-600">
+                        <th className="px-2 py-2 font-medium">Q.No</th>
+                        <th className="px-2 py-2 font-medium">Question</th>
+                        <th className="px-2 py-2 font-medium">
+                          Avg Select Time
+                          <div className="text-[10px] text-gray-500">
+                            Pehli baar select karne ka avg time
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 font-medium">
+                          Avg Skip Time
+                          <div className="text-[10px] text-gray-500">
+                            Skip karne tak ka avg time
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 font-medium">
+                          Changes %
+                          <div className="text-[10px] text-gray-500">
+                            Attempted students me se kitne ne change kiya
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 font-medium">
+                          Wrong → Correct
+                          <div className="text-[10px] text-gray-500">
+                            Attempted students me se (count + %)
+                          </div>
+                        </th>
+                        <th className="px-2 py-2 font-medium">
+                          Correct → Wrong
+                          <div className="text-[10px] text-gray-500">
+                            Attempted students me se (count + %)
+                          </div>
+                        </th>
+                        
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {timeList.map((row) => (
+                        <tr key={`time-${row.questionNumber}`}>
+                          <td className="px-2 py-2 font-semibold text-gray-900">
+                            Q{row.questionNumber}
+                          </td>
+                          <td className="px-2 py-2 text-gray-700">
+                            {row.questionText || "-"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {row.selectAvgMs !== null
+                              ? `${formatDurationMs(row.selectAvgMs)} (n=${row.selectCount || 0})`
+                              : "-"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {row.skipAvgMs !== null
+                              ? `${formatDurationMs(row.skipAvgMs)} (n=${row.skipCount || 0})`
+                              : "-"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {attemptedStudentsSafe
+                              ? `${formatPercent(
+                                  ((row.changeStudents || 0) / attemptedStudentsSafe) *
+                                    100
+                                )} (${row.changeStudents || 0}/${
+                                  attemptedStudentsSafe
+                                } students)`
+                              : "-"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {attemptedStudentsSafe
+                              ? `${formatPercent(
+                                  ((row.wrongToCorrectCount || 0) / attemptedStudentsSafe) *
+                                    100
+                                )} (${row.wrongToCorrectCount || 0}/${
+                                  attemptedStudentsSafe
+                                } students)`
+                              : "-"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {attemptedStudentsSafe
+                              ? `${formatPercent(
+                                  ((row.correctToWrongCount || 0) / attemptedStudentsSafe) *
+                                    100
+                                )} (${row.correctToWrongCount || 0}/${
+                                  attemptedStudentsSafe
+                                } students)`
+                              : "-"}
+                          </td>
+                          
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
           </div>
         </div>
       )}
