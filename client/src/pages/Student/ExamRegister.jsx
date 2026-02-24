@@ -31,6 +31,8 @@ export default function ExamRegister() {
         localStorage.setItem("studentName", registered.name);
         localStorage.setItem("studentRoll", registered.rollNumber || "");
         localStorage.setItem("studentEmail", registered.email);
+        localStorage.setItem("studentProfileName", registered.name || "");
+        localStorage.setItem("studentProfileEmail", registered.email || "");
 
         navigate("/payment");
       }

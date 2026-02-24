@@ -74,6 +74,8 @@ export default function Home() {
 
       localStorage.setItem("formAName", String(form.name || "").trim());
       localStorage.setItem("formAMobile", String(form.mobile || "").trim());
+      localStorage.setItem("studentProfileName", String(form.name || "").trim());
+      localStorage.setItem("studentProfileClass", String(form.class || "").trim());
       setMsg("Form A submitted successfully. Redirecting to payment...");
 
       setTimeout(() => {
@@ -86,6 +88,8 @@ export default function Home() {
       if (status === 409) {
         localStorage.setItem("formAName", String(form.name || "").trim());
         localStorage.setItem("formAMobile", String(form.mobile || "").trim());
+        localStorage.setItem("studentProfileName", String(form.name || "").trim());
+        localStorage.setItem("studentProfileClass", String(form.class || "").trim());
         setMsg(apiMsg || "Already registered. Redirecting to payment...");
         setTimeout(() => navigate("/payment"), 800);
       } else {

@@ -1,6 +1,6 @@
 ﻿import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { olympiadExamApi, examApi } from "../../api";
+import { olympiadExamApi, examApi, studentApi } from "../../api";
 
 const EXAM_CACHE_KEY = "examListCacheV1";
 const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -122,18 +122,43 @@ export default function StudentDashboard() {
   };
 
   useEffect(() => {
-    const studentId = (
-      localStorage.getItem("examStudentId") || localStorage.getItem("studentId") || ""
-    ).trim();
-    if (!studentId) return;
-
     let cancelled = false;
     setResultsLoading(true);
     setResultsError("");
 
     (async () => {
       try {
-        const { data } = await olympiadExamApi.attempts({ studentId });
+        const storedId = (
+          localStorage.getItem("examStudentId") ||
+          localStorage.getItem("studentId") ||
+          ""
+        ).trim();
+        let resolvedId = storedId;
+
+        try {
+          const { data: profileRes } = await studentApi.profile();
+          if (profileRes?.success && profileRes?.data) {
+            const incoming = profileRes.data;
+            const preferred =
+              String(incoming.rollNumber || incoming.studentId || "").trim();
+            if (preferred) {
+              localStorage.setItem("examStudentId", preferred);
+              resolvedId = preferred;
+            }
+          }
+        } catch {
+          // ignore profile errors
+        }
+
+        if (!resolvedId) {
+          if (!cancelled) {
+            setRecentResults([]);
+            setResultsLoading(false);
+          }
+          return;
+        }
+
+        const { data } = await olympiadExamApi.attempts({ studentId: resolvedId });
         if (!cancelled) {
           if (data.success) {
             setRecentResults(data.data || []);
@@ -479,7 +504,6 @@ export default function StudentDashboard() {
     </div>
   );
 }
-
 
 
 

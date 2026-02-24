@@ -1274,6 +1274,22 @@ export default function RegisterFormB() {
         setLoading(false);
         return;
       }
+      try {
+        localStorage.setItem(
+          "studentProfileName",
+          String(form.verification.fullName || expectedVerification.name || "").trim()
+        );
+        localStorage.setItem(
+          "studentProfileUsername",
+          String(form.account.username || "").trim()
+        );
+        localStorage.setItem(
+          "studentProfileEmail",
+          String(form.contact.email || "").trim()
+        );
+      } catch {
+        // ignore localStorage errors
+      }
       setMessage("Form B submitted successfully. Redirecting...");
       triggerLogoSpin();
       setTimeout(() => navigate("/student"), 1000);

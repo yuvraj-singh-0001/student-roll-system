@@ -30,6 +30,8 @@ export default function Register() {
   const storeFormA = () => {
     localStorage.setItem("formAName", String(form.name || "").trim());
     localStorage.setItem("formAMobile", String(form.mobile || "").trim());
+    localStorage.setItem("studentProfileName", String(form.name || "").trim());
+    localStorage.setItem("studentProfileClass", String(form.class || "").trim());
   };
 
   const submit = async (e) => {

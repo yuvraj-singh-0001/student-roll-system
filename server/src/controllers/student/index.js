@@ -2,6 +2,7 @@ const express = require("express");
 const addStudent = require("../../api/admin/students-Management/addStudent");
 const getAllStudents = require("../../api/admin/students-Management/getAllStudents");
 const getStudentByRollNumber = require("../../api/student/getStudentByRollNumber");
+const getStudentProfile = require("../../api/student/getStudentProfile");
 const trackEmailOpen = require("../../api/student/trackEmailOpen");
 const updateStudent = require("../../api/admin/students-Management/updateStudent");
 const deleteStudent = require("../../api/admin/students-Management/deleteStudent");
@@ -25,6 +26,9 @@ router.post("/form-b", authMiddleware, registerFormB);
 
 // GET - Check username availability (requires auth cookie)
 router.get("/check-username", authMiddleware, checkUsername);
+
+// GET - Get student profile (requires auth cookie)
+router.get("/profile", authMiddleware, getStudentProfile);
 
 // PUT - Update student by id
 router.put("/:id", updateStudent);

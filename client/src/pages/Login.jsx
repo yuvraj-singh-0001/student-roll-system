@@ -32,6 +32,13 @@ export default function Login() {
       localStorage.setItem("token", token);
       localStorage.setItem("userId", user.id);
       localStorage.setItem("isPaid", user.isPaid);
+      if (user?.name) {
+        localStorage.setItem("studentProfileName", user.name);
+      }
+      if (user?.email) {
+        localStorage.setItem("studentProfileEmail", user.email);
+      }
+      localStorage.setItem("studentProfileLoginTime", new Date().toISOString());
 
       if (user.isPaid) {
         navigate("/student");
