@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { submitFormB } from "../api";
+import { checkUsernameAvailability, submitFormB } from "../api";
 import { FaInstagram, FaLinkedin, FaYoutube } from "react-icons/fa";
 import TTTLogo from "../assets/images/TTTlogo- rigiterions.png";
 import Navbar from "../components/layout/Navbar";
@@ -838,8 +838,21 @@ const STEPS = [
   {
     id: 7,
     title: "Follow True Topper",
-    subtitle: "Mandatory social follow",
+    subtitle: "Optional social follow",
   },
+];
+
+const SIBLING_CLASS_OPTIONS = [
+  "10th",
+  "11th",
+  "12th",
+  "Diploma",
+  "BA",
+  "BCom",
+  "BSc",
+  "BCA",
+  "BCS",
+  "Other",
 ];
 
 const buildSiblingDetails = (count) =>
@@ -854,6 +867,12 @@ export default function RegisterFormB() {
   const [error, setError] = useState("");
   const [stepNotice, setStepNotice] = useState("");
   const [logoSpin, setLogoSpin] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState({
+    state: "idle",
+    message: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [expectedVerification, setExpectedVerification] = useState({
     name: "",
@@ -896,8 +915,8 @@ export default function RegisterFormB() {
       mother: { name: "", phone: "", email: "", profession: "" },
     },
     siblings: {
-      count: 0,
-      details: [],
+      count: 1,
+      details: buildSiblingDetails(1),
     },
     social: {
       followed: false,
@@ -948,6 +967,61 @@ export default function RegisterFormB() {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    const username = String(form.account.username || "").trim();
+    if (!username) {
+      setUsernameStatus({ state: "idle", message: "" });
+      return;
+    }
+
+    if (username.length < 3) {
+      setUsernameStatus({
+        state: "invalid",
+        message: "Username must be at least 3 characters.",
+      });
+      return;
+    }
+
+    let cancelled = false;
+    setUsernameStatus({ state: "checking", message: "Checking availability..." });
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkUsernameAvailability({ username });
+        if (cancelled) return;
+        if (res?.success === false) {
+          setUsernameStatus({
+            state: "error",
+            message: res?.message || "Unable to verify username right now.",
+          });
+          return;
+        }
+        if (res?.available) {
+          setUsernameStatus({
+            state: "available",
+            message: "Username available.",
+          });
+        } else {
+          setUsernameStatus({
+            state: "taken",
+            message: "Username already taken.",
+          });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setUsernameStatus({
+          state: "error",
+          message: "Unable to verify username right now.",
+        });
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [form.account.username]);
+
   const setField = (path, value) => {
     setForm((prev) => {
       const next = { ...prev };
@@ -963,20 +1037,36 @@ export default function RegisterFormB() {
     });
   };
 
+  const handleWhatsAppChange = (value) => {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 10);
+    setField("verification.whatsappNumber", digits);
+  };
+
   const normalizeName = (value) => String(value || "").trim().toLowerCase();
-  const normalizeMobile = (value) => String(value || "").trim();
+  const normalizeMobile = (value) => String(value || "").replace(/\D/g, "");
   const expectedName = normalizeName(expectedVerification.name);
   const expectedMobile = normalizeMobile(expectedVerification.mobile);
   const enteredName = normalizeName(form.verification.fullName);
   const enteredMobile = normalizeMobile(form.verification.whatsappNumber);
+  const isWhatsAppValid = enteredMobile.length === 10;
   const hasExpectedVerification = Boolean(expectedName && expectedMobile);
-  const hasEnteredVerification = Boolean(enteredName && enteredMobile);
+  const hasEnteredVerification = Boolean(enteredName && isWhatsAppValid);
   const isVerificationMatch =
     hasExpectedVerification &&
     enteredName === expectedName &&
     enteredMobile === expectedMobile;
   const showPaymentRedirect =
     step === 1 && hasEnteredVerification && !isVerificationMatch;
+  const usernameTone =
+    usernameStatus.state === "available"
+      ? "border-emerald-300 ring-1 ring-emerald-100"
+      : usernameStatus.state === "taken" ||
+        usernameStatus.state === "invalid" ||
+        usernameStatus.state === "error"
+      ? "border-rose-300 ring-1 ring-rose-100"
+      : usernameStatus.state === "checking"
+      ? "border-amber-300 ring-1 ring-amber-100"
+      : "border-slate-200";
 
   const triggerLogoSpin = () => {
     setLogoSpin(true);
@@ -999,13 +1089,24 @@ export default function RegisterFormB() {
       if (!form.verification.fullName.trim()) return "Full name is required.";
       if (!form.verification.whatsappNumber.trim())
         return "WhatsApp number is required.";
+      if (form.verification.whatsappNumber.trim().length !== 10)
+        return "WhatsApp number must be exactly 10 digits.";
     }
 
     if (current === 2) {
       if (!form.account.username.trim()) return "Username is required.";
+      if (usernameStatus.state === "checking")
+        return "Please wait, checking username availability.";
+      if (usernameStatus.state === "taken") return "Username already taken.";
+      if (usernameStatus.state === "invalid")
+        return usernameStatus.message || "Username is invalid.";
+      if (usernameStatus.state === "error")
+        return "Unable to verify username. Please try again.";
       if (!form.account.password.trim()) return "Password is required.";
       if (form.account.password.length < 6)
         return "Password must be at least 6 characters.";
+      if (!form.account.confirmPassword.trim())
+        return "Confirm password is required.";
       if (form.account.password !== form.account.confirmPassword)
         return "Passwords do not match.";
     }
@@ -1014,55 +1115,56 @@ export default function RegisterFormB() {
       const contact = form.contact;
       if (!contact.email.trim()) return "Gmail is required.";
       if (!contact.dob.trim()) return "DOB is required.";
-      if (!contact.gender) return "Gender is required.";
-      if (!contact.address.trim()) return "Full address is required.";
+      if (!contact.country) return "Country is required.";
+      if (contact.country === "Other" && !contact.countryOther.trim()) {
+        return "Country name is required.";
+      }
       if (contact.country === "India") {
         if (!contact.state) return "State is required.";
         if (!contact.district) return "District is required.";
-        if (!contact.pinCode.trim()) return "Pin code is required.";
-      } else if (!contact.countryOther.trim()) {
-        return "Country name is required.";
+        if (contact.district === "Other" && !contact.districtOther.trim()) {
+          return "District name is required.";
+        }
       }
+      if (!contact.gender) return "Gender is required.";
     }
 
     if (current === 4) {
       const school = form.school;
+      if (!school.country) return "School country is required.";
       if (!school.name.trim()) return "School name is required.";
+      if (school.country === "Other" && !school.countryOther.trim()) {
+        return "School country is required.";
+      }
       if (school.country === "India") {
         if (!school.state) return "School state is required.";
-        if (!school.district) return "School district is required.";
-        if (!school.pinCode.trim()) return "School pin code is required.";
-      } else if (!school.countryOther.trim()) {
-        return "School country is required.";
+        if (school.district === "Other" && !school.districtOther.trim()) {
+          return "School district name is required.";
+        }
       }
     }
 
     if (current === 5) {
       const { father, mother } = form.parents;
       if (!father.name.trim()) return "Father name is required.";
-      if (!father.phone.trim()) return "Father phone is required.";
-      if (!father.email.trim()) return "Father Gmail is required.";
-      if (!father.profession.trim()) return "Father profession is required.";
+      if (!father.phone.trim()) return "Father mobile number is required.";
       if (!mother.name.trim()) return "Mother name is required.";
-      if (!mother.phone.trim()) return "Mother phone is required.";
-      if (!mother.email.trim()) return "Mother Gmail is required.";
-      if (!mother.profession.trim()) return "Mother profession is required.";
+      if (!mother.phone.trim()) return "Mother mobile number is required.";
     }
 
     if (current === 6) {
       const count = Number(form.siblings.count || 0);
-      if (count > 0) {
-        for (let i = 0; i < count; i += 1) {
-          const sibling = form.siblings.details[i];
-          if (!sibling?.name?.trim())
-            return `Sibling ${i + 1} name is required.`;
-        }
+      if (!Number.isFinite(count) || count < 1)
+        return "Number of siblings is required.";
+      for (let i = 0; i < count; i += 1) {
+        const sibling = form.siblings.details[i];
+        if (!sibling?.name?.trim())
+          return `Sibling ${i + 1} name is required.`;
+        if (!sibling?.age?.trim())
+          return `Sibling ${i + 1} age is required.`;
+        if (!sibling?.class?.trim())
+          return `Sibling ${i + 1} class is required.`;
       }
-    }
-
-    if (current === 7) {
-      if (!form.social.followed)
-        return "Please follow True Topper to continue.";
     }
 
     return "";
@@ -1367,16 +1469,21 @@ export default function RegisterFormB() {
                         <span className="text-rose-500">*</span>
                       </label>
                       <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        pattern="[0-9]{10}"
                         className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
                         value={form.verification.whatsappNumber}
-                        onChange={(e) =>
-                          setField(
-                            "verification.whatsappNumber",
-                            e.target.value
-                          )
-                        }
-                        placeholder="WhatsApp number"
+                        onChange={(e) => handleWhatsAppChange(e.target.value)}
+                        placeholder="10 digit WhatsApp number"
                       />
+                      {form.verification.whatsappNumber &&
+                        form.verification.whatsappNumber.length !== 10 && (
+                          <p className="mt-1 text-[10px] text-rose-600">
+                            WhatsApp number must be exactly 10 digits.
+                          </p>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -1389,42 +1496,137 @@ export default function RegisterFormB() {
                       Username<span className="text-rose-500">*</span>
                     </label>
                     <input
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
+                      className={`mt-1 w-full rounded-xl border px-2.5 py-1.5 text-xs ${usernameTone}`}
                       value={form.account.username}
                       onChange={(e) =>
                         setField("account.username", e.target.value)
                       }
                       placeholder="Username"
                     />
+                    {usernameStatus.message && (
+                      <p
+                        className={`mt-1 text-[10px] ${
+                          usernameStatus.state === "available"
+                            ? "text-emerald-600"
+                            : usernameStatus.state === "checking"
+                            ? "text-amber-600"
+                            : "text-rose-600"
+                        }`}
+                      >
+                        {usernameStatus.message}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="text-[11px] font-semibold text-slate-700">
                       Password<span className="text-rose-500">*</span>
                     </label>
-                    <input
-                      type="password"
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
-                      value={form.account.password}
-                      onChange={(e) =>
-                        setField("account.password", e.target.value)
-                      }
-                      placeholder="Password"
-                    />
+                    <div className="relative mt-1">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 pr-9 text-xs"
+                        value={form.account.password}
+                        onChange={(e) =>
+                          setField("account.password", e.target.value)
+                        }
+                        placeholder="Password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600"
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? (
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 3l18 18" />
+                            <path d="M10.5 10.5a2 2 0 0 0 2.9 2.9" />
+                            <path d="M9.9 5.1a9.9 9.9 0 0 1 2.1-.2c6 0 9.8 7 9.8 7a18.4 18.4 0 0 1-3.1 4.3" />
+                            <path d="M6.2 6.2A18.4 18.4 0 0 0 2.2 12s3.8 7 9.8 7a9.9 9.9 0 0 0 4.3-.9" />
+                          </svg>
+                        ) : (
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M1.5 12s4.5-7 10.5-7 10.5 7 10.5 7-4.5 7-10.5 7S1.5 12 1.5 12z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="text-[11px] font-semibold text-slate-700">
                       Confirm Password
                       <span className="text-rose-500">*</span>
                     </label>
-                    <input
-                      type="password"
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
-                      value={form.account.confirmPassword}
-                      onChange={(e) =>
-                        setField("account.confirmPassword", e.target.value)
-                      }
-                      placeholder="Confirm password"
-                    />
+                    <div className="relative mt-1">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 pr-9 text-xs"
+                        value={form.account.confirmPassword}
+                        onChange={(e) =>
+                          setField("account.confirmPassword", e.target.value)
+                        }
+                        placeholder="Confirm password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((prev) => !prev)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600"
+                        aria-label={
+                          showConfirmPassword
+                            ? "Hide confirm password"
+                            : "Show confirm password"
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 3l18 18" />
+                            <path d="M10.5 10.5a2 2 0 0 0 2.9 2.9" />
+                            <path d="M9.9 5.1a9.9 9.9 0 0 1 2.1-.2c6 0 9.8 7 9.8 7a18.4 18.4 0 0 1-3.1 4.3" />
+                            <path d="M6.2 6.2A18.4 18.4 0 0 0 2.2 12s3.8 7 9.8 7a9.9 9.9 0 0 0 4.3-.9" />
+                          </svg>
+                        ) : (
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M1.5 12s4.5-7 10.5-7 10.5 7 10.5 7-4.5 7-10.5 7S1.5 12 1.5 12z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1535,7 +1737,7 @@ export default function RegisterFormB() {
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-slate-700">
-                          Pin Code<span className="text-rose-500">*</span>
+                          Pin Code (optional)
                         </label>
                         <input
                           className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
@@ -1585,7 +1787,7 @@ export default function RegisterFormB() {
                     </div>
                     <div>
                       <label className="text-[11px] font-semibold text-slate-700">
-                        Full Address<span className="text-rose-500">*</span>
+                        Full Address (optional)
                       </label>
                       <input
                         className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
@@ -1673,7 +1875,7 @@ export default function RegisterFormB() {
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-slate-700">
-                          District<span className="text-rose-500">*</span>
+                          District (optional)
                         </label>
                         <select
                           className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
@@ -1693,7 +1895,7 @@ export default function RegisterFormB() {
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-slate-700">
-                          Pin Code<span className="text-rose-500">*</span>
+                          Pin Code (optional)
                         </label>
                         <input
                           className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
@@ -1750,7 +1952,7 @@ export default function RegisterFormB() {
                       />
                       <input
                         className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
-                        placeholder="Father Gmail*"
+                        placeholder="Father Gmail (optional)"
                         value={form.parents.father.email}
                         onChange={(e) =>
                           setField("parents.father.email", e.target.value)
@@ -1758,7 +1960,7 @@ export default function RegisterFormB() {
                       />
                       <input
                         className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
-                        placeholder="Father profession*"
+                        placeholder="Father profession (optional)"
                         value={form.parents.father.profession}
                         onChange={(e) =>
                           setField(
@@ -1792,7 +1994,7 @@ export default function RegisterFormB() {
                       />
                       <input
                         className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
-                        placeholder="Mother Gmail*"
+                        placeholder="Mother Gmail (optional)"
                         value={form.parents.mother.email}
                         onChange={(e) =>
                           setField("parents.mother.email", e.target.value)
@@ -1800,7 +2002,7 @@ export default function RegisterFormB() {
                       />
                       <input
                         className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
-                        placeholder="Mother profession*"
+                        placeholder="Mother profession (optional)"
                         value={form.parents.mother.profession}
                         onChange={(e) =>
                           setField(
@@ -1818,7 +2020,7 @@ export default function RegisterFormB() {
                 <div className="space-y-3">
                   <div className="max-w-xs">
                     <label className="text-[11px] font-semibold text-slate-700">
-                      Number of Siblings
+                      Number of Siblings<span className="text-rose-500">*</span>
                     </label>
                     <select
                       className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
@@ -1827,7 +2029,7 @@ export default function RegisterFormB() {
                         setField("siblings.count", Number(e.target.value))
                       }
                     >
-                      {[0, 1, 2, 3, 4, 5, 6].map((count) => (
+                      {[1, 2, 3, 4, 5, 6].map((count) => (
                         <option key={count} value={count}>
                           {count}
                         </option>
@@ -1857,7 +2059,7 @@ export default function RegisterFormB() {
                           />
                           <input
                             className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
-                            placeholder="Age"
+                            placeholder="Age*"
                             value={sibling.age}
                             onChange={(e) => {
                               const next = [...form.siblings.details];
@@ -1868,9 +2070,8 @@ export default function RegisterFormB() {
                               setField("siblings.details", next);
                             }}
                           />
-                          <input
+                          <select
                             className="w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
-                            placeholder="Class"
                             value={sibling.class}
                             onChange={(e) => {
                               const next = [...form.siblings.details];
@@ -1880,7 +2081,14 @@ export default function RegisterFormB() {
                               };
                               setField("siblings.details", next);
                             }}
-                          />
+                          >
+                            <option value="">Select Education</option>
+                            {SIBLING_CLASS_OPTIONS.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       ))}
                     </div>
@@ -1915,7 +2123,7 @@ export default function RegisterFormB() {
                         setField("social.followed", e.target.checked)
                       }
                     />
-                    I have followed all True Topper social channels
+                    I have followed all True Topper social channels (optional)
                   </label>
                 </div>
               )}

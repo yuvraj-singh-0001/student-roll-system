@@ -110,6 +110,11 @@ export const submitFormB = async (body) => {
   return res.data;
 };
 
+export const checkUsernameAvailability = async (params) => {
+  const res = await API.get("/student/check-username", { params });
+  return res.data;
+};
+
 /* ===================================================
    ADMIN CHECK
 =================================================== */

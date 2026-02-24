@@ -3,6 +3,7 @@ const Student = require("../../../models/Student");
 const Question = require("../../../models/Question");
 const ExamConfig = require("../../../models/ExamConfig");
 const ExamAttempt = require("../../../models/ExamAttempt");
+const mongoose = require("mongoose");
 
 const HOURS_24 = 24 * 60 * 60 * 1000;
 
@@ -58,7 +59,7 @@ async function getAdminDashboardOverview(req, res) {
           },
         },
       ]),
-      Student.find().sort({ createdAt: -1 }).limit(15).lean(),
+      Student.find().sort({ updatedAt: -1 }).limit(25).lean(),
       ExamAttempt.find().sort({ createdAt: -1 }).limit(15).lean(),
     ]);
 
@@ -71,31 +72,110 @@ async function getAdminDashboardOverview(req, res) {
 
     const avgScore = avgAgg && avgAgg.length ? avgAgg[0].avgMarks : 0;
 
-    const activityStudents = (recentStudents || []).map((s) => ({
-      id: s._id ? String(s._id) : undefined,
-      type: "student",
-      user: s.name || "Student",
-      action: "registered",
-      time: toTimeAgo(s.createdAt),
-      exam: "Student Registration",
-      status: "registered",
-      score: null,
-      createdAt: s.createdAt,
-    }));
+    const studentActivities = (recentStudents || []).flatMap((s) => {
+      const activities = [];
+      const studentName =
+        s.formB?.verification?.fullName || s.name || "Student";
+      const baseId = s._id ? String(s._id) : studentName;
+      const createdAt = s.createdAt || s.updatedAt;
+      const isExamStudent = String(s.course || "").toLowerCase() === "exam";
 
-    const activityAttempts = (recentAttempts || []).map((a) => ({
-      id: a._id ? String(a._id) : undefined,
-      type: "attempt",
-      user: a.studentId || "Student",
-      action: "completed exam",
-      time: toTimeAgo(a.createdAt),
-      exam: a.examCode || "Olympiad",
-      status: "completed",
-      score: Number.isFinite(a.totalMarks) ? a.totalMarks : null,
-      createdAt: a.createdAt,
-    }));
+      if (createdAt) {
+        activities.push({
+          id: `${baseId}:register`,
+          type: "student",
+          user: studentName,
+          action: isExamStudent ? "registered for exam" : "submitted Form A",
+          time: toTimeAgo(createdAt),
+          exam: isExamStudent ? "Exam Registration" : "Form A",
+          status: "registered",
+          score: null,
+          createdAt,
+        });
+      }
 
-    const recentActivities = [...activityStudents, ...activityAttempts]
+      if (s.payment?.paidAt || s.isPaid) {
+        const paidAt = s.payment?.paidAt || s.updatedAt || createdAt;
+        if (paidAt) {
+          activities.push({
+            id: `${baseId}:payment`,
+            type: "student",
+            user: studentName,
+            action: "completed payment",
+            time: toTimeAgo(paidAt),
+            exam: "Payment",
+            status: "completed",
+            score: null,
+            createdAt: paidAt,
+          });
+        }
+      }
+
+      if (s.formBSubmittedAt || s.formBSubmitted) {
+        const formBAt = s.formBSubmittedAt || s.updatedAt || createdAt;
+        if (formBAt) {
+          activities.push({
+            id: `${baseId}:form-b`,
+            type: "student",
+            user: studentName,
+            action: "submitted Form B",
+            time: toTimeAgo(formBAt),
+            exam: "Form B",
+            status: "updated",
+            score: null,
+            createdAt: formBAt,
+          });
+        }
+      }
+
+      return activities;
+    });
+
+    const attemptIds = (recentAttempts || [])
+      .map((a) => (a.studentId ? String(a.studentId).trim() : ""))
+      .filter((id) => id);
+    const uniqueAttemptIds = Array.from(new Set(attemptIds));
+    const objectIds = uniqueAttemptIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+    const attemptStudents = uniqueAttemptIds.length
+      ? await Student.find({
+          $or: [
+            { rollNumber: { $in: uniqueAttemptIds } },
+            ...(objectIds.length ? [{ _id: { $in: objectIds } }] : []),
+          ],
+        }).lean()
+      : [];
+    const attemptStudentMap = new Map();
+    attemptStudents.forEach((s) => {
+      if (s.rollNumber) attemptStudentMap.set(String(s.rollNumber), s);
+      if (s._id) attemptStudentMap.set(String(s._id), s);
+    });
+
+    const activityAttempts = (recentAttempts || []).map((a) => {
+      const rawId = a.studentId ? String(a.studentId).trim() : "";
+      const isGuest = !rawId;
+      const matchedStudent = rawId ? attemptStudentMap.get(rawId) : null;
+      const displayName = isGuest
+        ? "Guest"
+        : matchedStudent?.formB?.verification?.fullName ||
+          matchedStudent?.name ||
+          rawId ||
+          "Student";
+      return {
+        id: a._id ? String(a._id) : undefined,
+        type: "attempt",
+        user: displayName,
+        action: "completed exam",
+        time: toTimeAgo(a.createdAt),
+        exam: a.examCode || "Olympiad",
+        status: "completed",
+        score: Number.isFinite(a.totalMarks) ? a.totalMarks : null,
+        createdAt: a.createdAt,
+      };
+    });
+
+    const recentActivities = [...studentActivities, ...activityAttempts]
       .sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt))
       .slice(0, 20);
 

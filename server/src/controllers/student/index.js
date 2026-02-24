@@ -6,6 +6,7 @@ const trackEmailOpen = require("../../api/student/trackEmailOpen");
 const updateStudent = require("../../api/admin/students-Management/updateStudent");
 const deleteStudent = require("../../api/admin/students-Management/deleteStudent");
 const registerFormB = require("../../api/student/registerFormB");
+const checkUsername = require("../../api/student/checkUsername");
 const authMiddleware = require("../../middlewares/auth");
 
 const router = express.Router();
@@ -21,6 +22,9 @@ router.get("/track/:trackingId", trackEmailOpen);
 
 // POST - Form B submission (requires auth cookie from Form A)
 router.post("/form-b", authMiddleware, registerFormB);
+
+// GET - Check username availability (requires auth cookie)
+router.get("/check-username", authMiddleware, checkUsername);
 
 // PUT - Update student by id
 router.put("/:id", updateStudent);

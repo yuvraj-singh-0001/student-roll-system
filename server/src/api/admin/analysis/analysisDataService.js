@@ -2,6 +2,7 @@
 const Student = require("../../../models/Student");
 const Question = require("../../../models/Question");
 const ExamAttempt = require("../../../models/ExamAttempt");
+const mongoose = require("mongoose");
 
 async function getStudentWiseData() {
   const attempts = await ExamAttempt.aggregate([
@@ -36,13 +37,33 @@ async function getStudentWiseData() {
       },
     },
   ]);
-  const ids = attempts.map((a) => a._id);
-  const students = await Student.find({ rollNumber: { $in: ids }, course: "Exam" }).lean();
-  const byId = Object.fromEntries(students.map((s) => [s.rollNumber, s]));
+  const ids = attempts
+    .map((a) => (a._id ? String(a._id).trim() : ""))
+    .filter((id) => id);
+  const uniqueIds = Array.from(new Set(ids));
+  const objectIds = uniqueIds
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+  const students = uniqueIds.length
+    ? await Student.find({
+        $or: [
+          { rollNumber: { $in: uniqueIds } },
+          ...(objectIds.length ? [{ _id: { $in: objectIds } }] : []),
+        ],
+      }).lean()
+    : [];
+  const byId = new Map();
+  students.forEach((s) => {
+    if (s.rollNumber) byId.set(String(s.rollNumber), s);
+    if (s._id) byId.set(String(s._id), s);
+  });
   return attempts.map((a) => ({
     studentId: a._id,
-    name: byId[a._id]?.name ?? "-",
-    email: byId[a._id]?.email ?? "-",
+    name:
+      byId.get(String(a._id))?.formB?.verification?.fullName ||
+      byId.get(String(a._id))?.name ||
+      "-",
+    email: byId.get(String(a._id))?.email ?? "-",
     attempted: a.attempted,
     skipped: a.skipped,
     totalScore: a.totalScore,

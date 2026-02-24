@@ -2,6 +2,7 @@
 const ExamAttempt = require("../../../models/ExamAttempt");
 const Student = require("../../../models/Student");
 const Question = require("../../../models/Question");
+const mongoose = require("mongoose");
 
 const BRANCH_KEYS = ["A", "B"];
 const VALID_TYPES = [
@@ -193,10 +194,25 @@ async function getExamStudentResults(req, res) {
 
     const studentIds = grouped
       .map((g) => g.attempt?.studentId)
-      .filter((id) => id && String(id).trim());
-
-    const students = await Student.find({ rollNumber: { $in: studentIds } }).lean();
-    const byId = Object.fromEntries(students.map((s) => [s.rollNumber, s]));
+      .filter((id) => id && String(id).trim())
+      .map((id) => String(id).trim());
+    const uniqueIds = Array.from(new Set(studentIds));
+    const objectIds = uniqueIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+    const students = uniqueIds.length
+      ? await Student.find({
+          $or: [
+            { rollNumber: { $in: uniqueIds } },
+            ...(objectIds.length ? [{ _id: { $in: objectIds } }] : []),
+          ],
+        }).lean()
+      : [];
+    const byId = new Map();
+    students.forEach((s) => {
+      if (s.rollNumber) byId.set(String(s.rollNumber), s);
+      if (s._id) byId.set(String(s._id), s);
+    });
 
     const results = grouped.map((g) => {
       const attempt = g.attempt || {};
@@ -205,9 +221,14 @@ async function getExamStudentResults(req, res) {
       const rawStudentId = attempt.studentId ? String(attempt.studentId).trim() : "";
       const isGuest = !rawStudentId;
       const attemptId = attempt._id ? String(attempt._id) : "";
+      const matchedStudent = rawStudentId ? byId.get(rawStudentId) : null;
       const displayId = isGuest
         ? `GUEST-${attemptId.slice(-6) || "NA"}`
-        : rawStudentId;
+        : matchedStudent?.rollNumber ||
+          matchedStudent?.formB?.account?.username ||
+          matchedStudent?.mobile ||
+          matchedStudent?.email ||
+          rawStudentId;
       const totalMarks = Number.isFinite(Number(attempt.totalMarks))
         ? Number(attempt.totalMarks)
         : answers.reduce((sum, a) => {
@@ -216,9 +237,15 @@ async function getExamStudentResults(req, res) {
           }, 0);
 
       return {
-        studentId: displayId,
-        name: isGuest ? "Guest" : byId[rawStudentId]?.name ?? "-",
-        email: isGuest ? "-" : byId[rawStudentId]?.email ?? "-",
+        studentId: isGuest ? displayId : rawStudentId,
+        displayId,
+        name: isGuest
+          ? "Guest"
+          : matchedStudent?.formB?.verification?.fullName ||
+            matchedStudent?.name ||
+            rawStudentId ||
+            "-",
+        email: isGuest ? "-" : matchedStudent?.email ?? "-",
         totalScore: totalMarks,
         attemptId: attempt._id,
         ...summary,

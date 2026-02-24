@@ -4,6 +4,19 @@ import { useNavigate } from "react-router-dom";
 import { registerFormA } from "../api";
 import Navbar from "../components/layout/Navbar";
 
+const CLASS_OPTIONS = [
+  "3rd",
+  "4th",
+  "5th",
+  "6th",
+  "7th",
+  "8th",
+  "9th",
+  "10th",
+  "11th",
+  "12th",
+];
+
 export default function Home() {
   const navigate = useNavigate();
 
@@ -155,38 +168,60 @@ export default function Home() {
 
                 <form onSubmit={submitRegister} className="space-y-4">
 
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm({ ...form, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700">
+                      Name<span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter your name"
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm({ ...form, name: e.target.value })
+                      }
+                      className="mt-1 w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
 
-                  <input
-                    type="text"
-                    placeholder="Mobile Number"
-                    value={form.mobile}
-                    onChange={(e) =>
-                      setForm({ ...form, mobile: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700">
+                      Mobile Number<span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="10 digit mobile number"
+                      value={form.mobile}
+                      onChange={(e) =>
+                        setForm({ ...form, mobile: e.target.value })
+                      }
+                      className="mt-1 w-full px-3 py-2 border rounded-lg"
+                      required
+                    />
+                  </div>
 
-                  <input
-                    type="text"
-                    placeholder="Class"
-                    value={form.class}
-                    onChange={(e) =>
-                      setForm({ ...form, class: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    required
-                  />
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700">
+                      Class (3rd to 12th)
+                      <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={form.class}
+                      onChange={(e) =>
+                        setForm({ ...form, class: e.target.value })
+                      }
+                      className="mt-1 w-full px-3 py-2 border rounded-lg"
+                      required
+                    >
+                      <option value="">Select Class</option>
+                      {CLASS_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   <button
                     type="submit"

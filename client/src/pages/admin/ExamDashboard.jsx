@@ -1239,7 +1239,7 @@ export default function ExamDashboard() {
                         </div>
                       </td>
                       <td className="px-2 py-1.5 text-xs text-gray-500 font-mono">
-                        {displayValue(student.studentId)}
+                        {displayValue(student.displayId ?? student.studentId)}
                       </td>
                       <td className="px-2 py-1.5">
                         <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full inline-flex w-fit">
@@ -1379,7 +1379,7 @@ export default function ExamDashboard() {
                   Exam Details - {displayValue(selectedStudent.name)}
                 </h2>
                 <p className="text-sm text-gray-300">
-                  Student ID: {displayValue(selectedStudent.studentId)}
+                  Student ID: {displayValue(selectedStudent.displayId ?? selectedStudent.studentId)}
                 </p>
               </div>
               <button

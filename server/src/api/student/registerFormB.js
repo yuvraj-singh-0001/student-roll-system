@@ -3,6 +3,7 @@ const Student = require("../../models/Student");
 
 const normalizeText = (value) => String(value || "").trim();
 const normalizeLower = (value) => normalizeText(value).toLowerCase();
+const normalizeDigits = (value) => String(value || "").replace(/\D/g, "");
 
 const ensureRequired = (value, label) => {
   if (!value) {
@@ -46,7 +47,7 @@ const registerFormB = async (req, res) => {
     const social = payload.social || {};
 
     const fullName = normalizeText(verification.fullName);
-    const whatsappNumber = normalizeText(verification.whatsappNumber);
+    const whatsappNumber = normalizeDigits(verification.whatsappNumber);
     const username = normalizeLower(account.username);
     const password = String(account.password || "");
 
@@ -60,8 +61,15 @@ const registerFormB = async (req, res) => {
       return res.status(400).json({ success: false, message: error });
     }
 
+    if (whatsappNumber.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "WhatsApp number must be exactly 10 digits.",
+      });
+    }
+
     const expectedName = normalizeLower(student.name);
-    const expectedMobile = normalizeText(student.mobile);
+    const expectedMobile = normalizeDigits(student.mobile);
     if (
       (expectedName && expectedName !== normalizeLower(fullName)) ||
       (expectedMobile && expectedMobile !== whatsappNumber)
@@ -96,16 +104,13 @@ const registerFormB = async (req, res) => {
     const contactCountry = normalizeText(contact.country);
     const contactState = normalizeText(contact.state);
     const contactDistrict = normalizeText(contact.district);
-    const contactPin = normalizeText(contact.pinCode);
     const contactGender = normalizeText(contact.gender);
-    const contactAddress = normalizeText(contact.address);
 
     error =
       ensureRequired(contactEmail, "Gmail") ||
       ensureRequired(contactDob, "DOB") ||
       ensureRequired(contactCountry, "Country") ||
-      ensureRequired(contactGender, "Gender") ||
-      ensureRequired(contactAddress, "Full address");
+      ensureRequired(contactGender, "Gender");
 
     if (error) {
       return res.status(400).json({ success: false, message: error });
@@ -115,8 +120,7 @@ const registerFormB = async (req, res) => {
     if (isIndia) {
       error =
         ensureRequired(contactState, "State") ||
-        ensureRequired(contactDistrict, "District") ||
-        ensureRequired(contactPin, "Pin code");
+        ensureRequired(contactDistrict, "District");
       if (error) {
         return res.status(400).json({ success: false, message: error });
       }
@@ -138,10 +142,7 @@ const registerFormB = async (req, res) => {
 
     const isSchoolIndia = schoolCountry.toLowerCase() === "india";
     if (isSchoolIndia) {
-      error =
-        ensureRequired(schoolState, "School state") ||
-        ensureRequired(schoolDistrict, "School district") ||
-        ensureRequired(schoolPin, "School pin code");
+      error = ensureRequired(schoolState, "School state");
       if (error) {
         return res.status(400).json({ success: false, message: error });
       }
@@ -153,12 +154,8 @@ const registerFormB = async (req, res) => {
     error =
       ensureRequired(normalizeText(father.name), "Father name") ||
       ensureRequired(normalizeText(father.phone), "Father phone number") ||
-      ensureRequired(normalizeLower(father.email), "Father Gmail") ||
-      ensureRequired(normalizeText(father.profession), "Father profession") ||
       ensureRequired(normalizeText(mother.name), "Mother name") ||
-      ensureRequired(normalizeText(mother.phone), "Mother phone number") ||
-      ensureRequired(normalizeLower(mother.email), "Mother Gmail") ||
-      ensureRequired(normalizeText(mother.profession), "Mother profession");
+      ensureRequired(normalizeText(mother.phone), "Mother phone number");
 
     if (error) {
       return res.status(400).json({ success: false, message: error });
@@ -169,26 +166,40 @@ const registerFormB = async (req, res) => {
       ? siblings.details
       : [];
 
-    if (siblingsCount < 0 || !Number.isFinite(siblingsCount)) {
+    if (siblingsCount < 1 || !Number.isFinite(siblingsCount)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid siblings count.",
+        message: "Number of siblings is required.",
       });
     }
 
-    if (siblingsCount > 0 && siblingDetails.length < siblingsCount) {
+    if (siblingDetails.length < siblingsCount) {
       return res.status(400).json({
         success: false,
         message: "Please fill all sibling details.",
       });
     }
 
-    const followed = !!social.followed;
-    if (!followed) {
-      return res.status(400).json({
-        success: false,
-        message: "Please follow True Topper to continue.",
-      });
+    for (let i = 0; i < siblingsCount; i += 1) {
+      const sibling = siblingDetails[i] || {};
+      if (!normalizeText(sibling.name)) {
+        return res.status(400).json({
+          success: false,
+          message: `Sibling ${i + 1} name is required.`,
+        });
+      }
+      if (!normalizeText(sibling.age)) {
+        return res.status(400).json({
+          success: false,
+          message: `Sibling ${i + 1} age is required.`,
+        });
+      }
+      if (!normalizeText(sibling.class)) {
+        return res.status(400).json({
+          success: false,
+          message: `Sibling ${i + 1} class is required.`,
+        });
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -208,9 +219,9 @@ const registerFormB = async (req, res) => {
         country: contactCountry,
         state: contactState,
         district: contactDistrict,
-        pinCode: contactPin,
+        pinCode: normalizeText(contact.pinCode),
         gender: contactGender,
-        address: contactAddress,
+        address: normalizeText(contact.address),
       },
       school: {
         country: schoolCountry,
@@ -242,8 +253,8 @@ const registerFormB = async (req, res) => {
         })),
       },
       social: {
-        followed: true,
-        followedAt: new Date(),
+        followed: !!social.followed,
+        followedAt: social.followed ? new Date() : null,
       },
     };
 
