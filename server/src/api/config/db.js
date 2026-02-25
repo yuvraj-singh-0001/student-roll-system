@@ -3,12 +3,24 @@ const mongoose = require("mongoose");
 const Question = require("../../models/Question");
 const ExamConfig = require("../../models/ExamConfig");
 const QuestionCounter = require("../../models/QuestionCounter");
+const Student = require("../../models/Student");
+const ExamAttempt = require("../../models/ExamAttempt");
 
 const shouldRunMigrations = process.env.RUN_DB_MIGRATIONS === "true";
 
+// NOTE: Future MySQL switch plan
+// 1) Replace mongoose.connect with a MySQL pool (e.g. mysql2/promise).
+// 2) Mongoose models -> SQL tables (schema + indexes).
+// 3) Aggregations -> SQL queries / materialized tables.
+// Keep env vars ready (MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB).
+// Only .env change is NOT enough; queries/models must be migrated.
+
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URL);
+    await mongoose.connect(process.env.MONGO_URL, {
+      maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 50),
+      minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE || 5),
+    });
     console.log("MongoDB Connected");
 
     if (shouldRunMigrations) {
@@ -56,6 +68,8 @@ const connectDB = async () => {
         await Question.syncIndexes();
         await ExamConfig.syncIndexes();
         await QuestionCounter.syncIndexes();
+        await Student.syncIndexes();
+        await ExamAttempt.syncIndexes();
       } catch (syncErr) {
         console.warn("Index sync failed:", syncErr.message);
       }

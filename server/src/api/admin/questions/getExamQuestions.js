@@ -2,6 +2,9 @@
 const Question = require("../../../models/Question");
 const ExamConfig = require("../../../models/ExamConfig");
 
+const CACHE_TTL_MS = Number(process.env.EXAM_QUESTIONS_CACHE_TTL_MS) || 180000;
+const cache = new Map();
+
 async function getExamQuestions(req, res) {
   try {
     const { examCode } = req.query;
@@ -12,6 +15,24 @@ async function getExamQuestions(req, res) {
         success: false,
         message: "examCode is required",
       });
+    }
+
+    const refreshFlag = String(req.query?.refresh || "").toLowerCase();
+    const forceRefresh =
+      refreshFlag === "1" ||
+      refreshFlag === "true" ||
+      (req.headers["x-force-refresh"] || "") === "1" ||
+      String(req.headers["cache-control"] || "").includes("no-cache");
+
+    const cached = cache.get(normalizedExamCode);
+    if (
+      !forceRefresh &&
+      CACHE_TTL_MS > 0 &&
+      cached &&
+      Date.now() - cached.ts < CACHE_TTL_MS
+    ) {
+      res.set("Cache-Control", "private, max-age=180, stale-while-revalidate=60");
+      return res.status(200).json(cached.payload);
     }
 
     const examConfig = await ExamConfig.findOne({ examCode: normalizedExamCode }).lean();
@@ -34,7 +55,7 @@ async function getExamQuestions(req, res) {
       });
     }
 
-    return res.status(200).json({
+    const payload = {
       success: true,
       exam: {
         examCode: normalizedExamCode,
@@ -42,7 +63,10 @@ async function getExamQuestions(req, res) {
         durationMinutes: examConfig?.totalTimeMinutes || 60,
       },
       questions,
-    });
+    };
+    cache.set(normalizedExamCode, { ts: Date.now(), payload });
+    res.set("Cache-Control", "private, max-age=180, stale-while-revalidate=60");
+    return res.status(200).json(payload);
   } catch (err) {
     console.error("getExamQuestions error:", err);
     return res.status(500).json({

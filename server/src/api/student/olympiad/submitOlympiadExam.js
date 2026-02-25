@@ -335,13 +335,32 @@ async function submitOlympiadExam(req, res) {
         answerChangeCount,
       });
     }
+    const scoredAttempts = detailedAttempts.filter(
+      (a) => a.type !== "branch_parent" && isBranchVisible(a)
+    );
+    const attemptedCount = scoredAttempts.filter((a) => a.status === "attempted")
+      .length;
+    const skippedCount = scoredAttempts.filter((a) => a.status === "skipped")
+      .length;
+    const correctCount = scoredAttempts.filter((a) => a.isCorrect === true).length;
+    const wrongCount = scoredAttempts.filter(
+      (a) => a.isCorrect === false && a.status === "attempted"
+    ).length;
+    const notVisitedCount = scoredAttempts.filter(
+      (a) => a.status === "not_visited"
+    ).length;
 
-    // ðŸ”´ IMPORTANT: db me attempt save karo
+    // IMPORTANT: db me attempt save karo
     const attemptDoc = new ExamAttempt({
       studentId: normalizedStudentId || null, // optional
       examCode: normalizedExamCode,
       totalMarks,
       autoSubmitted: !!autoSubmitted,
+      attemptedCount,
+      skippedCount,
+      correctCount,
+      wrongCount,
+      notVisitedCount,
       startedAt: safeStartedAt,
       endedAt: safeEndedAt,
       durationSeconds: safeDurationSeconds,
@@ -350,10 +369,6 @@ async function submitOlympiadExam(req, res) {
     });
 
     await attemptDoc.save();
-
-    const scoredAttempts = detailedAttempts.filter(
-      (a) => a.type !== "branch_parent" && isBranchVisible(a)
-    );
 
     // frontend ko same result return karo
     return res.status(200).json({
@@ -364,13 +379,10 @@ async function submitOlympiadExam(req, res) {
       detailedAttempts,
       attemptId: attemptDoc._id,
       autoSubmitted: !!autoSubmitted,
-      attemptedCount: scoredAttempts.filter((a) => a.status === "attempted")
-        .length,
-      skippedCount: scoredAttempts.filter((a) => a.status === "skipped").length,
-      correctCount: scoredAttempts.filter((a) => a.isCorrect === true).length,
-      wrongCount: scoredAttempts.filter(
-        (a) => a.isCorrect === false && a.status === "attempted"
-      ).length,
+      attemptedCount,
+      skippedCount,
+      correctCount,
+      wrongCount,
     });
   } catch (err) {
     console.error("submitOlympiad error:", err);
@@ -395,3 +407,4 @@ async function submitOlympiadExam(req, res) {
 }
 
 module.exports = submitOlympiadExam;
+

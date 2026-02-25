@@ -65,6 +65,13 @@ const examAttemptSchema = new mongoose.Schema(
 
     autoSubmitted: { type: Boolean, default: false },
 
+    // summary counts (precomputed for fast dashboards)
+    attemptedCount: { type: Number, default: 0 },
+    skippedCount: { type: Number, default: 0 },
+    correctCount: { type: Number, default: 0 },
+    wrongCount: { type: Number, default: 0 },
+    notVisitedCount: { type: Number, default: 0 },
+
     startedAt: { type: Date, default: null },
     endedAt: { type: Date, default: null },
     durationSeconds: { type: Number, default: null },
@@ -75,6 +82,10 @@ const examAttemptSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+examAttemptSchema.index({ studentId: 1, examCode: 1, createdAt: -1 });
+examAttemptSchema.index({ examCode: 1, createdAt: -1 });
+examAttemptSchema.index({ createdAt: -1 });
 
 const ExamAttempt = mongoose.model("ExamAttempt", examAttemptSchema);
 module.exports = ExamAttempt;

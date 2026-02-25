@@ -1,9 +1,15 @@
-﻿import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { questionApi, examApi } from "../../api";
+import { setExamQuestions } from "../../store/examSlice";
 
 const EXAM_CACHE_KEY = "examListCacheV1";
 const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const EXAM_QUESTIONS_CACHE_TTL_MS = 10 * 60 * 1000;
+
+const getQuestionsCacheKey = (examCode) =>
+  `examQuestionsCacheV1:${String(examCode || "").trim()}`;
 
 const readExamListCache = (options = {}) => {
   if (typeof window === "undefined") return null;
@@ -27,6 +33,38 @@ const writeExamListCache = (list) => {
     localStorage.setItem(
       EXAM_CACHE_KEY,
       JSON.stringify({ data: Array.isArray(list) ? list : [], ts: Date.now() })
+    );
+  } catch {
+    // ignore cache write errors
+  }
+};
+
+const readQuestionsCache = (examCode, options = {}) => {
+  if (typeof window === "undefined") return null;
+  const allowStale = options.allowStale === true;
+  const key = getQuestionsCacheKey(examCode);
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts || !parsed.data) return null;
+    const ageMs = Date.now() - parsed.ts;
+    if (!allowStale && ageMs > EXAM_QUESTIONS_CACHE_TTL_MS) return null;
+    return { data: parsed.data, isStale: ageMs > EXAM_QUESTIONS_CACHE_TTL_MS };
+  } catch {
+    return null;
+  }
+};
+
+const writeQuestionsCache = (examCode, data) => {
+  if (typeof window === "undefined") return;
+  const key = getQuestionsCacheKey(examCode);
+  if (!key) return;
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify({ data, ts: Date.now() })
     );
   } catch {
     // ignore cache write errors
@@ -139,6 +177,7 @@ const SECTION_INFO = {
 
 export default function Exam() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [studentId, setStudentId] = useState("");
   const [examCode, setExamCode] = useState("");
   const [pendingExamCode, setPendingExamCode] = useState("");
@@ -163,6 +202,11 @@ export default function Exam() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [examStartAt, setExamStartAt] = useState(null);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
+
+  const examCodeKey = String(examCode || "").trim();
+  const cachedEntry = useSelector(
+    (state) => state.exam.questionsByExam[examCodeKey]
+  );
 
   const clearExamStart = () => {
     localStorage.removeItem("examStartAt");
@@ -287,31 +331,108 @@ export default function Exam() {
       };
     }
 
-    setLoading(true);
+    const reduxEntry =
+      cachedEntry && Array.isArray(cachedEntry.questions) ? cachedEntry : null;
+    const reduxAgeMs = reduxEntry
+      ? Date.now() - (Number(reduxEntry.fetchedAt) || 0)
+      : Number.POSITIVE_INFINITY;
+    const reduxIsFresh = reduxEntry && reduxAgeMs < EXAM_QUESTIONS_CACHE_TTL_MS;
+
+    let usedCache = false;
+    let cacheIsStale = false;
+    let cachedQuestions = [];
+    let cachedExam = null;
+    let cachedTs = null;
+
+    if (reduxEntry && reduxEntry.questions.length > 0) {
+      cachedQuestions = reduxEntry.questions;
+      cachedExam = reduxEntry.exam || null;
+      cachedTs = Number(reduxEntry.fetchedAt) || null;
+      usedCache = true;
+      cacheIsStale = !reduxIsFresh;
+    }
+
+    if (!usedCache) {
+      const cached = readQuestionsCache(examCodeKey, { allowStale: true });
+      cachedQuestions = Array.isArray(cached?.data?.questions)
+        ? cached.data.questions
+        : [];
+      cachedExam = cached?.data?.exam || null;
+      cachedTs = cached?.ts || null;
+      if (cachedQuestions.length > 0) {
+        usedCache = true;
+        cacheIsStale = !!cached?.isStale;
+        dispatch(
+          setExamQuestions({
+            examCode: examCodeKey,
+            exam: cachedExam,
+            questions: cachedQuestions,
+            fetchedAt: cachedTs,
+          })
+        );
+      }
+    }
+
+    if (cachedQuestions.length > 0) {
+      setQuestions(cachedQuestions);
+      const durationMinutes = cachedExam?.durationMinutes || 60;
+      setExamDurationSeconds(durationMinutes * 60);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError("");
     setAnswers({});
     setCurrent(0);
     setSubmitSuccess(null);
     setAutoSubmitted(false);
 
+    const shouldFetch = !usedCache || cacheIsStale || cachedQuestions.length === 0;
+
+    if (!shouldFetch) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     (async () => {
       try {
-        const { data } = await questionApi.byExamCode(examCode);
+        const { data } = await questionApi.byExamCode(examCodeKey);
         const durationMinutes = data?.exam?.durationMinutes || 60;
         const list = data?.questions || data?.data || [];
         if (!cancelled) {
           setExamDurationSeconds(durationMinutes * 60);
           setQuestions(list);
+          writeQuestionsCache(examCodeKey, {
+            exam: {
+              examCode: examCodeKey,
+              title: data?.exam?.title || examCodeKey,
+              durationMinutes,
+            },
+            questions: list,
+          });
+          dispatch(
+            setExamQuestions({
+              examCode: examCodeKey,
+              exam: {
+                examCode: examCodeKey,
+                title: data?.exam?.title || examCodeKey,
+                durationMinutes,
+              },
+              questions: list,
+              fetchedAt: Date.now(),
+            })
+          );
           if (!list.length) {
             setError("No questions found for this exam.");
           }
         }
       } catch (e) {
-        if (!cancelled) {
+        if (!cancelled && cachedQuestions.length === 0) {
           setError(e.response?.data?.message || "Could not load questions");
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && cachedQuestions.length === 0) setLoading(false);
       }
     })();
 
@@ -1510,6 +1631,12 @@ export default function Exam() {
     </div>
   );
 }
+
+
+
+
+
+
 
 
 

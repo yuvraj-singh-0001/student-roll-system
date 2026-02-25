@@ -151,5 +151,11 @@ const studentSchema = new mongoose.Schema(
 
 studentSchema.index({ name: 1, mobile: 1 }, { unique: true });
 studentSchema.index({ "formB.account.username": 1 }, { unique: true, sparse: true });
+studentSchema.index({ rollNumber: 1 });
+studentSchema.index({ email: 1 });
+studentSchema.index({ mobile: 1 });
+studentSchema.index({ trackingId: 1 });
+studentSchema.index({ course: 1 });
+studentSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("Student", studentSchema);

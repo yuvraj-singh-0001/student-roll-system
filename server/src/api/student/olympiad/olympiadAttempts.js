@@ -54,11 +54,57 @@ async function listOlympiadAttempts(req, res) {
     if (examCode) filter.examCode = examCode;
 
     const attempts = await ExamAttempt.find(filter)
+      .select({
+        examCode: 1,
+        totalMarks: 1,
+        autoSubmitted: 1,
+        createdAt: 1,
+        attemptedCount: 1,
+        skippedCount: 1,
+        correctCount: 1,
+        wrongCount: 1,
+        notVisitedCount: 1,
+      })
       .sort({ createdAt: -1 })
       .lean();
 
+    const missingSummaryIds = attempts
+      .filter(
+        (a) =>
+          a.attemptedCount === undefined ||
+          a.skippedCount === undefined ||
+          a.correctCount === undefined ||
+          a.wrongCount === undefined ||
+          a.notVisitedCount === undefined
+      )
+      .map((a) => a._id);
+
+    const fallbackSummaries = new Map();
+    if (missingSummaryIds.length > 0) {
+      const fallbackAttempts = await ExamAttempt.find({
+        _id: { $in: missingSummaryIds },
+      })
+        .select({ answers: 1 })
+        .lean();
+      fallbackAttempts.forEach((a) => {
+        fallbackSummaries.set(String(a._id), buildSummary(a));
+      });
+    }
+
     const data = attempts.map((a) => {
-      const summary = buildSummary(a);
+      const fallback = fallbackSummaries.get(String(a._id)) || {};
+      const pick = (primary, secondary) => {
+        if (Number.isFinite(primary)) return primary;
+        if (Number.isFinite(secondary)) return secondary;
+        return 0;
+      };
+      const summary = {
+        attemptedCount: pick(a.attemptedCount, fallback.attemptedCount),
+        skippedCount: pick(a.skippedCount, fallback.skippedCount),
+        correctCount: pick(a.correctCount, fallback.correctCount),
+        wrongCount: pick(a.wrongCount, fallback.wrongCount),
+        notVisitedCount: pick(a.notVisitedCount, fallback.notVisitedCount),
+      };
       return {
         attemptId: a._id,
         examCode: a.examCode,
