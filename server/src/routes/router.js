@@ -7,7 +7,7 @@ const olympiadRoutes = require("../controllers/olympiad/index");
 const analysisRoutes = require("../controllers/analysis");
 const authRoutes = require("../controllers/auth");
 const paymentRoutes = require("../controllers/payment");
-const activityRoutes = require("./activity");
+const activityRoutes = require("../controllers/activity");
 
 // ✅ REMOVE duplicate auth routes
 router.use("/notification", notificationRoutes);
