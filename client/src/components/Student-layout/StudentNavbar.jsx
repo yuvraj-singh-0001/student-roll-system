@@ -1,7 +1,13 @@
 ﻿// src/Student-layout/StudentNavbar.jsx
 import { useState, useEffect, useRef } from "react";
-import { FaYoutube, FaInstagram, FaLinkedinIn, FaTwitter } from "react-icons/fa";
+import {
+  FaYoutube,
+  FaInstagram,
+  FaLinkedinIn,
+  FaTwitter,
+} from "react-icons/fa";
 import { studentApi } from "../../api";
+import SocialMediaLinkModal from "../SocialMediaLinkModal";
 
 const PROFILE_KEYS = {
   name: "studentProfileName",
@@ -79,6 +85,22 @@ export default function StudentNavbar({ onToggleSidebar }) {
   const profileRef = useRef(null);
   const photoInputRef = useRef(null);
 
+  // Social Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState("");
+
+  // Use either stored examStudentId or profile rollNumber/studentId
+  const studentId =
+    localStorage.getItem("examStudentId") ||
+    localStorage.getItem("studentId") ||
+    "";
+
+  const openSocialModal = (platform) => {
+    setSelectedPlatform(platform);
+    setIsModalOpen(true);
+    setProfileOpen(false); // Close profile dropdown when modal opens
+  };
+
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
@@ -96,10 +118,14 @@ export default function StudentNavbar({ onToggleSidebar }) {
           const incoming = data.data || {};
           const updates = {};
           if (incoming.name) updates[PROFILE_KEYS.name] = incoming.name;
-          if (incoming.className) updates[PROFILE_KEYS.className] = incoming.className;
-          if (incoming.username) updates[PROFILE_KEYS.username] = incoming.username;
+          if (incoming.className)
+            updates[PROFILE_KEYS.className] = incoming.className;
+          if (incoming.username)
+            updates[PROFILE_KEYS.username] = incoming.username;
           if (incoming.email) updates[PROFILE_KEYS.email] = incoming.email;
-          const examId = String(incoming.rollNumber || incoming.studentId || "").trim();
+          const examId = String(
+            incoming.rollNumber || incoming.studentId || "",
+          ).trim();
           if (examId) updates.examStudentId = examId;
           if (!localStorage.getItem(PROFILE_KEYS.loginTime)) {
             updates[PROFILE_KEYS.loginTime] = new Date().toISOString();
@@ -192,7 +218,10 @@ export default function StudentNavbar({ onToggleSidebar }) {
 
           <div className="flex items-center gap-3 text-xs">
             <div className="hidden sm:flex px-3 py-1.5 rounded-full bg-white/80 border border-[#FFE6A3] text-gray-700 shadow-sm">
-              {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {time.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
             <div className="relative" ref={profileRef}>
               <button
@@ -291,42 +320,34 @@ export default function StudentNavbar({ onToggleSidebar }) {
                         Social Media
                       </div>
                       <div className="mt-2 grid grid-cols-4 gap-2">
-                        <a
-                          href="https://www.youtube.com/@TheTrueTopper"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-red-600"
+                        <button
+                          onClick={() => openSocialModal("youtube")}
+                          className="flex h-10 items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-red-600"
                           aria-label="YouTube"
                         >
-                          <FaYoutube className="text-sm" />
-                        </a>
-                        <a
-                          href="https://www.instagram.com/thetruetopperpvtltd/"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-pink-600"
+                          <FaYoutube className="text-lg" />
+                        </button>
+                        <button
+                          onClick={() => openSocialModal("instagram")}
+                          className="flex h-10 items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-pink-600"
                           aria-label="Instagram"
                         >
-                          <FaInstagram className="text-sm" />
-                        </a>
-                        <a
-                          href="https://www.linkedin.com/company/thetruetopper/posts/?feedView=all"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-sky-700"
+                          <FaInstagram className="text-lg" />
+                        </button>
+                        <button
+                          onClick={() => openSocialModal("linkedin")}
+                          className="flex h-10 items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-sky-700"
                           aria-label="LinkedIn"
                         >
-                          <FaLinkedinIn className="text-sm" />
-                        </a>
-                        <a
-                          href="https://x.com/TheTrueTopper"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-gray-800"
+                          <FaLinkedinIn className="text-lg" />
+                        </button>
+                        <button
+                          onClick={() => openSocialModal("x")}
+                          className="flex h-10 items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-gray-800"
                           aria-label="X"
                         >
-                          <FaTwitter className="text-sm" />
-                        </a>
+                          <FaTwitter className="text-lg" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -336,7 +357,13 @@ export default function StudentNavbar({ onToggleSidebar }) {
           </div>
         </div>
       </div>
+
+      <SocialMediaLinkModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        platform={selectedPlatform}
+        studentId={studentId}
+      />
     </header>
   );
 }
-

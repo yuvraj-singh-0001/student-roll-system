@@ -26,13 +26,21 @@ const writeExamListCache = (list) => {
   try {
     localStorage.setItem(
       EXAM_CACHE_KEY,
-      JSON.stringify({ data: Array.isArray(list) ? list : [], ts: Date.now() })
+      JSON.stringify({ data: Array.isArray(list) ? list : [], ts: Date.now() }),
     );
   } catch {
     // ignore cache write errors
   }
 };
-import { FaYoutube, FaInstagram, FaLinkedinIn, FaTwitter } from "react-icons/fa";
+import {
+  FaYoutube,
+  FaInstagram,
+  FaLinkedinIn,
+  FaTwitter,
+} from "react-icons/fa";
+import useActivityTracker from "../../hooks/useActivityTracker";
+import SocialMediaLinkModal from "../../components/SocialMediaLinkModal";
+import { activityApi } from "../../api";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -45,6 +53,62 @@ export default function StudentDashboard() {
   const [examRefreshing, setExamRefreshing] = useState(false);
   const fetchingRef = useRef(false);
   const cancelledRef = useRef(false);
+
+  // Activity Tracking state
+  const studentId =
+    localStorage.getItem("studentId") || localStorage.getItem("examStudentId");
+  useActivityTracker(studentId);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState("");
+  const [activityStats, setActivityStats] = useState({
+    socialTotalMs: 0,
+    websiteTotalMs: 0,
+    combinedTotalMs: 0,
+  });
+
+  const fetchActivityStats = useCallback(() => {
+    if (studentId) {
+      activityApi
+        .summary(studentId)
+        .then((res) => {
+          if (res && res.data && res.data.success) {
+            setActivityStats(
+              res.data.data || {
+                socialTotalMs: 0,
+                websiteTotalMs: 0,
+                combinedTotalMs: 0,
+              },
+            );
+          }
+        })
+        .catch((err) => console.error(err));
+    }
+  }, [studentId]);
+
+  useEffect(() => {
+    fetchActivityStats();
+  }, [fetchActivityStats]);
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedPlatform("");
+    fetchActivityStats();
+  };
+
+  const openSocialModal = (platform) => {
+    setSelectedPlatform(platform);
+    setIsModalOpen(true);
+  };
+
+  const formatMs = (ms) => {
+    if (!ms) return "0 min";
+    const totalSec = Math.floor(ms / 1000);
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    if (min === 0) return `${sec} sec`;
+    return `${min} min ${sec} sec`;
+  };
 
   const availableTests = examList;
 
@@ -139,8 +203,9 @@ export default function StudentDashboard() {
           const { data: profileRes } = await studentApi.profile();
           if (profileRes?.success && profileRes?.data) {
             const incoming = profileRes.data;
-            const preferred =
-              String(incoming.rollNumber || incoming.studentId || "").trim();
+            const preferred = String(
+              incoming.rollNumber || incoming.studentId || "",
+            ).trim();
             if (preferred) {
               localStorage.setItem("examStudentId", preferred);
               resolvedId = preferred;
@@ -158,7 +223,9 @@ export default function StudentDashboard() {
           return;
         }
 
-        const { data } = await olympiadExamApi.attempts({ studentId: resolvedId });
+        const { data } = await olympiadExamApi.attempts({
+          studentId: resolvedId,
+        });
         if (!cancelled) {
           if (data.success) {
             setRecentResults(data.data || []);
@@ -168,7 +235,9 @@ export default function StudentDashboard() {
         }
       } catch (e) {
         if (!cancelled) {
-          setResultsError(e.response?.data?.message || "Failed to load results");
+          setResultsError(
+            e.response?.data?.message || "Failed to load results",
+          );
         }
       } finally {
         if (!cancelled) setResultsLoading(false);
@@ -208,42 +277,71 @@ export default function StudentDashboard() {
               </div>
             </div>
             <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <a
-                href="https://www.youtube.com/@TheTrueTopper"
-                target="_blank"
-                rel="noreferrer"
+              <button
+                onClick={() => openSocialModal("youtube")}
                 className="flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-xs font-medium text-red-600 hover:bg-[#FFF3C4] transition"
               >
                 <FaYoutube className="text-sm" />
                 YouTube
-              </a>
-              <a
-                href="https://www.instagram.com/thetruetopperpvtltd/"
-                target="_blank"
-                rel="noreferrer"
+              </button>
+              <button
+                onClick={() => openSocialModal("instagram")}
                 className="flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-xs font-medium text-pink-600 hover:bg-[#FFF3C4] transition"
               >
                 <FaInstagram className="text-sm" />
                 Instagram
-              </a>
-              <a
-                href="https://www.linkedin.com/company/thetruetopper/posts/?feedView=all"
-                target="_blank"
-                rel="noreferrer"
+              </button>
+              <button
+                onClick={() => openSocialModal("linkedin")}
                 className="flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-xs font-medium text-sky-700 hover:bg-[#FFF3C4] transition"
               >
                 <FaLinkedinIn className="text-sm" />
                 LinkedIn
-              </a>
-              <a
-                href="https://x.com/TheTrueTopper"
-                target="_blank"
-                rel="noreferrer"
+              </button>
+              <button
+                onClick={() => openSocialModal("x")}
                 className="flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-xs font-medium text-gray-800 hover:bg-[#FFF3C4] transition"
               >
-                <FaTwitter className="text-sm" />
-                X (Twitter)
-              </a>
+                <FaTwitter className="text-sm" />X (Twitter)
+              </button>
+            </div>
+          </section>
+
+          {/* Activity Stats Section */}
+          <section className="rounded-2xl bg-gradient-to-r from-[#FFFDF5] to-[#fff] border border-[#FFE6A3] backdrop-blur-xl p-4 shadow-md">
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Usage Analytics
+              </h3>
+              <p className="text-[11px] text-gray-600">
+                Track the time you spend on our website and linked social media.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="bg-[#FFF9E6] border border-[#FFE6A3] rounded-xl p-3">
+                <p className="text-[10px] text-gray-500 uppercase font-semibold">
+                  Social Media
+                </p>
+                <p className="text-lg font-bold text-gray-800">
+                  {formatMs(activityStats.socialTotalMs)}
+                </p>
+              </div>
+              <div className="bg-[#FFF9E6] border border-[#FFE6A3] rounded-xl p-3">
+                <p className="text-[10px] text-gray-500 uppercase font-semibold">
+                  Website Time
+                </p>
+                <p className="text-lg font-bold text-gray-800">
+                  {formatMs(activityStats.websiteTotalMs)}
+                </p>
+              </div>
+              <div className="bg-[#FFEBB5] border border-[#FFD765] rounded-xl p-3 shadow-inner">
+                <p className="text-[10px] text-amber-800 uppercase font-semibold">
+                  Combined Total
+                </p>
+                <p className="text-lg font-bold text-amber-900">
+                  {formatMs(activityStats.combinedTotalMs)}
+                </p>
+              </div>
             </div>
           </section>
 
@@ -357,7 +455,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() =>
                     recentResults.length > 0
-                      ? navigate(`/student/result/${recentResults[0].attemptId}`)
+                      ? navigate(
+                          `/student/result/${recentResults[0].attemptId}`,
+                        )
                       : navigate("/student/result")
                   }
                   className="text-[11px] px-3 py-1.5 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition"
@@ -373,12 +473,8 @@ export default function StudentDashboard() {
                       <th className="py-2 pr-3 text-left font-medium">
                         Exam Code
                       </th>
-                      <th className="py-2 px-3 text-left font-medium">
-                        Date
-                      </th>
-                      <th className="py-2 px-3 text-left font-medium">
-                        Score
-                      </th>
+                      <th className="py-2 px-3 text-left font-medium">Date</th>
+                      <th className="py-2 px-3 text-left font-medium">Score</th>
                       <th className="py-2 px-3 text-left font-medium">
                         Attempted / Skipped
                       </th>
@@ -473,7 +569,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() =>
                     recentResults.length > 0
-                      ? navigate(`/student/result/${recentResults[0].attemptId}`)
+                      ? navigate(
+                          `/student/result/${recentResults[0].attemptId}`,
+                        )
                       : navigate("/student/result")
                   }
                   className="w-full flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 hover:bg-[#FFF3C4] transition"
@@ -496,18 +594,13 @@ export default function StudentDashboard() {
           </section>
         </main>
 
-        {/* FOOTER
-        <footer className="border-t border-[#FFE6A3] bg-white/80 backdrop-blur-xl py-4 text-center text-[11px] text-gray-600">
-          Student Portal (c) {new Date().getFullYear()}
-        </footer> */}
+        <SocialMediaLinkModal
+          open={isModalOpen}
+          onClose={handleModalClose}
+          platform={selectedPlatform}
+          studentId={studentId}
+        />
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-

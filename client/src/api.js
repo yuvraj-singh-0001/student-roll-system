@@ -206,4 +206,16 @@ export const analysisApi = {
   adminOverview: () => API.get("/analysis/admin/overview"),
 };
 
+/* ===================================================
+   ACTIVITY TRACKING
+=================================================== */
+
+export const activityApi = {
+  logSocial: (studentId, platform, durationMs) =>
+    API.post("/activity/social", { studentId, platform, durationMs }),
+  logWebsite: (studentId, page, durationMs) =>
+    API.post("/activity/website", { studentId, page, durationMs }),
+  summary: (studentId) => API.get(`/activity/summary/${studentId}`),
+};
+
 export default API;
