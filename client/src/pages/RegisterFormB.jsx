@@ -873,6 +873,7 @@ export default function RegisterFormB() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [accountRole, setAccountRole] = useState("student");
 
   const [expectedVerification, setExpectedVerification] = useState({
     name: "",
@@ -987,7 +988,10 @@ export default function RegisterFormB() {
 
     const timer = setTimeout(async () => {
       try {
-        const res = await checkUsernameAvailability({ username });
+        const res = await checkUsernameAvailability({
+          username,
+          role: accountRole,
+        });
         if (cancelled) return;
         if (res?.success === false) {
           setUsernameStatus({
@@ -1020,7 +1024,7 @@ export default function RegisterFormB() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [form.account.username]);
+  }, [form.account.username, accountRole]);
 
   const setField = (path, value) => {
     setForm((prev) => {
@@ -1067,6 +1071,9 @@ export default function RegisterFormB() {
       : usernameStatus.state === "checking"
       ? "border-amber-300 ring-1 ring-amber-100"
       : "border-slate-200";
+
+  const usernamePrefix =
+    accountRole === "teacher" ? "@T-" : accountRole === "parent" ? "@P-" : "@S-";
 
   const triggerLogoSpin = () => {
     setLogoSpin(true);
@@ -1245,6 +1252,7 @@ export default function RegisterFormB() {
 
     const payload = {
       ...form,
+      role: accountRole,
       account: {
         username: form.account.username,
         password: form.account.password,
@@ -1509,16 +1517,45 @@ export default function RegisterFormB() {
                 <div className="grid gap-3 md:grid-cols-3">
                   <div>
                     <label className="text-[11px] font-semibold text-slate-700">
+                      Aap kya ho?<span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      className="mt-1 w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-xs"
+                      value={accountRole}
+                      onChange={(e) => setAccountRole(e.target.value)}
+                    >
+                      <option value="student">Student</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="parent">Parent</option>
+                    </select>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      Role select karne ke baad username ke aage automatic prefix
+                      lag jayega (jaise {" "}
+                      {usernamePrefix}
+                      {" "}). Aap prefix change nahi kar sakte.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700">
                       Username<span className="text-rose-500">*</span>
                     </label>
-                    <input
-                      className={`mt-1 w-full rounded-xl border px-2.5 py-1.5 text-xs ${usernameTone}`}
-                      value={form.account.username}
-                      onChange={(e) =>
-                        setField("account.username", e.target.value)
-                      }
-                      placeholder="Username"
-                    />
+                    <div className="mt-1 flex w-full items-center gap-1.5">
+                      <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 select-none">
+                        {usernamePrefix}
+                      </div>
+                      <input
+                        className={`flex-1 rounded-xl border px-2.5 py-1.5 text-xs ${usernameTone}`}
+                        value={form.account.username}
+                        onChange={(e) =>
+                          setField("account.username", e.target.value)
+                        }
+                        placeholder="username"
+                      />
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      Prefix wala part system automatically lagayega, aap sirf
+                      username ka middle part choose karenge.
+                    </p>
                     {usernameStatus.message && (
                       <p
                         className={`mt-1 text-[10px] ${
