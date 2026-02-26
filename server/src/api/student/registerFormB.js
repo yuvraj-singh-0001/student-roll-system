@@ -1,5 +1,7 @@
 const bcrypt = require("bcryptjs");
 const Student = require("../../models/Student");
+const Teacher = require("../../models/Teacher");
+const Parent = require("../../models/Parent");
 
 const normalizeText = (value) => String(value || "").trim();
 const normalizeLower = (value) => normalizeText(value).toLowerCase();
@@ -48,13 +50,18 @@ const registerFormB = async (req, res) => {
 
     const fullName = normalizeText(verification.fullName);
     const whatsappNumber = normalizeDigits(verification.whatsappNumber);
-    const username = normalizeLower(account.username);
+    const rawUsername = normalizeLower(account.username);
     const password = String(account.password || "");
+
+    const rawRole = normalizeLower(payload.role || "student");
+    const role = ["student", "teacher", "parent"].includes(rawRole)
+      ? rawRole
+      : "student";
 
     let error =
       ensureRequired(fullName, "Full name") ||
       ensureRequired(whatsappNumber, "WhatsApp number") ||
-      ensureRequired(username, "Username") ||
+      ensureRequired(rawUsername, "Username") ||
       ensureRequired(password, "Password");
 
     if (error) {
@@ -88,10 +95,28 @@ const registerFormB = async (req, res) => {
       });
     }
 
-    const existingUsername = await Student.findOne({
-      "formB.account.username": username,
-      _id: { $ne: student._id },
-    });
+    let ROLE_PREFIX = "@S-";
+    if (role === "teacher") ROLE_PREFIX = "@T-";
+    else if (role === "parent") ROLE_PREFIX = "@P-";
+
+    const username = `${ROLE_PREFIX}${rawUsername}`;
+
+    let existingUsername = null;
+
+    if (role === "teacher") {
+      existingUsername = await Teacher.findOne({
+        "formB.account.username": username,
+      });
+    } else if (role === "parent") {
+      existingUsername = await Parent.findOne({
+        "formB.account.username": username,
+      });
+    } else {
+      existingUsername = await Student.findOne({
+        "formB.account.username": username,
+        _id: { $ne: student._id },
+      });
+    }
     if (existingUsername) {
       return res.status(409).json({
         success: false,
@@ -204,7 +229,7 @@ const registerFormB = async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    student.formB = {
+    const formBData = {
       verification: {
         fullName,
         whatsappNumber,
@@ -258,6 +283,8 @@ const registerFormB = async (req, res) => {
       },
     };
 
+    student.formB = formBData;
+
     student.formBSubmitted = true;
     student.formBSubmittedAt = new Date();
 
@@ -266,6 +293,49 @@ const registerFormB = async (req, res) => {
     }
 
     await student.save();
+
+    // Mirror Form B data into Teacher/Parent collections based on selected role
+    if (role === "teacher") {
+      await Teacher.findOneAndUpdate(
+        {
+          name: fullName,
+          mobile: whatsappNumber,
+        },
+        {
+          name: fullName,
+          mobile: whatsappNumber,
+          class: student.class,
+          isPaid: student.isPaid,
+          payment: student.payment,
+          formASubmitted: true,
+          formBSubmitted: true,
+          formBSubmittedAt: new Date(),
+          formB: formBData,
+          email: contactEmail || student.email,
+        },
+        { upsert: true, new: true }
+      );
+    } else if (role === "parent") {
+      await Parent.findOneAndUpdate(
+        {
+          name: fullName,
+          mobile: whatsappNumber,
+        },
+        {
+          name: fullName,
+          mobile: whatsappNumber,
+          class: student.class,
+          isPaid: student.isPaid,
+          payment: student.payment,
+          formASubmitted: true,
+          formBSubmitted: true,
+          formBSubmittedAt: new Date(),
+          formB: formBData,
+          email: contactEmail || student.email,
+        },
+        { upsert: true, new: true }
+      );
+    }
 
     return res.status(200).json({
       success: true,

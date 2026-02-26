@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const studentSchema = new mongoose.Schema(
+const parentSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -21,12 +21,7 @@ const studentSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      default: "Student"
-    },
-
-    rollNumber: {
-      type: String,
-      trim: true
+      default: "Parent"
     },
 
     mobile: {
@@ -154,13 +149,12 @@ const studentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-studentSchema.index({ name: 1, mobile: 1 }, { unique: true });
-studentSchema.index({ "formB.account.username": 1 }, { unique: true, sparse: true });
-studentSchema.index({ rollNumber: 1 });
-studentSchema.index({ email: 1 });
-studentSchema.index({ mobile: 1 });
-studentSchema.index({ trackingId: 1 });
-studentSchema.index({ course: 1 });
-studentSchema.index({ createdAt: -1 });
+parentSchema.index({ name: 1, mobile: 1 }, { unique: true });
+parentSchema.index({ "formB.account.username": 1 }, { unique: true, sparse: true });
+parentSchema.index({ email: 1 });
+parentSchema.index({ mobile: 1 });
+parentSchema.index({ trackingId: 1 });
+parentSchema.index({ course: 1 });
+parentSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model("Student", studentSchema);
+module.exports = mongoose.model("Parent", parentSchema);
