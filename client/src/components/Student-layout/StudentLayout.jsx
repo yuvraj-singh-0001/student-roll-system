@@ -28,11 +28,9 @@ export default function StudentLayout() {
           <Outlet />
         </main>
         <footer className="border-t border-[#FFE6A3] bg-white/80 py-3 text-center text-[11px] text-gray-600">
-          TTT Student Portal (c) 2026
+          Student Exam Portal 2026
         </footer>
       </div>
     </div>
   );
 }
-
-

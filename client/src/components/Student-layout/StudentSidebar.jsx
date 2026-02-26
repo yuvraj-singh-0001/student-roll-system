@@ -1,10 +1,33 @@
 ﻿// src/components/Student-layout/StudentSidebar.jsx
+import { useState, useEffect } from "react";
 import { FaTachometerAlt, FaClipboardList, FaFileAlt } from "react-icons/fa";
+
+const PROFILE_KEYS = {
+  name: "studentProfileName",
+  avatar: "studentProfileAvatar",
+};
+
+const readSidebarProfile = () => {
+  if (typeof window === "undefined") {
+    return { name: "Student", avatar: "" };
+  }
+  const name =
+    localStorage.getItem(PROFILE_KEYS.name) ||
+    localStorage.getItem("studentName") ||
+    "Student";
+  const avatar = localStorage.getItem(PROFILE_KEYS.avatar) || "";
+  return { name, avatar };
+};
+
+const getInitial = (name) => {
+  const text = String(name || "").trim();
+  return text ? text.charAt(0).toUpperCase() : "S";
+};
 
 const studentMenu = [
   { id: "dashboard", label: "Dashboard", icon: <FaTachometerAlt />, path: "/student" },
-  { id: "exam", label: "Give Exam", icon: <FaClipboardList />, path: "/student/exam" },
-  { id: "results", label: "Results", icon: <FaFileAlt />, path: "/student/result" },
+  { id: "exam", label: "Take Exam", icon: <FaClipboardList />, path: "/student/exam" },
+  { id: "results", label: "Exam Results", icon: <FaFileAlt />, path: "/student/result" },
   // { id: "video", label: "Video Upload", icon: <FaVideo />, path: "/student/video-upload" },
   // { id: "performance", label: "Performance", icon: <FaChartLine />, path: "/student/performance" },
   // { id: "register", label: "Exam Register", icon: <FaFileAlt />, path: "/student/register" },
@@ -16,6 +39,12 @@ export default function StudentSidebar({
   currentPath,
   onNavigate,
 }) {
+  const [profile, setProfile] = useState(() => readSidebarProfile());
+
+  useEffect(() => {
+    setProfile(readSidebarProfile());
+  }, []);
+
   return (
     <>
       {/* Overlay for mobile */}
@@ -42,15 +71,9 @@ export default function StudentSidebar({
               sidebarOpen ? "opacity-100" : "opacity-0 w-0"
             }`}
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center shadow">
-              <span className="text-xs font-bold text-gray-900">T</span>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-gray-900">
-                TTT Student
-              </div>
-              <div className="text-[11px] text-gray-500">TTT Student Portal</div>
-            </div>
+            <p className="text-sm font-semibold text-gray-900">
+              Student Dashboard
+            </p>
           </div>
 
           <button

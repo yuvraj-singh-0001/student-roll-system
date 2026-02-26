@@ -77,6 +77,13 @@ const getInitial = (name) => {
   return text ? text.charAt(0).toUpperCase() : "S";
 };
 
+const getNameWithoutInitial = (name) => {
+  const text = String(name || "").trim();
+  if (!text) return "-";
+  const rest = text.slice(1);
+  return rest || "-";
+};
+
 export default function StudentNavbar({ onToggleSidebar }) {
   const [time, setTime] = useState(new Date());
   const [profileOpen, setProfileOpen] = useState(false);
@@ -203,15 +210,12 @@ export default function StudentNavbar({ onToggleSidebar }) {
             >
               Menu
             </button>
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-xs font-bold text-gray-900 shadow">
-              ST
-            </div>
             <div>
               <p className="text-[11px] uppercase tracking-[0.16em] text-gray-500">
-                Student Area
               </p>
-              <p className="text-sm font-semibold text-gray-900">
-                TTT Student Portal
+              <p className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                <span>Welcome,</span>
+                <span>{displayValue(profile.name)}</span>
               </p>
             </div>
           </div>
