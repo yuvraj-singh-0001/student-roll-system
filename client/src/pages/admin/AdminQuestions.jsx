@@ -43,8 +43,10 @@ function AdminQuestionBuilder() {
   const [examCodeNotice, setExamCodeNotice] = useState("");
   const [message, setMessage] = useState("");
   const [isMock, setIsMock] = useState(false);
-  const [mockMode, setMockMode] = useState("existing");
+  const [mockMode, setMockMode] = useState("new");
   const [mockTestCode, setMockTestCode] = useState("");
+  const [mockTitle, setMockTitle] = useState("");
+  const [mockTime, setMockTime] = useState("");
   const [availableMocks, setAvailableMocks] = useState([]);
 
   const cardStyle = {
@@ -208,7 +210,11 @@ function AdminQuestionBuilder() {
     if (loading) return;
     setMessage("");
     if (!examInfo.examCode) {
-      setMessage("Please enter examCode in exam details first.");
+      setMessage(
+        isMock
+          ? "Please enter main examCode for this mock test first."
+          : "Please enter examCode in exam details first.",
+      );
       return;
     }
 
@@ -297,11 +303,14 @@ function AdminQuestionBuilder() {
     }
 
     if (isMock) {
-      payload.isMock = true;
-      payload.mockMode = mockMode;
-      if (mockMode === "existing" && mockTestCode) {
-        payload.mockTestCode = mockTestCode;
+      if (!mockTestCode.trim()) {
+        setMessage("Please enter or select mockTestCode.");
+        return;
       }
+      payload.isMock = true;
+      payload.mockTestCode = mockTestCode.trim();
+      payload.mockTitle = mockTitle;
+      payload.mockTime = mockTime;
     }
 
     try {
@@ -342,9 +351,10 @@ function AdminQuestionBuilder() {
           }
         }
 
-        setIsMock(false);
-        setMockMode("existing");
-        setMockTestCode("");
+        // Keep isMock and mockTestCode as is, so admin can add multiple questions to the same mock/main test.
+        if (mockMode === "new" && isMock) {
+          setMockMode("existing");
+        }
       } else {
         setMessage(res.data.message || "Failed to add question.");
       }
@@ -399,135 +409,264 @@ function AdminQuestionBuilder() {
         </p>
       </div>
 
-      {/* Top grid: Exam info + summary */}
+      {/* STEP 1: Main Exam Info (Always Visible) */}
+      <div style={{ ...cardStyle, border: "1px solid #e2e8f0" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "12px",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: "16px",
+                fontWeight: 700,
+                color: "#1e293b",
+              }}
+            >
+              Step 1: Main Olympiad Exam Details
+            </h3>
+            <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+              Required for all questions
+            </p>
+          </div>
+          <span
+            style={{
+              fontSize: "11px",
+              color: "#047857",
+              background: "#ecfdf3",
+              padding: "2px 8px",
+              borderRadius: "999px",
+              border: "1px solid #bbf7d0",
+            }}
+          >
+            Step 1
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "12px",
+          }}
+        >
+          <div>
+            <label style={labelStyle}>
+              {isMock ? "Main Exam Code (for Mock)" : "Exam Code (Unique)"}
+            </label>
+            <input
+              name="examCode"
+              value={examInfo.examCode}
+              onChange={handleExamInfoChange}
+              placeholder="e.g. ttt"
+              style={inputStyle}
+            />
+            {isMock && (
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "11px",
+                  color: "#2563eb",
+                }}
+              >
+                Mock questions will be attached to this main exam.
+              </div>
+            )}
+            {examCodeNotice && (
+              <div
+                style={{
+                  marginTop: "6px",
+                  fontSize: "11px",
+                  color: "#b45309",
+                  background: "#fffbeb",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #fcd34d",
+                }}
+              >
+                {examCodeNotice}
+              </div>
+            )}
+          </div>
+          <div>
+            <label style={labelStyle}>Olympiad Title</label>
+            <input
+              name="title"
+              value={examInfo.title}
+              onChange={handleExamInfoChange}
+              placeholder="e.g. FINAL EXAM V2"
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Total Time (Mins)</label>
+            <input
+              type="number"
+              name="totalTimeMinutes"
+              value={examInfo.totalTimeMinutes}
+              onChange={handleExamInfoChange}
+              placeholder="60"
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Price (INR)</label>
+            <input
+              type="number"
+              name="registrationPrice"
+              value={examInfo.registrationPrice}
+              onChange={handleExamInfoChange}
+              placeholder="299"
+              style={inputStyle}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Mock Test Selection / Options */}
       <div
         style={{
+          marginTop: "14px",
           marginBottom: "18px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "14px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          background: isMock ? "#f0f9ff" : "transparent",
+          padding: isMock ? "14px" : "0",
+          borderRadius: "12px",
+          border: isMock ? "1px solid #bae6fd" : "none",
         }}
       >
-        {/* Exam details card */}
-        <div style={cardStyle}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <span style={{ fontWeight: 700, fontSize: "14px", color: "#374151" }}>
+            Question Type: Main or Mock?
+          </span>
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "10px",
+              background: "#f3f4f6",
+              padding: "3px",
+              borderRadius: "10px",
             }}
           >
-            <div>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  color: "#111827",
-                }}
-              >
-                Exam Details
-              </h3>
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: "#6b7280",
-                }}
-              >
-                Required before adding questions
-              </span>
-            </div>
-            <span
+            <button
+              type="button"
+              onClick={() => setIsMock(false)}
               style={{
-                fontSize: "11px",
-                color: "#047857",
-                background: "#ecfdf3",
-                padding: "2px 8px",
-                borderRadius: "999px",
-                border: "1px solid #bbf7d0",
+                padding: "6px 14px",
+                borderRadius: "8px",
+                border: "none",
+                background: !isMock ? "#ffffff" : "transparent",
+                color: !isMock ? "#2563eb" : "#4b5563",
+                boxShadow: !isMock ? "0 1px 2px rgba(0,0,0,0.1)" : "none",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: "12px",
               }}
             >
-              Step 1
-            </span>
-          </div>
-
-          <div style={{ display: "grid", gap: "10px" }}>
-            <div>
-              <label style={labelStyle}>Title of Olympiad Paper</label>
-              <input
-                type="text"
-                name="title"
-                value={examInfo.title}
-                onChange={handleExamInfoChange}
-                placeholder="e.g. FINAL EXAM V2"
-                style={inputStyle}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Exam Code (Unique)</label>
-              <input
-                type="text"
-                name="examCode"
-                value={examInfo.examCode}
-                onChange={handleExamInfoChange}
-                placeholder="e.g. FINAL_EXAM_V2"
-                style={inputStyle}
-              />
-              {examCodeNotice && (
-                <div
-                  style={{
-                    marginTop: "6px",
-                    fontSize: "12px",
-                    color: "#b45309",
-                    background: "#fffbeb",
-                    padding: "6px 8px",
-                    borderRadius: "6px",
-                    border: "1px solid #fcd34d",
-                  }}
-                >
-                  {examCodeNotice}
-                </div>
-              )}
-            </div>
-
-            <div
+              No (Main Exam)
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsMock(true)}
               style={{
-                display: "grid",
-                gap: "10px",
-                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                padding: "6px 14px",
+                borderRadius: "8px",
+                border: "none",
+                background: isMock ? "#ffffff" : "transparent",
+                color: isMock ? "#2563eb" : "#4b5563",
+                boxShadow: isMock ? "0 1px 2px rgba(0,0,0,0.1)" : "none",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: "12px",
               }}
             >
-              <div>
-                <label style={labelStyle}>Total Time (minutes)</label>
-                <input
-                  type="number"
-                  name="totalTimeMinutes"
-                  value={examInfo.totalTimeMinutes}
-                  onChange={handleExamInfoChange}
-                  placeholder="e.g. 60"
-                  style={inputStyle}
-                />
-              </div>
-
-              <div>
-                <label style={labelStyle}>Registration Price</label>
-                <input
-                  type="number"
-                  name="registrationPrice"
-                  value={examInfo.registrationPrice}
-                  onChange={handleExamInfoChange}
-                  placeholder="e.g. 299"
-                  style={inputStyle}
-                />
-              </div>
-            </div>
+              Yes (Mock Test)
+            </button>
           </div>
         </div>
 
-        {/* Summary card */}
-        <div style={cardStyle}>
+        {isMock && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "12px",
+              marginTop: "4px",
+            }}
+          >
+            <div>
+              <label style={labelStyle}>Mock Test Code</label>
+              <div style={{ display: "flex", gap: "6px" }}>
+                {mockMode === "new" ? (
+                  <input
+                    value={mockTestCode}
+                    onChange={(e) => setMockTestCode(e.target.value)}
+                    placeholder="e.g. SET-01"
+                    style={{ ...inputStyle, border: "1px solid #7dd3fc" }}
+                  />
+                ) : (
+                  <select
+                    value={mockTestCode}
+                    onChange={(e) => setMockTestCode(e.target.value)}
+                    style={{ ...inputStyle, border: "1px solid #7dd3fc" }}
+                  >
+                    <option value="">-- Choose Mock --</option>
+                    {availableMocks.map((m) => (
+                      <option key={m.mockTestCode} value={m.mockTestCode}>
+                        {m.mockTestCode} ({m.questionCount} Qs)
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMockMode(mockMode === "new" ? "existing" : "new")
+                  }
+                  style={{
+                    fontSize: "10px",
+                    padding: "0 8px",
+                    borderRadius: "6px",
+                    border: "1px solid #ccc",
+                    cursor: "pointer",
+                    background: "#fff",
+                  }}
+                >
+                  {mockMode === "new" ? "Exist" : "New"}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>Mock Title</label>
+              <input
+                value={mockTitle}
+                onChange={(e) => setMockTitle(e.target.value)}
+                placeholder="Mock title"
+                style={{ ...inputStyle, border: "1px solid #7dd3fc" }}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Mock Time (Mins)</label>
+              <input
+                type="number"
+                value={mockTime}
+                onChange={(e) => setMockTime(e.target.value)}
+                placeholder="60"
+                style={{ ...inputStyle, border: "1px solid #7dd3fc" }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginBottom: "18px" }}>
+        <div style={{ ...cardStyle, maxWidth: "500px" }}>
           <div
             style={{
               display: "flex",
@@ -540,11 +679,11 @@ function AdminQuestionBuilder() {
               style={{
                 margin: 0,
                 fontSize: "15px",
-                fontWeight: 600,
-                color: "#111827",
+                fontWeight: 700,
+                color: "#1e293b",
               }}
             >
-              Question Summary
+              Question Statistics
             </h3>
             <span
               style={{
@@ -567,8 +706,9 @@ function AdminQuestionBuilder() {
               marginBottom: "6px",
             }}
           >
-            Exam Code:{" "}
-            <b style={{ color: "#111827" }}>{examInfo.examCode || "Not set"}</b>
+            Currently viewing:{" "}
+            <b>{isMock ? `Mock: ${mockTestCode || "..."}` : "Main Exam"}</b>{" "}
+            (Code: {examInfo.examCode || "None"})
           </div>
           <div
             style={{
@@ -729,133 +869,6 @@ function AdminQuestionBuilder() {
             >
               Step 2
             </span>
-          </div>
-
-          {/* Mock Test Selection Section */}
-          <div
-            style={{
-              marginBottom: "14px",
-              padding: "10px",
-              background: "#f0f9ff",
-              borderRadius: "8px",
-              border: "1px solid #bae6fd",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}>
-                Add as Mock Question?
-              </label>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <label
-                  style={{
-                    fontSize: "13px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                >
-                  <input
-                    type="radio"
-                    checked={!isMock}
-                    onChange={() => setIsMock(false)}
-                  />{" "}
-                  No (Main Exam)
-                </label>
-                <label
-                  style={{
-                    fontSize: "13px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                >
-                  <input
-                    type="radio"
-                    checked={isMock}
-                    onChange={() => setIsMock(true)}
-                  />{" "}
-                  Yes (Mock Test)
-                </label>
-              </div>
-            </div>
-
-            {isMock && (
-              <div
-                style={{
-                  marginTop: "10px",
-                  display: "grid",
-                  gap: "8px",
-                  borderTop: "1px solid #e0f2fe",
-                  paddingTop: "10px",
-                }}
-              >
-                <div style={{ display: "flex", gap: "15px" }}>
-                  <label
-                    style={{
-                      fontSize: "13px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="mockMode"
-                      checked={mockMode === "new"}
-                      onChange={() => setMockMode("new")}
-                    />{" "}
-                    Create New Mock
-                  </label>
-                  <label
-                    style={{
-                      fontSize: "13px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="mockMode"
-                      checked={mockMode === "existing"}
-                      onChange={() => setMockMode("existing")}
-                    />{" "}
-                    Add to Existing
-                  </label>
-                </div>
-
-                {mockMode === "existing" && (
-                  <div>
-                    <label style={labelStyle}>Select Mock Test</label>
-                    <select
-                      value={mockTestCode}
-                      onChange={(e) => setMockTestCode(e.target.value)}
-                      style={inputStyle}
-                    >
-                      <option value="">-- Choose Existing Mock --</option>
-                      {availableMocks.map((m) => (
-                        <option key={m.mockTestCode} value={m.mockTestCode}>
-                          {m.mockTestCode} ({m.questionCount} Qs)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {mockMode === "new" && (
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#0369a1",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    New mock test code will be auto-generated (e.g.{" "}
-                    {examInfo.examCode || "CODE"}-m1)
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Type + Question text in 2-column layout */}

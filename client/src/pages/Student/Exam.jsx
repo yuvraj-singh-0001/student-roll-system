@@ -1,15 +1,28 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { questionApi, examApi } from "../../api";
+import { questionApi, examApi, olympiadExamApi } from "../../api";
 import { setExamQuestions } from "../../store/examSlice";
 
 const EXAM_CACHE_KEY = "examListCacheV1";
 const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const EXAM_QUESTIONS_CACHE_TTL_MS = 10 * 60 * 1000;
 
-const getQuestionsCacheKey = (examCode) =>
-  `examQuestionsCacheV1:${String(examCode || "").trim()}`;
+const getQuestionsCacheKey = (examCode, mockTestCode = "") => {
+  const code = String(examCode || "").trim();
+  if (!code) return "";
+  const mock = String(mockTestCode || "").trim();
+  return mock
+    ? `examQuestionsCacheV1:${code}:mock:${mock}`
+    : `examQuestionsCacheV1:${code}`;
+};
+
+const getExamStoreKey = (examCode, mockTestCode = "") => {
+  const code = String(examCode || "").trim();
+  if (!code) return "";
+  const mock = String(mockTestCode || "").trim();
+  return mock ? `${code}::mock:${mock}` : code;
+};
 
 const readExamListCache = (options = {}) => {
   if (typeof window === "undefined") return null;
@@ -42,7 +55,7 @@ const writeExamListCache = (list) => {
 const readQuestionsCache = (examCode, options = {}) => {
   if (typeof window === "undefined") return null;
   const allowStale = options.allowStale === true;
-  const key = getQuestionsCacheKey(examCode);
+  const key = getQuestionsCacheKey(examCode, options.mockTestCode);
   if (!key) return null;
   try {
     const raw = localStorage.getItem(key);
@@ -57,9 +70,9 @@ const readQuestionsCache = (examCode, options = {}) => {
   }
 };
 
-const writeQuestionsCache = (examCode, data) => {
+const writeQuestionsCache = (examCode, data, options = {}) => {
   if (typeof window === "undefined") return;
-  const key = getQuestionsCacheKey(examCode);
+  const key = getQuestionsCacheKey(examCode, options.mockTestCode);
   if (!key) return;
   try {
     localStorage.setItem(
@@ -181,6 +194,7 @@ export default function Exam() {
   const [studentId, setStudentId] = useState("");
   const [examCode, setExamCode] = useState("");
   const [pendingExamCode, setPendingExamCode] = useState("");
+  const [mockTestCode, setMockTestCode] = useState("");
   const [introAccepted, setIntroAccepted] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -203,14 +217,36 @@ export default function Exam() {
   const [examStartAt, setExamStartAt] = useState(null);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
 
+  const location = useLocation();
   const examCodeKey = String(examCode || "").trim();
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  );
+  const urlExamCode = String(searchParams.get("examCode") || "").trim();
+  const urlMockTestCode = String(searchParams.get("mockTestCode") || "").trim();
+  const mockTestCodeKey = String(mockTestCode || "").trim();
+  const persistedMockTestCode = String(
+    typeof window !== "undefined"
+      ? localStorage.getItem("examMockTestCode") || ""
+      : ""
+  ).trim();
+  const activeMockTestCode =
+    mockTestCodeKey || urlMockTestCode || persistedMockTestCode;
+  const examStoreKey = getExamStoreKey(examCodeKey, activeMockTestCode);
   const cachedEntry = useSelector(
-    (state) => state.exam.questionsByExam[examCodeKey]
+    (state) => state.exam.questionsByExam[examStoreKey]
   );
 
   const clearExamStart = () => {
     localStorage.removeItem("examStartAt");
     localStorage.removeItem("examStartExamCode");
+    localStorage.removeItem("examStartMockTestCode");
+  };
+
+  const clearMockSelection = () => {
+    localStorage.removeItem("examMockTestCode");
+    setMockTestCode("");
   };
 
   const fetchExamList = useCallback(async (options = {}) => {
@@ -263,17 +299,52 @@ export default function Exam() {
   }, []);
 
   useEffect(() => {
+    if (urlExamCode) {
+      localStorage.setItem("examCode", urlExamCode);
+      if (!examCode && !pendingExamCode) {
+        setPendingExamCode(urlExamCode);
+      }
+    }
+
+    if (urlMockTestCode) {
+      localStorage.setItem("examMockTestCode", urlMockTestCode);
+      setMockTestCode(urlMockTestCode);
+    } else if (searchParams.has("mockTestCode")) {
+      clearMockSelection();
+    }
+  }, [urlExamCode, urlMockTestCode, examCode, pendingExamCode, searchParams]);
+
+  useEffect(() => {
+    if (activeMockTestCode && activeMockTestCode !== mockTestCodeKey) {
+      setMockTestCode(activeMockTestCode);
+    }
+  }, [activeMockTestCode, mockTestCodeKey]);
+
+  useEffect(() => {
     if (pendingExamCode || examCode) return;
     const storedExam = localStorage.getItem("examCode");
     if (storedExam) setPendingExamCode(storedExam);
+    const storedMock = localStorage.getItem("examMockTestCode");
+    if (storedMock) setMockTestCode(String(storedMock || "").trim());
   }, [pendingExamCode, examCode]);
 
   useEffect(() => {
     if (!examCode) return;
     const storedStart = localStorage.getItem("examStartAt");
     const storedCode = localStorage.getItem("examStartExamCode");
-    if (examStartAt && storedCode === examCode) return;
-    if (storedStart && storedCode === examCode) {
+    const storedMock = localStorage.getItem("examStartMockTestCode") || "";
+    if (
+      examStartAt &&
+      storedCode === examCode &&
+      String(storedMock || "") === activeMockTestCode
+    ) {
+      return;
+    }
+    if (
+      storedStart &&
+      storedCode === examCode &&
+      String(storedMock || "") === activeMockTestCode
+    ) {
       const parsed = new Date(storedStart);
       if (!Number.isNaN(parsed.getTime())) {
         setExamStartAt(parsed);
@@ -283,8 +354,9 @@ export default function Exam() {
     const now = new Date();
     localStorage.setItem("examStartAt", now.toISOString());
     localStorage.setItem("examStartExamCode", examCode);
+    localStorage.setItem("examStartMockTestCode", activeMockTestCode);
     setExamStartAt(now);
-  }, [examCode, examStartAt]);
+  }, [examCode, examStartAt, activeMockTestCode]);
 
   useEffect(() => {
     if (examCode) return;
@@ -353,7 +425,10 @@ export default function Exam() {
     }
 
     if (!usedCache) {
-      const cached = readQuestionsCache(examCodeKey, { allowStale: true });
+      const cached = readQuestionsCache(examCodeKey, {
+        allowStale: true,
+        mockTestCode: activeMockTestCode,
+      });
       cachedQuestions = Array.isArray(cached?.data?.questions)
         ? cached.data.questions
         : [];
@@ -364,7 +439,7 @@ export default function Exam() {
         cacheIsStale = !!cached?.isStale;
         dispatch(
           setExamQuestions({
-            examCode: examCodeKey,
+            examCode: examStoreKey,
             exam: cachedExam,
             questions: cachedQuestions,
             fetchedAt: cachedTs,
@@ -373,12 +448,19 @@ export default function Exam() {
       }
     }
 
+    if (activeMockTestCode && cachedQuestions.length > 0) {
+      cachedQuestions = cachedQuestions.filter(
+        (q) => String(q?.mockTestCode || "").trim() === activeMockTestCode
+      );
+    }
+
     if (cachedQuestions.length > 0) {
       setQuestions(cachedQuestions);
       const durationMinutes = cachedExam?.durationMinutes || 60;
       setExamDurationSeconds(durationMinutes * 60);
       setLoading(false);
     } else {
+      setQuestions([]);
       setLoading(true);
     }
     setError("");
@@ -397,23 +479,35 @@ export default function Exam() {
 
     (async () => {
       try {
-        const { data } = await questionApi.byExamCode(examCodeKey);
+        const { data } = await questionApi.byExamCode(
+          examCodeKey,
+          activeMockTestCode ? { mockTestCode: activeMockTestCode } : undefined,
+        );
         const durationMinutes = data?.exam?.durationMinutes || 60;
-        const list = data?.questions || data?.data || [];
+        let list = data?.questions || data?.data || [];
+        if (activeMockTestCode) {
+          list = list.filter(
+            (q) => String(q?.mockTestCode || "").trim() === activeMockTestCode
+          );
+        }
         if (!cancelled) {
           setExamDurationSeconds(durationMinutes * 60);
           setQuestions(list);
-          writeQuestionsCache(examCodeKey, {
-            exam: {
-              examCode: examCodeKey,
-              title: data?.exam?.title || examCodeKey,
-              durationMinutes,
+          writeQuestionsCache(
+            examCodeKey,
+            {
+              exam: {
+                examCode: examCodeKey,
+                title: data?.exam?.title || examCodeKey,
+                durationMinutes,
+              },
+              questions: list,
             },
-            questions: list,
-          });
+            { mockTestCode: activeMockTestCode },
+          );
           dispatch(
             setExamQuestions({
-              examCode: examCodeKey,
+              examCode: examStoreKey,
               exam: {
                 examCode: examCodeKey,
                 title: data?.exam?.title || examCodeKey,
@@ -439,7 +533,7 @@ export default function Exam() {
     return () => {
       cancelled = true;
     };
-  }, [examCode]);
+  }, [examCode, activeMockTestCode, examStoreKey]);
 
   useEffect(() => {
     if (!examStartAt || examDurationSeconds === null) return;
@@ -855,6 +949,9 @@ export default function Exam() {
         };
       });
 
+      const resolvedMockTestCode =
+        activeMockTestCode ||
+        String(localStorage.getItem("examMockTestCode") || "").trim();
       const submitBody = {
         examCode: examCode.trim(),
         attempts: payload,
@@ -864,15 +961,21 @@ export default function Exam() {
         durationSeconds: examDurationSeconds || null,
         timeTakenSeconds,
       };
+      if (resolvedMockTestCode) {
+        submitBody.mockTestCode = resolvedMockTestCode;
+      }
       if (studentId.trim()) {
         submitBody.studentId = studentId.trim();
       }
 
-      const { data } = await examApi.submit(submitBody);
+      const { data } = resolvedMockTestCode
+        ? await olympiadExamApi.submitMock(submitBody)
+        : await examApi.submit(submitBody);
 
       if (data.success) {
         setSubmitSuccess({ attemptId: data.attemptId, result: data });
         clearExamStart();
+        clearMockSelection();
         setExamStartAt(null);
         setTimeLeft(null);
         setExamDurationSeconds(null);
@@ -1004,9 +1107,20 @@ export default function Exam() {
                 <button
                   onClick={() => {
                     const now = new Date();
+                    const resolvedMockTestCode =
+                      activeMockTestCode ||
+                      String(localStorage.getItem("examMockTestCode") || "").trim();
                     localStorage.setItem("examCode", pendingExamCode);
                     localStorage.setItem("examStartAt", now.toISOString());
                     localStorage.setItem("examStartExamCode", pendingExamCode);
+                    if (resolvedMockTestCode) {
+                      localStorage.setItem("examMockTestCode", resolvedMockTestCode);
+                      localStorage.setItem("examStartMockTestCode", resolvedMockTestCode);
+                      setMockTestCode(resolvedMockTestCode);
+                    } else {
+                      clearMockSelection();
+                      localStorage.removeItem("examStartMockTestCode");
+                    }
                     setExamStartAt(now);
                     setExamCode(pendingExamCode);
                     setPendingExamCode("");
@@ -1027,6 +1141,7 @@ export default function Exam() {
                     setIntroAccepted(false);
                     localStorage.removeItem("examCode");
                     clearExamStart();
+                    clearMockSelection();
                     setExamStartAt(null);
                   }}
                   className="px-6 py-3 rounded-lg border border-[#FFE6A3] bg-white text-gray-800 hover:bg-[#FFF3C4] transition"
@@ -1114,11 +1229,12 @@ export default function Exam() {
                         </span>
                       </div>
 
-                      <button
-                        onClick={() => {
-                          setPendingExamCode(exam.examCode);
-                          setIntroAccepted(false);
-                        }}
+                        <button
+                          onClick={() => {
+                            setPendingExamCode(exam.examCode);
+                            setIntroAccepted(false);
+                            clearMockSelection();
+                          }}
                         className="mt-1 text-[11px] px-3 py-2 rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
                       >
                         Start Exam
@@ -1229,15 +1345,21 @@ export default function Exam() {
             </h3>
             <p className="text-gray-600 mb-6 text-sm">
               Exam Code: <span className="font-semibold">{examCode}</span>
+              {mockTestCodeKey ? (
+                <span className="ml-2 text-xs text-gray-500">
+                  (Mock: {mockTestCodeKey})
+                </span>
+              ) : null}
             </p>
             <button
-              onClick={() => {
-                setError("");
-                localStorage.removeItem("examCode");
-                clearExamStart();
-                setExamCode("");
-                navigate("/student");
-              }}
+                onClick={() => {
+                  setError("");
+                  localStorage.removeItem("examCode");
+                  clearExamStart();
+                  clearMockSelection();
+                  setExamCode("");
+                  navigate("/student");
+                }}
               className="px-6 py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-xl hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 mx-auto"
             >
               Go to Dashboard

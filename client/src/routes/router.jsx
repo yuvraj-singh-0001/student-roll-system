@@ -11,6 +11,7 @@ import StudentDashboard from "../pages/Student/StudentDashboard";
 import ExamRegister from "../pages/Student/ExamRegister";
 import Exam from "../pages/Student/Exam";
 import ExamResult from "../pages/Student/ExamResult";
+import OlympiadExamPage from "../pages/Student/OlympiadExamPage";
 
 // Admin
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -48,6 +49,7 @@ export default function AppRouter() {
         >
           <Route index element={<StudentDashboard />} />
           <Route path="exam" element={<Exam />} />
+          <Route path="olympiad/:examCode" element={<OlympiadExamPage />} />
           <Route path="register" element={<ExamRegister />} />
           <Route path="result" element={<ExamResult />} />
           <Route path="result/:attemptId" element={<ExamResult />} />

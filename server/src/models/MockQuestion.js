@@ -1,4 +1,4 @@
-// models/Question.js
+// models/MockQuestion.js
 const mongoose = require("mongoose");
 
 const optionSchema = new mongoose.Schema(
@@ -17,7 +17,7 @@ const optionSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const questionSchema = new mongoose.Schema(
+const mockQuestionSchema = new mongoose.Schema(
   {
     examCode: {
       type: String,
@@ -25,17 +25,11 @@ const questionSchema = new mongoose.Schema(
       index: true,
       trim: true,
     },
-
-    // Mock test support: same examCode ke andar multiple mock papers
-    isMock: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
     mockTestCode: {
       type: String,
-      trim: true,
+      required: true,
       index: true,
+      trim: true,
     },
     mockTitle: {
       type: String,
@@ -107,11 +101,11 @@ const questionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// unique examCode + mockTestCode + questionNumber (separate numbering for each test)
-questionSchema.index(
+// unique examCode + mockTestCode + questionNumber (separate numbering for each mock)
+mockQuestionSchema.index(
   { examCode: 1, mockTestCode: 1, questionNumber: 1 },
   { unique: true }
 );
 
-const Question = mongoose.model("Question", questionSchema);
-module.exports = Question;
+const MockQuestion = mongoose.model("MockQuestion", mockQuestionSchema);
+module.exports = MockQuestion;

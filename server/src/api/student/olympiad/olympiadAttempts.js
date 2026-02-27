@@ -1,6 +1,7 @@
 // यह API olympiad attempts की सूची और detail देता है
 // backend/api/student/olympiad/olympiadAttempts.js
 const ExamAttempt = require("../../../models/ExamAttempt");
+const MockExamAttempt = require("../../../models/MockExamAttempt");
 
 const BRANCH_KEYS = ["A", "B"];
 
@@ -41,7 +42,7 @@ function buildSummary(attempt) {
 
 async function listOlympiadAttempts(req, res) {
   try {
-    const { studentId, examCode } = req.query;
+    const { studentId, examCode, includeMock, mockTestCode } = req.query;
 
     if (!studentId) {
       return res.status(400).json({
@@ -52,6 +53,47 @@ async function listOlympiadAttempts(req, res) {
 
     const filter = { studentId: studentId.trim() };
     if (examCode) filter.examCode = examCode;
+
+    const includeMocks =
+      String(includeMock || "").toLowerCase() === "1" ||
+      String(includeMock || "").toLowerCase() === "true";
+    const normalizedMockTestCode = String(mockTestCode || "").trim();
+
+    if (normalizedMockTestCode) {
+      const mockFilter = { ...filter, mockTestCode: normalizedMockTestCode };
+      const mockAttempts = await MockExamAttempt.find(mockFilter)
+        .select({
+          examCode: 1,
+          mockTestCode: 1,
+          totalMarks: 1,
+          autoSubmitted: 1,
+          createdAt: 1,
+          attemptedCount: 1,
+          skippedCount: 1,
+          correctCount: 1,
+          wrongCount: 1,
+          notVisitedCount: 1,
+        })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const data = mockAttempts.map((a) => ({
+        attemptId: a._id,
+        examCode: a.examCode,
+        mockTestCode: a.mockTestCode,
+        totalMarks: a.totalMarks,
+        autoSubmitted: a.autoSubmitted,
+        createdAt: a.createdAt,
+        attemptedCount: a.attemptedCount || 0,
+        skippedCount: a.skippedCount || 0,
+        correctCount: a.correctCount || 0,
+        wrongCount: a.wrongCount || 0,
+        notVisitedCount: a.notVisitedCount || 0,
+        isMock: true,
+      }));
+
+      return res.status(200).json({ success: true, data });
+    }
 
     const attempts = await ExamAttempt.find(filter)
       .select({
@@ -91,7 +133,7 @@ async function listOlympiadAttempts(req, res) {
       });
     }
 
-    const data = attempts.map((a) => {
+    const mainData = attempts.map((a) => {
       const fallback = fallbackSummaries.get(String(a._id)) || {};
       const pick = (primary, secondary) => {
         if (Number.isFinite(primary)) return primary;
@@ -115,6 +157,45 @@ async function listOlympiadAttempts(req, res) {
       };
     });
 
+    if (!includeMocks) {
+      return res.status(200).json({ success: true, data: mainData });
+    }
+
+    const mockAttempts = await MockExamAttempt.find(filter)
+      .select({
+        examCode: 1,
+        mockTestCode: 1,
+        totalMarks: 1,
+        autoSubmitted: 1,
+        createdAt: 1,
+        attemptedCount: 1,
+        skippedCount: 1,
+        correctCount: 1,
+        wrongCount: 1,
+        notVisitedCount: 1,
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const mockData = mockAttempts.map((a) => ({
+      attemptId: a._id,
+      examCode: a.examCode,
+      mockTestCode: a.mockTestCode,
+      totalMarks: a.totalMarks,
+      autoSubmitted: a.autoSubmitted,
+      createdAt: a.createdAt,
+      attemptedCount: a.attemptedCount || 0,
+      skippedCount: a.skippedCount || 0,
+      correctCount: a.correctCount || 0,
+      wrongCount: a.wrongCount || 0,
+      notVisitedCount: a.notVisitedCount || 0,
+      isMock: true,
+    }));
+
+    const data = [...mainData, ...mockData].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
     return res.status(200).json({ success: true, data });
   } catch (err) {
     console.error("listAttempts error:", err);
@@ -128,7 +209,13 @@ async function listOlympiadAttempts(req, res) {
 async function getOlympiadAttemptDetails(req, res) {
   try {
     const { attemptId } = req.params;
-    const attempt = await ExamAttempt.findById(attemptId).lean();
+    let attempt = await ExamAttempt.findById(attemptId).lean();
+    let isMock = false;
+
+    if (!attempt) {
+      attempt = await MockExamAttempt.findById(attemptId).lean();
+      isMock = !!attempt;
+    }
 
     if (!attempt) {
       return res.status(404).json({
@@ -145,6 +232,8 @@ async function getOlympiadAttemptDetails(req, res) {
         attemptId: attempt._id,
         studentId: attempt.studentId,
         examCode: attempt.examCode,
+        mockTestCode: isMock ? attempt.mockTestCode : undefined,
+        isMock,
         totalMarks: attempt.totalMarks,
         autoSubmitted: attempt.autoSubmitted,
         createdAt: attempt.createdAt,

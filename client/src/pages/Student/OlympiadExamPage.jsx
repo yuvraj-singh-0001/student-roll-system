@@ -16,7 +16,6 @@ export default function OlympiadExamPage() {
   const searchParams = new URLSearchParams(location.search);
   const mockTestCode = searchParams.get("mockTestCode") || "";
 
-
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]); // mixed: simple/multiple/confidence/branch_parent/branch_child
   const [error, setError] = useState("");
@@ -59,7 +58,8 @@ export default function OlympiadExamPage() {
         setQuestions(list);
 
         // Timer: try to read from exam config if provided (data.exam?.durationMinutes)
-        const durationMinutes = data.exam?.durationMinutes || TIMER_DEFAULT_MINUTES;
+        const durationMinutes =
+          data.exam?.durationMinutes || TIMER_DEFAULT_MINUTES;
         setTimeLeft(durationMinutes * 60);
 
         setLoading(false);
@@ -111,6 +111,11 @@ export default function OlympiadExamPage() {
     });
   }, [questions, answers]);
 
+  const scoredQuestions = useMemo(
+    () => visibleQuestions.filter((vq) => vq.type !== "branch_parent"),
+    [visibleQuestions],
+  );
+
   // Jab visibleQuestions update ho, currentIndex adjust karo
   useEffect(() => {
     if (!visibleQuestions.length) return;
@@ -125,7 +130,12 @@ export default function OlympiadExamPage() {
       if (q.type === "branch_parent" && prevAns.selectedAnswer) {
         return prev; // branch choice ek hi baar
       }
-      if (q.type === "simple" || q.type === "confidence" || q.type === "branch_child" || q.type === "branch_parent") {
+      if (
+        q.type === "simple" ||
+        q.type === "confidence" ||
+        q.type === "branch_child" ||
+        q.type === "branch_parent"
+      ) {
         return {
           ...prev,
           [q.questionNumber]: {
@@ -292,23 +302,20 @@ export default function OlympiadExamPage() {
   const branchMustSelect = qType === "branch_parent" && !ans.selectedAnswer;
   const branchLocked = qType === "branch_parent" && !!ans.selectedAnswer;
 
-  const scoredQuestions = useMemo(
-    () => visibleQuestions.filter((vq) => vq.type !== "branch_parent"),
-    [visibleQuestions]
-  );
   const displayTotal = scoredQuestions.length;
   const displayIndex =
     qType === "branch_parent"
       ? null
-      : scoredQuestions.findIndex((x) => x.questionNumber === q?.questionNumber) +
-        1;
+      : scoredQuestions.findIndex(
+          (x) => x.questionNumber === q?.questionNumber,
+        ) + 1;
 
   const userSelected =
     qType === "multiple"
       ? ans.selectedAnswers || []
       : ans.selectedAnswer
-      ? [ans.selectedAnswer]
-      : [];
+        ? [ans.selectedAnswer]
+        : [];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -327,7 +334,8 @@ export default function OlympiadExamPage() {
             </h1>
 
             <p className="text-xs text-slate-500">
-              Answer all questions. Timer runs continuously, auto-submit on time up.
+              Answer all questions. Timer runs continuously, auto-submit on time
+              up.
             </p>
           </div>
           <div className="flex gap-3 items-center">
@@ -357,8 +365,10 @@ export default function OlympiadExamPage() {
                 <p className="text-sm text-slate-900">{q.questionText}</p>
                 <p className="text-[11px] text-slate-500 mt-1">
                   Type: {qType}
-                  {qType === "confidence" && "  You must choose confidence level with your answer."}
-                  {qType === "branch_parent" && "  This question decides your path (A or B). No marks."}
+                  {qType === "confidence" &&
+                    "  You must choose confidence level with your answer."}
+                  {qType === "branch_parent" &&
+                    "  This question decides your path (A or B). No marks."}
                 </p>
               </div>
             </div>
@@ -451,7 +461,9 @@ export default function OlympiadExamPage() {
             <button
               type="button"
               onClick={goNext}
-              disabled={currentIndex === visibleQuestions.length - 1 || branchMustSelect}
+              disabled={
+                currentIndex === visibleQuestions.length - 1 || branchMustSelect
+              }
               className="px-3 py-1.5 rounded-full border border-slate-200 text-xs text-slate-700 disabled:opacity-50"
             >
               Next
@@ -462,4 +474,3 @@ export default function OlympiadExamPage() {
     </div>
   );
 }
-

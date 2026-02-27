@@ -2,6 +2,7 @@
 // This API returns list of available mock tests for a given examCode.
 
 const Question = require("../../../models/Question");
+const MockQuestion = require("../../../models/MockQuestion");
 
 async function getExamMocks(req, res) {
   try {
@@ -15,12 +16,11 @@ async function getExamMocks(req, res) {
       });
     }
 
-    // Find distinct mockTestCode values for this exam where isMock=true
-    const pipeline = [
+    // Find distinct mockTestCode values for this exam in MockQuestion collection
+    const mockPipeline = [
       {
         $match: {
           examCode: normalizedExamCode,
-          isMock: true,
           mockTestCode: { $ne: null },
         },
       },
@@ -28,6 +28,8 @@ async function getExamMocks(req, res) {
         $group: {
           _id: "$mockTestCode",
           questionCount: { $sum: 1 },
+          mockTitle: { $first: "$mockTitle" },
+          mockTime: { $first: "$mockTime" },
         },
       },
       {
@@ -35,6 +37,8 @@ async function getExamMocks(req, res) {
           _id: 0,
           mockTestCode: "$_id",
           questionCount: 1,
+          mockTitle: 1,
+          mockTime: 1,
         },
       },
       {
@@ -42,7 +46,41 @@ async function getExamMocks(req, res) {
       },
     ];
 
-    const mocks = await Question.aggregate(pipeline).exec();
+    let mocks = await MockQuestion.aggregate(mockPipeline).exec();
+
+    // Legacy fallback: mocks stored in Question collection
+    if (!mocks.length) {
+      const legacyPipeline = [
+        {
+          $match: {
+            examCode: normalizedExamCode,
+            isMock: true,
+            mockTestCode: { $ne: null },
+          },
+        },
+        {
+          $group: {
+            _id: "$mockTestCode",
+            questionCount: { $sum: 1 },
+            mockTitle: { $first: "$mockTitle" },
+            mockTime: { $first: "$mockTime" },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            mockTestCode: "$_id",
+            questionCount: 1,
+            mockTitle: 1,
+            mockTime: 1,
+          },
+        },
+        {
+          $sort: { mockTestCode: 1 },
+        },
+      ];
+      mocks = await Question.aggregate(legacyPipeline).exec();
+    }
 
     return res.status(200).json({
       success: true,

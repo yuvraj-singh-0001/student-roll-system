@@ -2,6 +2,7 @@
 // This API handles submission of mock tests and stores results in mocktest_results collection.
 
 const Question = require("../../../models/Question");
+const MockQuestion = require("../../../models/MockQuestion");
 const MockExamAttempt = require("../../../models/MockExamAttempt");
 
 // Reuse scoring helpers from submitOlympiadExam
@@ -171,11 +172,19 @@ async function submitMockExam(req, res) {
     }
 
     // Load only mock questions for this exam + mockTestCode
-    const questions = await Question.find({
+    let questions = await MockQuestion.find({
       examCode: normalizedExamCode,
-      isMock: true,
       mockTestCode: normalizedMockCode,
     }).lean();
+
+    // Legacy fallback if mocks were stored in Question collection
+    if (!questions.length) {
+      questions = await Question.find({
+        examCode: normalizedExamCode,
+        isMock: true,
+        mockTestCode: normalizedMockCode,
+      }).lean();
+    }
 
     if (!questions.length) {
       return res.status(404).json({

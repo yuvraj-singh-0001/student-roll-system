@@ -1,6 +1,20 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { olympiadExamApi, examApi, studentApi, questionApi } from "../../api";
+import {
+  olympiadExamApi,
+  examApi,
+  studentApi,
+  activityApi,
+  questionApi,
+} from "../../api";
+import {
+  FaYoutube,
+  FaInstagram,
+  FaLinkedinIn,
+  FaTwitter,
+} from "react-icons/fa";
+import useActivityTracker from "../../hooks/useActivityTracker";
+import SocialMediaLinkModal from "../../components/SocialMediaLinkModal";
 
 const EXAM_CACHE_KEY = "examListCacheV1";
 const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -32,15 +46,6 @@ const writeExamListCache = (list) => {
     // ignore cache write errors
   }
 };
-import {
-  FaYoutube,
-  FaInstagram,
-  FaLinkedinIn,
-  FaTwitter,
-} from "react-icons/fa";
-import useActivityTracker from "../../hooks/useActivityTracker";
-import SocialMediaLinkModal from "../../components/SocialMediaLinkModal";
-import { activityApi } from "../../api";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -261,6 +266,7 @@ export default function StudentDashboard() {
 
         const { data } = await olympiadExamApi.attempts({
           studentId: resolvedId,
+          includeMock: 1,
         });
         if (!cancelled) {
           if (data.success) {
@@ -381,7 +387,7 @@ export default function StudentDashboard() {
             </div>
           </section>
 
-          {/* SECOND ROW: Available Tests & Recent Results */}
+          {/* SECOND ROW: Available Tests */}
           <section className="grid gap-4">
             {/* Available Tests */}
             <div className="rounded-2xl bg-white/90 border border-[#FFE6A3] backdrop-blur-xl p-4 shadow-md">
@@ -412,7 +418,8 @@ export default function StudentDashboard() {
                   </button>
                 </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+
+              <div className="grid gap-3 sm:grid-cols-2">
                 {examLoading ? (
                   <div className="py-6 text-center text-xs text-gray-500 sm:col-span-2">
                     Loading exams...
@@ -422,7 +429,7 @@ export default function StudentDashboard() {
                     {examError}
                   </div>
                 ) : availableTests.length > 0 ? (
-                  availableTests.slice(0, 4).map((exam) => (
+                  availableTests.map((exam) => (
                     <div
                       key={exam.examCode}
                       className="group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm hover:shadow-md transition"
@@ -438,25 +445,41 @@ export default function StudentDashboard() {
                               {exam.title || exam.examCode}
                             </p>
                             <p className="text-[11px] text-gray-600">
-                              Code: {exam.examCode} | Time:{" "}
+                              Exam Code: {exam.examCode} | Time:{" "}
                               {exam.totalTimeMinutes || 60} min
                             </p>
                           </div>
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-[10px] font-bold text-gray-900 shadow">
+                            TTT
+                          </div>
                         </div>
+
+                        <div className="text-[11px] text-gray-600">
+                          Total Questions:{" "}
+                          <span className="font-medium text-gray-900">
+                            {exam.totalQuestions || 0}
+                          </span>
+                        </div>
+
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => openMocksForExam(exam)}
-                            className="flex-1 text-[11px] border border-[#FFE6A3] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] py-1.5 rounded-lg transition font-medium"
-                          >
-                            Mock Tests
-                          </button>
-                          <button
-                            onClick={() =>
-                              navigate(`/student/olympiad/${exam.examCode}`)
-                            }
-                            className="flex-1 text-[11px] bg-amber-500 hover:bg-amber-600 text-white py-1.5 rounded-lg font-medium transition shadow-sm"
+                            onClick={() => {
+                              const code = String(exam.examCode || "").trim();
+                              if (!code) return;
+                              localStorage.setItem("examCode", code);
+                              localStorage.removeItem("examMockTestCode");
+                              navigate("/student/exam");
+                            }}
+                            className="text-[11px] px-3 py-2 rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
                           >
                             Start Exam
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openMocksForExam(exam)}
+                            className="text-[11px] px-3 py-2 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFFDF5] hover:bg-[#FFF3C4] transition"
+                          >
+                            Mock Tests
                           </button>
                         </div>
                       </div>
@@ -464,13 +487,13 @@ export default function StudentDashboard() {
                   ))
                 ) : (
                   <div className="py-6 text-center text-xs text-gray-500 sm:col-span-2">
-                    No exams available.
+                    No exams available yet.
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Recent Results */}
+            {/* Recent Test Results */}
             <div className="rounded-2xl bg-white/90 border border-[#FFE6A3] backdrop-blur-xl p-4 shadow-md">
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -484,9 +507,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() =>
                     recentResults.length > 0
-                      ? navigate(
-                          `/student/result/${recentResults[0].attemptId}`,
-                        )
+                      ? navigate(`/student/result/${recentResults[0].attemptId}`)
                       : navigate("/student/result")
                   }
                   className="text-[11px] px-3 py-1.5 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition"
@@ -542,6 +563,11 @@ export default function StudentDashboard() {
                         >
                           <td className="py-2 pr-3 font-medium">
                             {res.examCode}
+                            {res.mockTestCode ? (
+                              <span className="ml-2 text-[10px] text-emerald-700">
+                                (Mock: {res.mockTestCode})
+                              </span>
+                            ) : null}
                           </td>
                           <td className="py-2 px-3">
                             {res.createdAt
@@ -593,13 +619,12 @@ export default function StudentDashboard() {
               <h3 className="text-sm font-semibold mb-3 text-gray-900">
                 Quick Actions
               </h3>
+
               <div className="space-y-2 text-xs">
                 <button
                   onClick={() =>
                     recentResults.length > 0
-                      ? navigate(
-                          `/student/result/${recentResults[0].attemptId}`,
-                        )
+                      ? navigate(`/student/result/${recentResults[0].attemptId}`)
                       : navigate("/student/result")
                   }
                   className="w-full flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 hover:bg-[#FFF3C4] transition"
@@ -672,19 +697,36 @@ export default function StudentDashboard() {
                     >
                       <div className="text-[11px] text-gray-700">
                         <div className="font-semibold text-gray-900">
-                          {mock.mockTestCode}
+                          {mock.mockTitle || mock.mockTestCode}
                         </div>
-                        <div>Questions: {mock.questionCount || 0}</div>
+                        <div className="text-[10px] text-gray-500">
+                          Code: {mock.mockTestCode}
+                        </div>
+                        <div>
+                          Questions: {mock.questionCount || 0} | Time:{" "}
+                          {mock.mockTime ||
+                            selectedExamForMocks?.totalTimeMinutes ||
+                            60}{" "}
+                          min
+                        </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => {
                           if (!selectedExamForMocks) return;
-                          // Start selected mock test on OlympiadExamPage
+                          const code = String(
+                            selectedExamForMocks.examCode || "",
+                          ).trim();
+                          const mockCode = String(
+                            mock.mockTestCode || "",
+                          ).trim();
+                          if (!code || !mockCode) return;
+                          localStorage.setItem("examCode", code);
+                          localStorage.setItem("examMockTestCode", mockCode);
                           navigate(
-                            `/student/olympiad/${selectedExamForMocks.examCode}?mockTestCode=${encodeURIComponent(
-                              mock.mockTestCode,
-                            )}`,
+                            `/student/exam?examCode=${encodeURIComponent(
+                              code,
+                            )}&mockTestCode=${encodeURIComponent(mockCode)}`,
                           );
                           closeMockModal();
                         }}
@@ -703,3 +745,4 @@ export default function StudentDashboard() {
     </div>
   );
 }
+

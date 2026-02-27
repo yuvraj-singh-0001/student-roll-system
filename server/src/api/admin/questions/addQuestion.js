@@ -1,5 +1,6 @@
 // यह API exam के लिए typed question जोड़ता है
 const Question = require("../../../models/Question");
+const MockQuestion = require("../../../models/MockQuestion");
 const ExamConfig = require("../../../models/ExamConfig");
 
 function getNextQuestionNumber(existing) {
@@ -35,12 +36,23 @@ async function addQuestion(req, res) {
       isMock: rawIsMock,
       mockMode: rawMockMode,
       mockTestCode: rawMockTestCode,
+      mockTitle,
+      mockTime,
     } = req.body;
 
     const normalizedExamCode = String(examCode || "").trim();
     const isMock = !!rawIsMock;
     const mockMode = String(rawMockMode || "existing").toLowerCase();
     let mockTestCode = String(rawMockTestCode || "").trim();
+    const sanitizedMockTitle =
+      typeof mockTitle === "string" && mockTitle.trim()
+        ? mockTitle.trim()
+        : undefined;
+    const mockTimeNumber = Number(mockTime);
+    const sanitizedMockTime =
+      Number.isFinite(mockTimeNumber) && mockTimeNumber > 0
+        ? mockTimeNumber
+        : undefined;
     const requiredOptionCount = type === "branch_parent" ? 2 : 4;
     if (!normalizedExamCode || !type || !questionText || !options || options.length !== requiredOptionCount) {
       return res.status(400).json({
@@ -50,13 +62,11 @@ async function addQuestion(req, res) {
     }
 
     // Mock test validations
-    if (isMock) {
-      if (mockMode === "existing" && !mockTestCode) {
-        return res.status(400).json({
-          success: false,
-          message: "mockTestCode is required when adding to existing mock test.",
-        });
-      }
+    if (isMock && !mockTestCode) {
+      return res.status(400).json({
+        success: false,
+        message: "mockTestCode is required when isMock is true (Mock Test mode).",
+      });
     }
 
     // Type-specific validations
@@ -148,57 +158,53 @@ async function addQuestion(req, res) {
     for (let attempt = 0; attempt < maxRetries; attempt += 1) {
       let finalMockTestCode = mockTestCode;
 
-      // Auto-generate mockTestCode for new mock tests
-      if (isMock && (!finalMockTestCode || mockMode === "new")) {
-        const existingMocks = await Question.find({
-          examCode: normalizedExamCode,
-          isMock: true,
-        })
-          .distinct("mockTestCode")
-          .lean();
-
-        const indices = existingMocks
-          .map((code) => {
-            if (!code) return 0;
-            const parts = String(code).split("-m");
-            const rawIdx = parts[1];
-            const num = Number(rawIdx);
-            return Number.isFinite(num) && num > 0 ? num : 0;
-          })
-          .filter((n) => n > 0);
-
-        const nextMockIndex = indices.length ? Math.max(...indices) + 1 : 1;
-        finalMockTestCode = `${normalizedExamCode}-m${nextMockIndex}`;
-      }
-
       // Filter existing questions by test type (main vs specific mock) 
       // to ensure separate numbering (1, 2, 3...) for each.
       const queryFilter = isMock
-        ? { examCode: normalizedExamCode, isMock: true, mockTestCode: finalMockTestCode }
-        : { examCode: normalizedExamCode, $or: [{ isMock: false }, { isMock: { $exists: false } }] };
+        ? { examCode: normalizedExamCode, mockTestCode: finalMockTestCode }
+        : {
+            examCode: normalizedExamCode,
+            $or: [{ isMock: false }, { isMock: { $exists: false } }],
+          };
 
-      const existing = await Question.find(queryFilter)
+      const existing = await (isMock ? MockQuestion : Question)
+        .find(queryFilter)
         .select({ questionNumber: 1 })
         .sort({ questionNumber: 1 })
         .lean();
 
       const nextNumber = getNextQuestionNumber(existing);
 
-      const newQuestion = new Question({
-        examCode: normalizedExamCode,
-        questionNumber: nextNumber,
-        type,
-        questionText,
-        options,
-        correctAnswer: correctAnswer || undefined,
-        correctAnswers: correctAnswers || undefined,
-        confidenceRequired: type === "confidence" ? true : !!confidenceRequired,
-        parentQuestion: parentQuestion || undefined,
-        branchKey: branchKey || undefined,
-        // Mock test flags
-        isMock,
-        mockTestCode: isMock ? finalMockTestCode : undefined,
-      });
+      const newQuestion = isMock
+        ? new MockQuestion({
+            examCode: normalizedExamCode,
+            mockTestCode: finalMockTestCode,
+            mockTitle: sanitizedMockTitle,
+            mockTime: sanitizedMockTime,
+            questionNumber: nextNumber,
+            type,
+            questionText,
+            options,
+            correctAnswer: correctAnswer || undefined,
+            correctAnswers: correctAnswers || undefined,
+            confidenceRequired:
+              type === "confidence" ? true : !!confidenceRequired,
+            parentQuestion: parentQuestion || undefined,
+            branchKey: branchKey || undefined,
+          })
+        : new Question({
+            examCode: normalizedExamCode,
+            questionNumber: nextNumber,
+            type,
+            questionText,
+            options,
+            correctAnswer: correctAnswer || undefined,
+            correctAnswers: correctAnswers || undefined,
+            confidenceRequired:
+              type === "confidence" ? true : !!confidenceRequired,
+            parentQuestion: parentQuestion || undefined,
+            branchKey: branchKey || undefined,
+          });
 
       try {
         savedQuestion = await newQuestion.save();

@@ -1,15 +1,14 @@
 // यह API examCode के हिसाब से questions देता है
 const Question = require("../../../models/Question");
+const MockQuestion = require("../../../models/MockQuestion");
 const ExamConfig = require("../../../models/ExamConfig");
 
-const CACHE_TTL_MS = Number(process.env.EXAM_QUESTIONS_CACHE_TTL_MS) || 180000;
-const cache = new Map();
+
 
 async function getExamQuestions(req, res) {
   try {
-    const { examCode, mockTestCode } = req.query;
-
-    const normalizedExamCode = String(examCode || "").trim();
+    const { examCode, mockTestCode } = req.query || {};
+    const normalizedExamCode = examCode ? String(examCode).trim() : "";
     if (!normalizedExamCode) {
       return res.status(400).json({
         success: false,
@@ -17,36 +16,13 @@ async function getExamQuestions(req, res) {
       });
     }
 
-    const normalizedMockCode = String(mockTestCode || "").trim();
-
-    const refreshFlag = String(req.query?.refresh || "").toLowerCase();
-    const forceRefresh =
-      refreshFlag === "1" ||
-      refreshFlag === "true" ||
-      (req.headers["x-force-refresh"] || "") === "1" ||
-      String(req.headers["cache-control"] || "").includes("no-cache");
-
-    const cacheKey = normalizedMockCode
-      ? `${normalizedExamCode}__mock__${normalizedMockCode}`
-      : `${normalizedExamCode}__main`;
-
-    const cached = cache.get(cacheKey);
-    if (
-      !forceRefresh &&
-      CACHE_TTL_MS > 0 &&
-      cached &&
-      Date.now() - cached.ts < CACHE_TTL_MS
-    ) {
-      res.set("Cache-Control", "private, max-age=180, stale-while-revalidate=60");
-      return res.status(200).json(cached.payload);
-    }
+    const normalizedMockCode = mockTestCode ? String(mockTestCode).trim() : "";
 
     const examConfig = await ExamConfig.findOne({ examCode: normalizedExamCode }).lean();
 
     const questionFilter = normalizedMockCode
       ? {
           examCode: normalizedExamCode,
-          isMock: true,
           mockTestCode: normalizedMockCode,
         }
       : {
@@ -54,18 +30,52 @@ async function getExamQuestions(req, res) {
           $or: [{ isMock: { $exists: false } }, { isMock: false }],
         };
 
-    const questions = await Question.find(questionFilter)
+    let questions = await (normalizedMockCode ? MockQuestion : Question)
+      .find(questionFilter)
       .select("-correctAnswer -correctAnswers")
       .sort({ questionNumber: 1 })
       .lean();
+
+    // Legacy fallback for mock questions stored in Question collection
+    if (normalizedMockCode && !questions.length) {
+      questions = await Question.find({
+        examCode: normalizedExamCode,
+        isMock: true,
+        mockTestCode: normalizedMockCode,
+      })
+        .select("-correctAnswer -correctAnswers")
+        .sort({ questionNumber: 1 })
+        .lean();
+    }
+
+    let mockTitle = "";
+    let mockTimeMinutes = null;
+    if (normalizedMockCode && questions.length) {
+      const titleSource = questions.find((q) => q?.mockTitle);
+      mockTitle = titleSource?.mockTitle ? String(titleSource.mockTitle).trim() : "";
+      const timeSource = questions.find(
+        (q) => Number.isFinite(Number(q?.mockTime)) && Number(q?.mockTime) > 0
+      );
+      if (timeSource) {
+        const parsed = Number(timeSource.mockTime);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          mockTimeMinutes = parsed;
+        }
+      }
+    }
+
+    const resolvedTitle =
+      mockTitle || examConfig?.title || normalizedExamCode;
+    const resolvedDuration =
+      mockTimeMinutes || examConfig?.totalTimeMinutes || 60;
 
     if (!questions.length) {
       return res.status(200).json({
         success: true,
         exam: {
           examCode: normalizedExamCode,
-          title: examConfig?.title || normalizedExamCode,
-          durationMinutes: examConfig?.totalTimeMinutes || 60,
+          title: resolvedTitle,
+          durationMinutes: resolvedDuration,
         },
         questions: [],
       });
@@ -75,13 +85,11 @@ async function getExamQuestions(req, res) {
       success: true,
       exam: {
         examCode: normalizedExamCode,
-        title: examConfig?.title || normalizedExamCode,
-        durationMinutes: examConfig?.totalTimeMinutes || 60,
+        title: resolvedTitle,
+        durationMinutes: resolvedDuration,
       },
       questions,
     };
-    cache.set(cacheKey, { ts: Date.now(), payload });
-    res.set("Cache-Control", "private, max-age=180, stale-while-revalidate=60");
     return res.status(200).json(payload);
   } catch (err) {
     console.error("getExamQuestions error:", err);
