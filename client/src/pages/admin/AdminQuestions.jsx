@@ -42,6 +42,10 @@ function AdminQuestionBuilder() {
   const [latestBranchParent, setLatestBranchParent] = useState(null);
   const [examCodeNotice, setExamCodeNotice] = useState("");
   const [message, setMessage] = useState("");
+  const [isMock, setIsMock] = useState(false);
+  const [mockMode, setMockMode] = useState("existing");
+  const [mockTestCode, setMockTestCode] = useState("");
+  const [availableMocks, setAvailableMocks] = useState([]);
 
   const cardStyle = {
     background: "#ffffff",
@@ -92,13 +96,17 @@ function AdminQuestionBuilder() {
 
     (async () => {
       try {
-        const res = await questionApi.byExamCode(code);
+        // 1) Fetch questions for summary (Main or Mock)
+        const res = await questionApi.byExamCode(code, {
+          mockTestCode: isMock && mockTestCode ? mockTestCode : undefined,
+        });
         const data = res.data || res;
         const list = data?.questions || data?.data || [];
         if (cancelled) return;
 
         const counts = { ...initialTypeCounts };
         let latestParent = null;
+
         list.forEach((q) => {
           counts[q.type] = (counts[q.type] || 0) + 1;
           if (q.type === "branch_parent") {
@@ -112,11 +120,18 @@ function AdminQuestionBuilder() {
         setTotalQuestions(list.length);
         setLatestBranchParent(latestParent);
         if (list.length > 0) {
+          const testType = isMock ? `Mock Test (${mockTestCode})` : "Main Exam";
           setExamCodeNotice(
-            `Exam Code already taken. Existing questions: ${list.length}. New questions will be added to the same exam.`
+            `${testType} already has ${list.length} questions. New questions will be added to this test.`,
           );
         } else {
           setExamCodeNotice("");
+        }
+
+        // 2) Fetch Mocks list
+        const mRes = await questionApi.mocks({ examCode: code });
+        if (!cancelled && mRes.data && mRes.data.success) {
+          setAvailableMocks(mRes.data.data || []);
         }
       } catch (err) {
         if (!cancelled) {
@@ -131,7 +146,7 @@ function AdminQuestionBuilder() {
     return () => {
       cancelled = true;
     };
-  }, [examInfo.examCode]);
+  }, [examInfo.examCode, isMock, mockTestCode]);
 
   const handleExamInfoChange = (e) => {
     const { name, value } = e.target;
@@ -145,7 +160,7 @@ function AdminQuestionBuilder() {
   const handleOptionChange = (index, value) => {
     setQuestion((prev) => {
       const newOptions = prev.options.map((opt, i) =>
-        i === index ? { ...opt, text: value } : opt
+        i === index ? { ...opt, text: value } : opt,
       );
       return { ...prev, options: newOptions };
     });
@@ -207,7 +222,7 @@ function AdminQuestionBuilder() {
       .find((opt) => !opt.text.trim());
     if (emptyOption) {
       setMessage(
-        `Please fill all ${requiredOptionCount} options for this question type.`
+        `Please fill all ${requiredOptionCount} options for this question type.`,
       );
       return;
     }
@@ -225,7 +240,9 @@ function AdminQuestionBuilder() {
 
     if (question.type === "multiple") {
       if (!question.correctAnswers.length) {
-        setMessage("Please select at least one correct option for multiple type.");
+        setMessage(
+          "Please select at least one correct option for multiple type.",
+        );
         return;
       }
     }
@@ -279,6 +296,14 @@ function AdminQuestionBuilder() {
       payload.branchKey = question.branchKey;
     }
 
+    if (isMock) {
+      payload.isMock = true;
+      payload.mockMode = mockMode;
+      if (mockMode === "existing" && mockTestCode) {
+        payload.mockTestCode = mockTestCode;
+      }
+    }
+
     try {
       setLoading(true);
       const res = await questionApi.add(payload);
@@ -287,7 +312,7 @@ function AdminQuestionBuilder() {
       if (res.data && res.data.success) {
         setMessage(
           "Question added successfully. Question no: " +
-            res.data.data.questionNumber
+            res.data.data.questionNumber,
         );
         setTotalQuestions((prev) => prev + 1);
 
@@ -298,7 +323,7 @@ function AdminQuestionBuilder() {
 
         if (question.type === "branch_parent") {
           setLatestBranchParent(
-            res.data.data?.questionNumber || latestBranchParent
+            res.data.data?.questionNumber || latestBranchParent,
           );
         }
 
@@ -306,6 +331,20 @@ function AdminQuestionBuilder() {
           ...getInitialQuestionState(),
           type: prev.type,
         }));
+
+        // Refresh mocks list if we just added a mock
+        if (isMock) {
+          const mRes = await questionApi.mocks({
+            examCode: examInfo.examCode.trim(),
+          });
+          if (mRes.data && mRes.data.success) {
+            setAvailableMocks(mRes.data.data || []);
+          }
+        }
+
+        setIsMock(false);
+        setMockMode("existing");
+        setMockTestCode("");
       } else {
         setMessage(res.data.message || "Failed to add question.");
       }
@@ -457,8 +496,7 @@ function AdminQuestionBuilder() {
               style={{
                 display: "grid",
                 gap: "10px",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(160px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
               }}
             >
               <div>
@@ -530,9 +568,7 @@ function AdminQuestionBuilder() {
             }}
           >
             Exam Code:{" "}
-            <b style={{ color: "#111827" }}>
-              {examInfo.examCode || "Not set"}
-            </b>
+            <b style={{ color: "#111827" }}>{examInfo.examCode || "Not set"}</b>
           </div>
           <div
             style={{
@@ -546,16 +582,15 @@ function AdminQuestionBuilder() {
               {latestBranchParent
                 ? `Q${latestBranchParent}`
                 : metaLoading
-                ? "Loading..."
-                : "Not added"}
+                  ? "Loading..."
+                  : "Not added"}
             </b>
           </div>
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(120px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
               gap: "8px",
               fontSize: "13px",
             }}
@@ -696,6 +731,133 @@ function AdminQuestionBuilder() {
             </span>
           </div>
 
+          {/* Mock Test Selection Section */}
+          <div
+            style={{
+              marginBottom: "14px",
+              padding: "10px",
+              background: "#f0f9ff",
+              borderRadius: "8px",
+              border: "1px solid #bae6fd",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>
+                Add as Mock Question?
+              </label>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <label
+                  style={{
+                    fontSize: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    checked={!isMock}
+                    onChange={() => setIsMock(false)}
+                  />{" "}
+                  No (Main Exam)
+                </label>
+                <label
+                  style={{
+                    fontSize: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    checked={isMock}
+                    onChange={() => setIsMock(true)}
+                  />{" "}
+                  Yes (Mock Test)
+                </label>
+              </div>
+            </div>
+
+            {isMock && (
+              <div
+                style={{
+                  marginTop: "10px",
+                  display: "grid",
+                  gap: "8px",
+                  borderTop: "1px solid #e0f2fe",
+                  paddingTop: "10px",
+                }}
+              >
+                <div style={{ display: "flex", gap: "15px" }}>
+                  <label
+                    style={{
+                      fontSize: "13px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="mockMode"
+                      checked={mockMode === "new"}
+                      onChange={() => setMockMode("new")}
+                    />{" "}
+                    Create New Mock
+                  </label>
+                  <label
+                    style={{
+                      fontSize: "13px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="mockMode"
+                      checked={mockMode === "existing"}
+                      onChange={() => setMockMode("existing")}
+                    />{" "}
+                    Add to Existing
+                  </label>
+                </div>
+
+                {mockMode === "existing" && (
+                  <div>
+                    <label style={labelStyle}>Select Mock Test</label>
+                    <select
+                      value={mockTestCode}
+                      onChange={(e) => setMockTestCode(e.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">-- Choose Existing Mock --</option>
+                      {availableMocks.map((m) => (
+                        <option key={m.mockTestCode} value={m.mockTestCode}>
+                          {m.mockTestCode} ({m.questionCount} Qs)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {mockMode === "new" && (
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#0369a1",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    New mock test code will be auto-generated (e.g.{" "}
+                    {examInfo.examCode || "CODE"}-m1)
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Type + Question text in 2-column layout */}
           <div
             style={{
@@ -716,15 +878,9 @@ function AdminQuestionBuilder() {
                   padding: "8px 10px",
                 }}
               >
-                <option value="simple">
-                  Set 1 - Simple (single correct)
-                </option>
-                <option value="multiple">
-                  Set 2 - Multiple correct
-                </option>
-                <option value="confidence">
-                  Set 3 - Confidence based
-                </option>
+                <option value="simple">Set 1 - Simple (single correct)</option>
+                <option value="multiple">Set 2 - Multiple correct</option>
+                <option value="confidence">Set 3 - Confidence based</option>
                 <option value="branch_parent">
                   Set 4 - Branch parent (X choice)
                 </option>
@@ -746,8 +902,8 @@ function AdminQuestionBuilder() {
               >
                 {question.type === "simple" && (
                   <>
-                    Simple: 1 correct option. Student gets +1 / -0.25 /
-                    0 based on answer.
+                    Simple: 1 correct option. Student gets +1 / -0.25 / 0 based
+                    on answer.
                   </>
                 )}
                 {question.type === "multiple" && (
@@ -758,20 +914,20 @@ function AdminQuestionBuilder() {
                 )}
                 {question.type === "confidence" && (
                   <>
-                    Confidence: student chooses answer + confidence
-                    level. Marks vary by confidence.
+                    Confidence: student chooses answer + confidence level. Marks
+                    vary by confidence.
                   </>
                 )}
                 {question.type === "branch_parent" && (
                   <>
-                    Branch parent (X): student chooses A or B only,
-                    no direct marks.
+                    Branch parent (X): student chooses A or B only, no direct
+                    marks.
                   </>
                 )}
                 {question.type === "branch_child" && (
                   <>
-                    Branch child: appears after X, behaves like simple
-                    question (+1 / -0.25).
+                    Branch child: appears after X, behaves like simple question
+                    (+1 / -0.25).
                   </>
                 )}
               </div>
@@ -885,8 +1041,7 @@ function AdminQuestionBuilder() {
                 key={opt.key}
                 style={{
                   display: "grid",
-                  gridTemplateColumns:
-                    "40px minmax(0,1fr) max-content",
+                  gridTemplateColumns: "40px minmax(0,1fr) max-content",
                   gap: "8px",
                   alignItems: "center",
                   marginTop: "6px",
@@ -983,32 +1138,32 @@ function AdminQuestionBuilder() {
           >
             {question.type === "simple" && (
               <>
-                Simple: 1 correct option. Marks: correct +1, wrong -0.25,
-                skip 0.
+                Simple: 1 correct option. Marks: correct +1, wrong -0.25, skip
+                0.
               </>
             )}
             {question.type === "multiple" && (
               <>
-                Multiple: total 2 marks. Har correct option ke marks
-                equally split; koi bhi galat option select hua to -0.25.
+                Multiple: total 2 marks. Har correct option ke marks equally
+                split; koi bhi galat option select hua to -0.25.
               </>
             )}
             {question.type === "confidence" && (
               <>
-                Confidence: High / Mid / Low confidence ke hisaab se
-                marks change hote hain (admin ke note ke according).
+                Confidence: High / Mid / Low confidence ke hisaab se marks
+                change hote hain (admin ke note ke according).
               </>
             )}
             {question.type === "branch_parent" && (
               <>
-                Branch parent: sirf A / B choose hota hai, is pe marks
-                nahi milte. Ye bas path decide karta hai.
+                Branch parent: sirf A / B choose hota hai, is pe marks nahi
+                milte. Ye bas path decide karta hai.
               </>
             )}
             {question.type === "branch_child" && (
               <>
-                Branch child: simple jaisa behave karta hai, X ke baad
-                show hota hai (A/B path ke according).
+                Branch child: simple jaisa behave karta hai, X ke baad show hota
+                hai (A/B path ke according).
               </>
             )}
           </div>
@@ -1018,8 +1173,7 @@ function AdminQuestionBuilder() {
             disabled={loading}
             style={{
               padding: "9px 18px",
-              background:
-                "linear-gradient(to right, #2563eb, #1d4ed8)",
+              background: "linear-gradient(to right, #2563eb, #1d4ed8)",
               color: "#ffffff",
               border: "none",
               borderRadius: "999px",
@@ -1044,9 +1198,7 @@ function AdminQuestionBuilder() {
             borderRadius: "8px",
             fontSize: "13px",
             color: message.startsWith("Error") ? "#b91c1c" : "#166534",
-            background: message.startsWith("Error")
-              ? "#fef2f2"
-              : "#ecfdf3",
+            background: message.startsWith("Error") ? "#fef2f2" : "#ecfdf3",
             border: `1px solid ${
               message.startsWith("Error") ? "#fecaca" : "#bbf7d0"
             }`,

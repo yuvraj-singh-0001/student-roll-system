@@ -22,7 +22,7 @@ const writeResultCache = (id, data) => {
   try {
     localStorage.setItem(
       `${RESULT_CACHE_PREFIX}${id}`,
-      JSON.stringify({ data, ts: Date.now() })
+      JSON.stringify({ data, ts: Date.now() }),
     );
   } catch {
     // ignore cache write errors
@@ -57,10 +57,10 @@ const ArrowIcon = ({ direction = "down", className = "" }) => {
     direction === "up"
       ? "rotate-180"
       : direction === "left"
-      ? "-rotate-90"
-      : direction === "right"
-      ? "rotate-90"
-      : "";
+        ? "-rotate-90"
+        : direction === "right"
+          ? "rotate-90"
+          : "";
 
   return (
     <svg
@@ -162,13 +162,13 @@ export default function ExamResult() {
 
   const sortedVisibleAttempts = useMemo(() => {
     return [...visibleAttempts].sort(
-      (a, b) => (a.questionNumber || 0) - (b.questionNumber || 0)
+      (a, b) => (a.questionNumber || 0) - (b.questionNumber || 0),
     );
   }, [visibleAttempts]);
 
   const scoredAttempts = useMemo(
     () => visibleAttempts.filter((a) => a.type !== "branch_parent"),
-    [visibleAttempts]
+    [visibleAttempts],
   );
 
   const total = result?.totalMarks ?? 0;
@@ -184,7 +184,7 @@ export default function ExamResult() {
   const wrong =
     result?.wrongCount ??
     scoredAttempts.filter(
-      (a) => a.isCorrect === false && a.status === "attempted"
+      (a) => a.isCorrect === false && a.status === "attempted",
     ).length;
   const examCode = result?.examCode || "";
   const totalQuestions = scoredAttempts.length;
@@ -236,16 +236,19 @@ export default function ExamResult() {
 
   const getVisitParts = (attempt) => {
     const list = Array.isArray(attempt.visitDurationsMs)
-      ? attempt.visitDurationsMs.filter((v) => Number.isFinite(Number(v)) && Number(v) >= 0)
+      ? attempt.visitDurationsMs.filter(
+          (v) => Number.isFinite(Number(v)) && Number(v) >= 0,
+        )
       : [];
     const first = list.length ? list[0] : null;
     const revisits = list.length > 1 ? list.slice(1) : [];
     const total =
-      Number.isFinite(Number(attempt.totalTimeMs)) && Number(attempt.totalTimeMs) >= 0
+      Number.isFinite(Number(attempt.totalTimeMs)) &&
+      Number(attempt.totalTimeMs) >= 0
         ? Number(attempt.totalTimeMs)
         : list.length
-        ? list.reduce((sum, v) => sum + Number(v), 0)
-        : null;
+          ? list.reduce((sum, v) => sum + Number(v), 0)
+          : null;
     return { first, revisits, revisitCount: revisits.length, total };
   };
 
@@ -264,7 +267,7 @@ export default function ExamResult() {
 
   const maxMarks = useMemo(
     () => scoredAttempts.reduce((sum, a) => sum + getMaxMarksForAttempt(a), 0),
-    [scoredAttempts]
+    [scoredAttempts],
   );
 
   const positiveMarks = useMemo(
@@ -273,7 +276,7 @@ export default function ExamResult() {
         const marks = Number.isFinite(Number(a.marks)) ? Number(a.marks) : 0;
         return sum + (marks > 0 ? marks : 0);
       }, 0),
-    [scoredAttempts]
+    [scoredAttempts],
   );
 
   const negativeMarks = useMemo(
@@ -282,7 +285,7 @@ export default function ExamResult() {
         const marks = Number.isFinite(Number(a.marks)) ? Number(a.marks) : 0;
         return sum + (marks < 0 ? marks : 0);
       }, 0),
-    [scoredAttempts]
+    [scoredAttempts],
   );
 
   const animationKey = `${result?.attemptId || "local"}-${totalQuestions}-${attempted}-${skipped}-${correct}-${wrong}-${total}-${positiveMarks}-${negativeMarks}-${maxMarks}`;
@@ -323,14 +326,14 @@ export default function ExamResult() {
     return SECTION_GROUPS.map((section) => ({
       ...section,
       attempts: sortedVisibleAttempts.filter((a) =>
-        section.types.includes(a.type)
+        section.types.includes(a.type),
       ),
     }));
   }, [sortedVisibleAttempts]);
 
   const branchParents = useMemo(
     () => sortedVisibleAttempts.filter((a) => a.type === "branch_parent"),
-    [sortedVisibleAttempts]
+    [sortedVisibleAttempts],
   );
 
   const displayNumberMap = useMemo(() => {
@@ -441,7 +444,18 @@ export default function ExamResult() {
               {examCode && (
                 <div className="text-[11px] text-center text-gray-600 mb-2">
                   Exam Code:{" "}
-                  <span className="font-semibold text-gray-900">{examCode}</span>
+                  <span className="font-semibold text-gray-900">
+                    {examCode}
+                  </span>
+                  {result?.mockTestCode && (
+                    <>
+                      {" | "}
+                      Mock Test:{" "}
+                      <span className="font-semibold text-emerald-700">
+                        {result.mockTestCode}
+                      </span>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -490,13 +504,13 @@ export default function ExamResult() {
                     <div className="flex justify-center">
                       <div className="rounded-lg border border-[#FFE1B5] bg-[#FFFDF5] px-4 py-2 text-center shadow-sm">
                         <div className="text-[11px] text-amber-700">
-                        Total Questions
-                      </div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {animateCount(totalQuestions)}
+                          Total Questions
+                        </div>
+                        <div className="text-lg font-bold text-gray-900">
+                          {animateCount(totalQuestions)}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
                     <div className="flex flex-col items-center justify-center">
                       <div className="w-px h-4 diagram-line-v" />
@@ -524,9 +538,15 @@ export default function ExamResult() {
                           <ArrowIcon className="text-[#FFD977]" />
                         </div>
                         <div className="flex items-center justify-center">
-                          <ArrowIcon direction="left" className="text-[#FFD977]" />
+                          <ArrowIcon
+                            direction="left"
+                            className="text-[#FFD977]"
+                          />
                           <div className="w-28 h-px diagram-line-h" />
-                          <ArrowIcon direction="right" className="text-[#FFD977]" />
+                          <ArrowIcon
+                            direction="right"
+                            className="text-[#FFD977]"
+                          />
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 mt-2 w-full">
@@ -639,15 +659,15 @@ export default function ExamResult() {
                     <div className="flex justify-center">
                       <div className="rounded-lg border border-[#FFE1B5] bg-[#FFFDF5] px-5 py-2 text-center shadow-sm">
                         <div className="text-[11px] text-gray-600">
-                          Total marks 
+                          Total marks
                         </div>
                         <div className="text-xl font-bold text-gray-900">
-                        {total > 0
-                          ? `+${formatMarks(animateMarks(total))}`
-                          : formatMarks(animateMarks(total))}
+                          {total > 0
+                            ? `+${formatMarks(animateMarks(total))}`
+                            : formatMarks(animateMarks(total))}
+                        </div>
                       </div>
                     </div>
-                  </div>
                   </div>
                 </div>
               </div>
@@ -659,7 +679,9 @@ export default function ExamResult() {
                     onClick={() => setShowDetails((prev) => !prev)}
                     className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-semibold shadow hover:shadow-lg transition-all"
                   >
-                    {showDetails ? "Hide Detailed Result" : "Show Detailed Result"}
+                    {showDetails
+                      ? "Hide Detailed Result"
+                      : "Show Detailed Result"}
                   </button>
                 </div>
               )}
@@ -716,14 +738,16 @@ export default function ExamResult() {
                                 return (
                                   <div className="mt-1 space-y-0.5 text-[10px] text-gray-600">
                                     <div>
-                                      First visit: {formatDurationMs(visit.first)}
+                                      First visit:{" "}
+                                      {formatDurationMs(visit.first)}
                                     </div>
                                     <div>
                                       Revisits ({visit.revisitCount}):{" "}
                                       {formatRevisitTimes(visit.revisits)}
                                     </div>
                                     <div>
-                                      Total visit time: {formatDurationMs(visit.total)}
+                                      Total visit time:{" "}
+                                      {formatDurationMs(visit.total)}
                                     </div>
                                   </div>
                                 );
@@ -796,30 +820,29 @@ export default function ExamResult() {
                                     : d.selectedAnswer || "-";
                                 const correctText =
                                   d.type === "multiple"
-                                    ? (d.correctAnswers || []).join(", ") ||
-                                      "-"
+                                    ? (d.correctAnswers || []).join(", ") || "-"
                                     : d.correctAnswer || "-";
                                 const label = getResultLabel(d);
                                 const labelClass =
                                   label === "Correct"
                                     ? "bg-emerald-100 text-emerald-800"
                                     : label === "Wrong"
-                                    ? "bg-rose-100 text-rose-800"
-                                    : label === "Skipped"
-                                    ? "bg-amber-100 text-amber-800"
-                                    : label === "Partial"
-                                    ? "bg-sky-100 text-sky-800"
-                                    : "bg-slate-100 text-slate-700";
+                                      ? "bg-rose-100 text-rose-800"
+                                      : label === "Skipped"
+                                        ? "bg-amber-100 text-amber-800"
+                                        : label === "Partial"
+                                          ? "bg-sky-100 text-sky-800"
+                                          : "bg-slate-100 text-slate-700";
                                 const rowClass =
                                   label === "Correct"
                                     ? "bg-emerald-50/70"
                                     : label === "Wrong"
-                                    ? "bg-rose-50/70"
-                                    : label === "Skipped"
-                                    ? "bg-amber-50/70"
-                                    : label === "Partial"
-                                    ? "bg-sky-50/70"
-                                    : "bg-slate-50/60";
+                                      ? "bg-rose-50/70"
+                                      : label === "Skipped"
+                                        ? "bg-amber-50/70"
+                                        : label === "Partial"
+                                          ? "bg-sky-50/70"
+                                          : "bg-slate-50/60";
                                 const confidenceText = d.confidence
                                   ? String(d.confidence).toUpperCase()
                                   : "-";
@@ -827,11 +850,11 @@ export default function ExamResult() {
                                   confidenceText === "HIGH"
                                     ? "bg-emerald-100 text-emerald-800"
                                     : confidenceText === "MID" ||
-                                      confidenceText === "MEDIUM"
-                                    ? "bg-amber-100 text-amber-800"
-                                    : confidenceText === "LOW"
-                                    ? "bg-rose-100 text-rose-800"
-                                    : "bg-slate-100 text-slate-700";
+                                        confidenceText === "MEDIUM"
+                                      ? "bg-amber-100 text-amber-800"
+                                      : confidenceText === "LOW"
+                                        ? "bg-rose-100 text-rose-800"
+                                        : "bg-slate-100 text-slate-700";
 
                                 return (
                                   <tr
@@ -872,14 +895,18 @@ export default function ExamResult() {
                                         return (
                                           <div className="space-y-0.5">
                                             <div>
-                                              First visit: {formatDurationMs(visit.first)}
+                                              First visit:{" "}
+                                              {formatDurationMs(visit.first)}
                                             </div>
                                             <div>
                                               Revisits ({visit.revisitCount}):{" "}
-                                              {formatRevisitTimes(visit.revisits)}
+                                              {formatRevisitTimes(
+                                                visit.revisits,
+                                              )}
                                             </div>
                                             <div>
-                                              Total visit time: {formatDurationMs(visit.total)}
+                                              Total visit time:{" "}
+                                              {formatDurationMs(visit.total)}
                                             </div>
                                           </div>
                                         );
@@ -888,9 +915,13 @@ export default function ExamResult() {
                                     <td className="py-2 pr-3 align-top text-[10px] text-gray-600 break-words whitespace-normal">
                                       <div className="space-y-0.5">
                                         <div>
-                                          Changes: {getAnswerChangeCount(d)} times
+                                          Changes: {getAnswerChangeCount(d)}{" "}
+                                          times
                                         </div>
-                                        <div>Sequence: {formatHistory(d.answerHistory)}</div>
+                                        <div>
+                                          Sequence:{" "}
+                                          {formatHistory(d.answerHistory)}
+                                        </div>
                                         <div>Final: {selectedText}</div>
                                       </div>
                                     </td>
@@ -916,7 +947,6 @@ export default function ExamResult() {
                 })}
               </div>
             )}
-
           </div>
         </div>
       </main>

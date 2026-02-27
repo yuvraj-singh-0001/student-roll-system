@@ -26,6 +26,18 @@ const questionSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Mock test support: same examCode ke andar multiple mock papers
+    isMock: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    mockTestCode: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+
     questionNumber: {
       type: Number,
       required: true,
@@ -88,8 +100,11 @@ const questionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// unique examCode + questionNumber (no duplicate numbers in same exam)
-questionSchema.index({ examCode: 1, questionNumber: 1 }, { unique: true });
+// unique examCode + mockTestCode + questionNumber (separate numbering for each test)
+questionSchema.index(
+  { examCode: 1, mockTestCode: 1, questionNumber: 1 },
+  { unique: true }
+);
 
 const Question = mongoose.model("Question", questionSchema);
 module.exports = Question;

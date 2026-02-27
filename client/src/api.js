@@ -163,10 +163,21 @@ export const questionApi = {
   // sab questions (admin listing ke liye)
   all: () => API.get("/question/all"),
 
+  // given examCode ke liye available mock tests (distinct mockTestCode list)
+  mocks: (params) => API.get("/question/mocks", { params }),
+
   // exam dene wale student ke liye filtered questions
+  // params me examCode mandatory hai, mockTestCode optional (mock test questions ke liye)
   exam: (params) => API.get("/question/exam", { params }),
-  // ⭐ examCode ke basis pe saare questions
-  byExamCode: (examCode) => API.get("/question/exam", { params: { examCode } }),
+  // ⭐ examCode ke basis pe saare questions (optional extra params, e.g. mockTestCode)
+  // usage:
+  //   byExamCode("TTT_01") -> real exam (non-mock questions)
+  //   byExamCode("TTT_01", { mockTestCode: "TTT_01-m1" }) -> specific mock test
+  byExamCode: (examCode, extraParams = {}) => {
+    const base = { examCode };
+    const params = { ...base, ...(extraParams || {}) };
+    return API.get("/question/exam", { params });
+  },
 };
 
 /* ===================================================
@@ -174,7 +185,10 @@ export const questionApi = {
 =================================================== */
 
 export const olympiadExamApi = {
+  // real olympiad exam submit (main paper)
   submit: (body) => API.post("/olympiad/submit", body),
+  // mock test submit (results stored in mocktest_results collection)
+  submitMock: (body) => API.post("/olympiad/mock/submit", body),
   attempts: (params) => API.get("/olympiad/attempts", { params }),
   attemptDetails: (attemptId) =>
     API.get(`/olympiad/attempts/${attemptId}`),

@@ -7,7 +7,7 @@ const cache = new Map();
 
 async function getExamQuestions(req, res) {
   try {
-    const { examCode } = req.query;
+    const { examCode, mockTestCode } = req.query;
 
     const normalizedExamCode = String(examCode || "").trim();
     if (!normalizedExamCode) {
@@ -17,6 +17,8 @@ async function getExamQuestions(req, res) {
       });
     }
 
+    const normalizedMockCode = String(mockTestCode || "").trim();
+
     const refreshFlag = String(req.query?.refresh || "").toLowerCase();
     const forceRefresh =
       refreshFlag === "1" ||
@@ -24,7 +26,11 @@ async function getExamQuestions(req, res) {
       (req.headers["x-force-refresh"] || "") === "1" ||
       String(req.headers["cache-control"] || "").includes("no-cache");
 
-    const cached = cache.get(normalizedExamCode);
+    const cacheKey = normalizedMockCode
+      ? `${normalizedExamCode}__mock__${normalizedMockCode}`
+      : `${normalizedExamCode}__main`;
+
+    const cached = cache.get(cacheKey);
     if (
       !forceRefresh &&
       CACHE_TTL_MS > 0 &&
@@ -37,8 +43,18 @@ async function getExamQuestions(req, res) {
 
     const examConfig = await ExamConfig.findOne({ examCode: normalizedExamCode }).lean();
 
-    // Saare questions same examCode ke
-    const questions = await Question.find({ examCode: normalizedExamCode })
+    const questionFilter = normalizedMockCode
+      ? {
+          examCode: normalizedExamCode,
+          isMock: true,
+          mockTestCode: normalizedMockCode,
+        }
+      : {
+          examCode: normalizedExamCode,
+          $or: [{ isMock: { $exists: false } }, { isMock: false }],
+        };
+
+    const questions = await Question.find(questionFilter)
       .select("-correctAnswer -correctAnswers")
       .sort({ questionNumber: 1 })
       .lean();
@@ -64,7 +80,7 @@ async function getExamQuestions(req, res) {
       },
       questions,
     };
-    cache.set(normalizedExamCode, { ts: Date.now(), payload });
+    cache.set(cacheKey, { ts: Date.now(), payload });
     res.set("Cache-Control", "private, max-age=180, stale-while-revalidate=60");
     return res.status(200).json(payload);
   } catch (err) {

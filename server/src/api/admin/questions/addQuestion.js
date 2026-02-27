@@ -31,15 +31,32 @@ async function addQuestion(req, res) {
       examTitle,
       totalTimeMinutes,
       registrationPrice,
+      // Mock test support
+      isMock: rawIsMock,
+      mockMode: rawMockMode,
+      mockTestCode: rawMockTestCode,
     } = req.body;
 
     const normalizedExamCode = String(examCode || "").trim();
+    const isMock = !!rawIsMock;
+    const mockMode = String(rawMockMode || "existing").toLowerCase();
+    let mockTestCode = String(rawMockTestCode || "").trim();
     const requiredOptionCount = type === "branch_parent" ? 2 : 4;
     if (!normalizedExamCode || !type || !questionText || !options || options.length !== requiredOptionCount) {
       return res.status(400).json({
         success: false,
         message: `examCode, type, questionText and exactly ${requiredOptionCount} options are required.`,
       });
+    }
+
+    // Mock test validations
+    if (isMock) {
+      if (mockMode === "existing" && !mockTestCode) {
+        return res.status(400).json({
+          success: false,
+          message: "mockTestCode is required when adding to existing mock test.",
+        });
+      }
     }
 
     // Type-specific validations
@@ -129,7 +146,38 @@ async function addQuestion(req, res) {
     let lastErr = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-      const existing = await Question.find({ examCode: normalizedExamCode })
+      let finalMockTestCode = mockTestCode;
+
+      // Auto-generate mockTestCode for new mock tests
+      if (isMock && (!finalMockTestCode || mockMode === "new")) {
+        const existingMocks = await Question.find({
+          examCode: normalizedExamCode,
+          isMock: true,
+        })
+          .distinct("mockTestCode")
+          .lean();
+
+        const indices = existingMocks
+          .map((code) => {
+            if (!code) return 0;
+            const parts = String(code).split("-m");
+            const rawIdx = parts[1];
+            const num = Number(rawIdx);
+            return Number.isFinite(num) && num > 0 ? num : 0;
+          })
+          .filter((n) => n > 0);
+
+        const nextMockIndex = indices.length ? Math.max(...indices) + 1 : 1;
+        finalMockTestCode = `${normalizedExamCode}-m${nextMockIndex}`;
+      }
+
+      // Filter existing questions by test type (main vs specific mock) 
+      // to ensure separate numbering (1, 2, 3...) for each.
+      const queryFilter = isMock
+        ? { examCode: normalizedExamCode, isMock: true, mockTestCode: finalMockTestCode }
+        : { examCode: normalizedExamCode, $or: [{ isMock: false }, { isMock: { $exists: false } }] };
+
+      const existing = await Question.find(queryFilter)
         .select({ questionNumber: 1 })
         .sort({ questionNumber: 1 })
         .lean();
@@ -147,6 +195,9 @@ async function addQuestion(req, res) {
         confidenceRequired: type === "confidence" ? true : !!confidenceRequired,
         parentQuestion: parentQuestion || undefined,
         branchKey: branchKey || undefined,
+        // Mock test flags
+        isMock,
+        mockTestCode: isMock ? finalMockTestCode : undefined,
       });
 
       try {

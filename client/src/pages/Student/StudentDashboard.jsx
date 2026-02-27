@@ -1,6 +1,6 @@
 ﻿import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { olympiadExamApi, examApi, studentApi } from "../../api";
+import { olympiadExamApi, examApi, studentApi, questionApi } from "../../api";
 
 const EXAM_CACHE_KEY = "examListCacheV1";
 const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -53,6 +53,13 @@ export default function StudentDashboard() {
   const [examRefreshing, setExamRefreshing] = useState(false);
   const fetchingRef = useRef(false);
   const cancelledRef = useRef(false);
+
+  // Mock tests modal state
+  const [mockModalOpen, setMockModalOpen] = useState(false);
+  const [mockLoading, setMockLoading] = useState(false);
+  const [mockError, setMockError] = useState("");
+  const [selectedExamForMocks, setSelectedExamForMocks] = useState(null);
+  const [mockTests, setMockTests] = useState([]); // { mockTestCode, questionCount }
 
   // Activity Tracking state
   const studentId =
@@ -153,6 +160,35 @@ export default function StudentDashboard() {
       fetchingRef.current = false;
     }
   }, []);
+
+  const openMocksForExam = async (exam) => {
+    if (!exam || !exam.examCode) return;
+    setSelectedExamForMocks(exam);
+    setMockModalOpen(true);
+    setMockError("");
+    setMockTests([]);
+    try {
+      setMockLoading(true);
+      // backend se given examCode ke liye saare mock tests lao
+      const { data } = await questionApi.mocks({ examCode: exam.examCode });
+      if (data?.success) {
+        setMockTests(data.data || []);
+      } else {
+        setMockError(data?.message || "Failed to load mock tests");
+      }
+    } catch (e) {
+      setMockError(e.response?.data?.message || "Failed to load mock tests");
+    } finally {
+      setMockLoading(false);
+    }
+  };
+
+  const closeMockModal = () => {
+    setMockModalOpen(false);
+    setSelectedExamForMocks(null);
+    setMockTests([]);
+    setMockError("");
+  };
 
   // recent results will be loaded from backend
 
@@ -345,7 +381,7 @@ export default function StudentDashboard() {
             </div>
           </section>
 
-          {/* SECOND ROW: Available Tests */}
+          {/* SECOND ROW: Available Tests & Recent Results */}
           <section className="grid gap-4">
             {/* Available Tests */}
             <div className="rounded-2xl bg-white/90 border border-[#FFE6A3] backdrop-blur-xl p-4 shadow-md">
@@ -376,7 +412,7 @@ export default function StudentDashboard() {
                   </button>
                 </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
                 {examLoading ? (
                   <div className="py-6 text-center text-xs text-gray-500 sm:col-span-2">
                     Loading exams...
@@ -386,7 +422,7 @@ export default function StudentDashboard() {
                     {examError}
                   </div>
                 ) : availableTests.length > 0 ? (
-                  availableTests.map((exam) => (
+                  availableTests.slice(0, 4).map((exam) => (
                     <div
                       key={exam.examCode}
                       className="group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm hover:shadow-md transition"
@@ -402,46 +438,39 @@ export default function StudentDashboard() {
                               {exam.title || exam.examCode}
                             </p>
                             <p className="text-[11px] text-gray-600">
-                              Exam Code: {exam.examCode} | Time:{" "}
+                              Code: {exam.examCode} | Time:{" "}
                               {exam.totalTimeMinutes || 60} min
                             </p>
                           </div>
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-[10px] font-bold text-gray-900 shadow">
-                            TTT
-                          </div>
                         </div>
-
-                        <div className="text-[11px] text-gray-600">
-                          Total Questions:{" "}
-                          <span className="font-medium text-gray-900">
-                            {exam.totalQuestions || 0}
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openMocksForExam(exam)}
+                            className="flex-1 text-[11px] border border-[#FFE6A3] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] py-1.5 rounded-lg transition font-medium"
+                          >
+                            Mock Tests
+                          </button>
+                          <button
+                            onClick={() =>
+                              navigate(`/student/olympiad/${exam.examCode}`)
+                            }
+                            className="flex-1 text-[11px] bg-amber-500 hover:bg-amber-600 text-white py-1.5 rounded-lg font-medium transition shadow-sm"
+                          >
+                            Start Exam
+                          </button>
                         </div>
-
-                        <button
-                          onClick={() => {
-                            localStorage.setItem("examCode", exam.examCode);
-                            navigate("/student/exam");
-                          }}
-                          className="mt-1 text-[11px] px-3 py-2 rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
-                        >
-                          Start Exam
-                        </button>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="py-6 text-center text-xs text-gray-500 sm:col-span-2">
-                    No exams available yet.
+                    No exams available.
                   </div>
                 )}
               </div>
             </div>
-          </section>
 
-          {/* THIRD ROW: Recent Results + Quick Actions */}
-          <section className="grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-4">
-            {/* Recent Test Results */}
+            {/* Recent Results */}
             <div className="rounded-2xl bg-white/90 border border-[#FFE6A3] backdrop-blur-xl p-4 shadow-md">
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -564,7 +593,6 @@ export default function StudentDashboard() {
               <h3 className="text-sm font-semibold mb-3 text-gray-900">
                 Quick Actions
               </h3>
-
               <div className="space-y-2 text-xs">
                 <button
                   onClick={() =>
@@ -600,6 +628,77 @@ export default function StudentDashboard() {
           platform={selectedPlatform}
           studentId={studentId}
         />
+
+        {/* Modal: list of mock tests for selected exam */}
+        {mockModalOpen && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+            <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900">
+                    Mock Tests
+                  </h2>
+                  <p className="text-[11px] text-gray-500">
+                    {selectedExamForMocks?.title ||
+                      selectedExamForMocks?.examCode}
+                  </p>
+                </div>
+                <button
+                  onClick={closeMockModal}
+                  className="text-xs text-gray-500 hover:text-gray-800"
+                >
+                  Close
+                </button>
+              </div>
+
+              {mockLoading ? (
+                <div className="py-4 text-center text-xs text-gray-500">
+                  Loading mock tests...
+                </div>
+              ) : mockError ? (
+                <div className="py-4 text-center text-xs text-red-600">
+                  {mockError}
+                </div>
+              ) : mockTests.length === 0 ? (
+                <div className="py-4 text-center text-xs text-gray-500">
+                  No mock tests found for this exam.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {mockTests.map((mock) => (
+                    <div
+                      key={mock.mockTestCode}
+                      className="flex items-center justify-between rounded-xl border border-[#FFE1B5] bg-[#FFFDF5] px-3 py-2"
+                    >
+                      <div className="text-[11px] text-gray-700">
+                        <div className="font-semibold text-gray-900">
+                          {mock.mockTestCode}
+                        </div>
+                        <div>Questions: {mock.questionCount || 0}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!selectedExamForMocks) return;
+                          // Start selected mock test on OlympiadExamPage
+                          navigate(
+                            `/student/olympiad/${selectedExamForMocks.examCode}?mockTestCode=${encodeURIComponent(
+                              mock.mockTestCode,
+                            )}`,
+                          );
+                          closeMockModal();
+                        }}
+                        className="text-[11px] px-3 py-1.5 rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
+                      >
+                        Start Mock
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 ﻿// src/pages/Student/OlympiadExamPage.jsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+
 import { questionApi, olympiadExamApi } from "../../api";
 
 const TIMER_DEFAULT_MINUTES = 60; // agar examConfig se time na mile
@@ -8,6 +9,13 @@ const TIMER_DEFAULT_MINUTES = 60; // agar examConfig se time na mile
 export default function OlympiadExamPage() {
   const { examCode } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // URL se mockTestCode read karo (optional)
+  // e.g. /student/olympiad/TTT_01?mockTestCode=TTT_01-m1
+  const searchParams = new URLSearchParams(location.search);
+  const mockTestCode = searchParams.get("mockTestCode") || "";
+
 
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]); // mixed: simple/multiple/confidence/branch_parent/branch_child
@@ -31,7 +39,11 @@ export default function OlympiadExamPage() {
       try {
         setLoading(true);
         setError("");
-        const res = await questionApi.byExamCode(examCode);
+        // examCode mandatory, mockTestCode agar present hai to sirf us mock ke questions aayenge
+        const res = await questionApi.byExamCode(examCode, {
+          mockTestCode: mockTestCode || undefined,
+        });
+
         const data = res.data || res; // depending on backend shape
 
         const list = data.questions || data.data || [];
@@ -59,7 +71,7 @@ export default function OlympiadExamPage() {
     }
 
     fetchQuestions();
-  }, [examCode]);
+  }, [examCode, mockTestCode]);
 
   // 2) Timer
   useEffect(() => {
@@ -185,6 +197,7 @@ export default function OlympiadExamPage() {
   };
 
   // 4) Submit exam  send to backend for scoring
+  // If mockTestCode is present, submit as mock test (separate results collection)
   const submitExam = async (auto) => {
     try {
       setSubmitting(true);
@@ -216,10 +229,15 @@ export default function OlympiadExamPage() {
         attempts: payloadAttempts,
         autoSubmitted: !!auto,
       };
+      if (mockTestCode) {
+        body.mockTestCode = mockTestCode;
+      }
       const sid = (studentId || "").trim();
       if (sid) body.studentId = sid;
 
-      const res = await olympiadExamApi.submit(body);
+      const res = mockTestCode
+        ? await olympiadExamApi.submitMock(body)
+        : await olympiadExamApi.submit(body);
       const result = res.data || res;
 
       // Expect: result = { totalMarks, detailedAttempts: [...] }
@@ -286,7 +304,11 @@ export default function OlympiadExamPage() {
         1;
 
   const userSelected =
-    qType === "multiple" ? ans.selectedAnswers || [] : ans.selectedAnswer ? [ans.selectedAnswer] : [];
+    qType === "multiple"
+      ? ans.selectedAnswers || []
+      : ans.selectedAnswer
+      ? [ans.selectedAnswer]
+      : [];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -296,7 +318,14 @@ export default function OlympiadExamPage() {
           <div>
             <h1 className="text-lg font-semibold text-slate-900">
               Olympiad Exam - {examCode}
+              {mockTestCode && (
+                <span className="ml-2 text-[11px] font-normal text-slate-500">
+                  {/* mockTestCode dikhana taaki student ko pata chale ki ye mock hai */}
+                  (Mock: {mockTestCode})
+                </span>
+              )}
             </h1>
+
             <p className="text-xs text-slate-500">
               Answer all questions. Timer runs continuously, auto-submit on time up.
             </p>
