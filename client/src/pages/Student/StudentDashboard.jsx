@@ -394,10 +394,10 @@ export default function StudentDashboard() {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">
-                    Available Tests
+                    Available Olympaids 
                   </h3>
                   <p className="text-[11px] text-gray-600">
-                    Start your exam directly from here.
+                    Start your exam directly from here. 
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
