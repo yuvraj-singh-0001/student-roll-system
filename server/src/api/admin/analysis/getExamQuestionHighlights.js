@@ -487,7 +487,10 @@ async function getExamQuestionHighlights(req, res) {
       });
     }
 
-    const questions = await Question.find({ examCode })
+    const questions = await Question.find({
+      examCode,
+      $or: [{ isMock: { $exists: false } }, { isMock: false }],
+    })
       .select({
         questionNumber: 1,
         questionText: 1,

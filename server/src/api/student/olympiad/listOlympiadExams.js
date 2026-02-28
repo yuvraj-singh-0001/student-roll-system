@@ -101,7 +101,9 @@ async function listOlympiadExams(req, res) {
     const now = Date.now();
     const configs = await ExamConfig.find().sort({ createdAt: -1 }).lean();
 
-    const questions = await Question.find()
+    const questions = await Question.find({
+      $or: [{ isMock: { $exists: false } }, { isMock: false }],
+    })
       .select({ examCode: 1, type: 1, parentQuestion: 1, branchKey: 1, options: 1 })
       .lean();
 

@@ -90,7 +90,11 @@ async function getQuestionWiseData() {
     },
   ]);
   const byQ = Object.fromEntries(attempts.map((a) => [a._id, a]));
-  const allQ = await Question.find().sort({ questionNumber: 1 }).lean();
+  const allQ = await Question.find({
+    $or: [{ isMock: { $exists: false } }, { isMock: false }],
+  })
+    .sort({ questionNumber: 1 })
+    .lean();
   const list = allQ.map((q) => {
     const a = byQ[q.questionNumber] || { attemptCount: 0, wrongCount: 0, correctCount: 0 };
     return {

@@ -39,16 +39,24 @@ async function getAdminDashboardOverview(req, res) {
       recentAttempts,
     ] = await Promise.all([
       Student.countDocuments(),
-      Question.countDocuments(),
+      Question.countDocuments({
+        $or: [{ isMock: { $exists: false } }, { isMock: false }],
+      }),
       ExamConfig.distinct("examCode"),
-      Question.distinct("examCode"),
+      Question.distinct("examCode", {
+        $or: [{ isMock: { $exists: false } }, { isMock: false }],
+      }),
       ExamAttempt.countDocuments(),
       Student.countDocuments({ createdAt: { $gte: since } }),
-      Question.countDocuments({ createdAt: { $gte: since } }),
+      Question.countDocuments({
+        createdAt: { $gte: since },
+        $or: [{ isMock: { $exists: false } }, { isMock: false }],
+      }),
       ExamConfig.distinct("examCode", { createdAt: { $gte: since } }),
       Question.distinct("examCode", {
         createdAt: { $gte: since },
         examCode: { $ne: null, $ne: "" },
+        $or: [{ isMock: { $exists: false } }, { isMock: false }],
       }),
       ExamAttempt.countDocuments({ createdAt: { $gte: since } }),
       ExamAttempt.aggregate([
