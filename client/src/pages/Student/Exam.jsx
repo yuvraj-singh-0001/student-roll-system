@@ -45,7 +45,7 @@ const writeExamListCache = (list) => {
   try {
     localStorage.setItem(
       EXAM_CACHE_KEY,
-      JSON.stringify({ data: Array.isArray(list) ? list : [], ts: Date.now() })
+      JSON.stringify({ data: Array.isArray(list) ? list : [], ts: Date.now() }),
     );
   } catch {
     // ignore cache write errors
@@ -75,18 +75,23 @@ const writeQuestionsCache = (examCode, data, options = {}) => {
   const key = getQuestionsCacheKey(examCode, options.mockTestCode);
   if (!key) return;
   try {
-    localStorage.setItem(
-      key,
-      JSON.stringify({ data, ts: Date.now() })
-    );
+    localStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
   } catch {
     // ignore cache write errors
   }
 };
 
 const CONFIDENCE_OPTS = [
-  { value: "high", label: "High Confidence", color: "from-green-500 to-emerald-500" },
-  { value: "mid", label: "Medium Confidence", color: "from-yellow-500 to-amber-500" },
+  {
+    value: "high",
+    label: "High Confidence",
+    color: "from-green-500 to-emerald-500",
+  },
+  {
+    value: "mid",
+    label: "Medium Confidence",
+    color: "from-yellow-500 to-amber-500",
+  },
   { value: "low", label: "Low Confidence", color: "from-red-500 to-rose-500" },
 ];
 
@@ -229,13 +234,13 @@ export default function Exam() {
   const persistedMockTestCode = String(
     typeof window !== "undefined"
       ? localStorage.getItem("examMockTestCode") || ""
-      : ""
+      : "",
   ).trim();
   const activeMockTestCode =
     mockTestCodeKey || urlMockTestCode || persistedMockTestCode;
   const examStoreKey = getExamStoreKey(examCodeKey, activeMockTestCode);
   const cachedEntry = useSelector(
-    (state) => state.exam.questionsByExam[examStoreKey]
+    (state) => state.exam.questionsByExam[examStoreKey],
   );
 
   const clearExamStart = () => {
@@ -292,7 +297,9 @@ export default function Exam() {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem("examStudentId") || localStorage.getItem("studentId");
+    const saved =
+      localStorage.getItem("examStudentId") ||
+      localStorage.getItem("studentId");
     if (saved) setStudentId(saved);
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -443,14 +450,14 @@ export default function Exam() {
             exam: cachedExam,
             questions: cachedQuestions,
             fetchedAt: cachedTs,
-          })
+          }),
         );
       }
     }
 
     if (activeMockTestCode && cachedQuestions.length > 0) {
       cachedQuestions = cachedQuestions.filter(
-        (q) => String(q?.mockTestCode || "").trim() === activeMockTestCode
+        (q) => String(q?.mockTestCode || "").trim() === activeMockTestCode,
       );
     }
 
@@ -469,7 +476,8 @@ export default function Exam() {
     setSubmitSuccess(null);
     setAutoSubmitted(false);
 
-    const shouldFetch = !usedCache || cacheIsStale || cachedQuestions.length === 0;
+    const shouldFetch =
+      !usedCache || cacheIsStale || cachedQuestions.length === 0;
 
     if (!shouldFetch) {
       return () => {
@@ -487,7 +495,7 @@ export default function Exam() {
         let list = data?.questions || data?.data || [];
         if (activeMockTestCode) {
           list = list.filter(
-            (q) => String(q?.mockTestCode || "").trim() === activeMockTestCode
+            (q) => String(q?.mockTestCode || "").trim() === activeMockTestCode,
           );
         }
         if (!cancelled) {
@@ -515,7 +523,7 @@ export default function Exam() {
               },
               questions: list,
               fetchedAt: Date.now(),
-            })
+            }),
           );
           if (!list.length) {
             setError("No questions found for this exam.");
@@ -558,7 +566,8 @@ export default function Exam() {
     if (!questions.length) return [];
     return questions.filter((question) => {
       if (question.type !== "branch_child") return true;
-      const parentAns = answers[question.parentQuestion];
+      const parentAns =
+        answers[`branch_parent_main_${question.parentQuestion}`];
       if (!parentAns?.selectedAnswer) return false;
       return parentAns.selectedAnswer === question.branchKey;
     });
@@ -572,21 +581,29 @@ export default function Exam() {
   }, [visibleQuestions, current]);
 
   const q = visibleQuestions[current];
-  const aid = answers[q?.questionNumber] || {};
+  const aid = q
+    ? answers[`${q.type}_${q.branchKey || "main"}_${q.questionNumber}`] || {}
+    : {};
   const branchMustSelect = q?.type === "branch_parent" && !aid?.selectedAnswer;
   const branchLocked = q?.type === "branch_parent" && !!aid?.selectedAnswer;
 
   useEffect(() => {
-    const currentNumber = q?.questionNumber;
-    const prevNumber = activeQuestionRef.current;
-    if (prevNumber !== null && prevNumber !== undefined && prevNumber !== currentNumber) {
-      endVisit(prevNumber);
+    const currentQ = q;
+    const prevQ = activeQuestionRef.current;
+    if (
+      prevQ &&
+      (!currentQ ||
+        prevQ.type !== currentQ.type ||
+        (prevQ.branchKey || "main") !== (currentQ.branchKey || "main") ||
+        prevQ.questionNumber !== currentQ.questionNumber)
+    ) {
+      endVisit(prevQ);
     }
-    if (currentNumber !== null && currentNumber !== undefined) {
-      startVisit(currentNumber);
+    if (currentQ) {
+      startVisit(currentQ);
     }
-    activeQuestionRef.current = currentNumber ?? null;
-  }, [q?.questionNumber]);
+    activeQuestionRef.current = currentQ || null;
+  }, [q]);
 
   // Auto-clear confidence-specific error after a short delay
   useEffect(() => {
@@ -598,50 +615,115 @@ export default function Exam() {
   }, [error, q?.questionNumber]);
 
   const scoredQuestions = useMemo(
-    () => visibleQuestions.filter((vq) => vq.type !== "branch_parent"),
-    [visibleQuestions]
+    () =>
+      visibleQuestions.filter(
+        (vq) => vq.type !== "branch_parent" && vq.type !== "x_option",
+      ),
+    [visibleQuestions],
   );
   const displayIndexMap = useMemo(() => {
     const map = new Map();
-    scoredQuestions.forEach((sq, idx) => {
-      map.set(sq.questionNumber, idx + 1);
+    let counter = 1;
+    visibleQuestions.forEach((vq) => {
+      const key = `${vq.type}_${vq.branchKey || "main"}_${vq.questionNumber}`;
+      if (vq.type === "branch_parent") {
+        map.set(key, "X");
+      } else if (vq.type === "x_option") {
+        map.set(key, "Info");
+      } else {
+        map.set(key, counter++);
+      }
     });
     return map;
-  }, [scoredQuestions]);
-  const displayTotal = scoredQuestions.length;
+  }, [visibleQuestions]);
+  const totalsByType = useMemo(() => {
+    const counts = {
+      simple: 0,
+      multiple: 0,
+      confidence: 0,
+      x_option: 0,
+      branch_a: 0,
+      branch_b: 0,
+    };
+    questions.forEach((q) => {
+      const t = q.type;
+      if (t === "simple") counts.simple++;
+      else if (t === "multiple") counts.multiple++;
+      else if (t === "confidence") counts.confidence++;
+      else if (t === "x_option") counts.x_option++;
+      else if (t === "branch_child") {
+        if (q.branchKey === "A") counts.branch_a++;
+        else if (q.branchKey === "B") counts.branch_b++;
+      }
+    });
+    return counts;
+  }, [questions]);
+  const displayTotalValue = useMemo(() => {
+    const { simple, multiple, confidence, branch_a, branch_b } = totalsByType;
+    const parentQ = questions.find((q) => q.type === "branch_parent");
+    const parentAns = parentQ
+      ? answers[
+          `${parentQ.type}_${parentQ.branchKey || "main"}_${parentQ.questionNumber}`
+        ]
+      : null;
+    const sBranch = parentAns?.selectedAnswer;
+    const bCount =
+      sBranch === "A"
+        ? branch_a
+        : sBranch === "B"
+          ? branch_b
+          : Math.max(branch_a, branch_b);
+    return simple + multiple + confidence + bCount;
+  }, [totalsByType, questions, answers]);
+  const displayTotal = displayTotalValue;
+  const dKey = `${q?.type}_${q?.branchKey || "main"}_${q?.questionNumber}`;
   const displayIndex =
-    q?.type === "branch_parent"
-      ? null
-      : displayIndexMap.get(q?.questionNumber);
+    displayIndexMap.get(dKey) === "X" ? "X" : displayIndexMap.get(dKey) || "-";
 
   const attemptedCount = scoredQuestions.filter(
-    (vq) => answers[vq.questionNumber]?.status === "attempted"
+    (vq) =>
+      answers[`${vq.type}_${vq.branchKey || "main"}_${vq.questionNumber}`]
+        ?.status === "attempted",
   ).length;
   const skippedCount = scoredQuestions.filter(
-    (vq) => answers[vq.questionNumber]?.status === "skipped"
+    (vq) =>
+      answers[`${vq.type}_${vq.branchKey || "main"}_${vq.questionNumber}`]
+        ?.status === "skipped",
   ).length;
   const pendingCount = displayTotal - attemptedCount - skippedCount;
 
   const navItems = useMemo(
     () =>
-      visibleQuestions.map((vq, i) => ({
-        q: vq,
-        visibleIdx: i,
-        label: vq.type === "branch_parent" ? "X" : displayIndexMap.get(vq.questionNumber),
-      })),
-    [visibleQuestions, displayIndexMap]
+      visibleQuestions.map((vq, i) => {
+        const key = `${vq.type}_${vq.branchKey || "main"}_${vq.questionNumber}`;
+        const val = displayIndexMap.get(key);
+        return {
+          q: vq,
+          visibleIdx: i,
+          label: val === "Info" ? "I" : val,
+        };
+      }),
+    [visibleQuestions, displayIndexMap],
   );
 
-  const updateAnswer = (questionNumber, updater) => {
+  const updateAnswer = (question, updater) => {
+    const { type, branchKey, questionNumber } = question;
+    const key = `${type}_${branchKey || "main"}_${questionNumber}`;
     setAnswers((prev) => {
-      const prevAns = prev[questionNumber] || {};
+      const prevAns = prev[key] || {};
       const next =
-        typeof updater === "function" ? updater(prevAns) : { ...prevAns, ...updater };
-      return { ...prev, [questionNumber]: next };
+        typeof updater === "function"
+          ? updater(prevAns)
+          : { ...prevAns, ...updater };
+      return { ...prev, [key]: next };
     });
   };
 
-  const formatHistoryLabel = (questionType, selectedAnswer, selectedAnswers) => {
+  const formatHistoryLabel = (
+    questionType,
+    selectedAnswer,
+    selectedAnswers,
+  ) => {
     if (questionType === "multiple") {
       const list = Array.isArray(selectedAnswers) ? selectedAnswers : [];
       return list.length ? list.join(",") : "-";
@@ -663,13 +745,21 @@ export default function Exam() {
     }
 
     const changeMs = Math.max(0, now - tracking.currentVisitStartedAt);
-    if (tracking.currentVisitFirstChangeMs === null || tracking.currentVisitFirstChangeMs === undefined) {
+    if (
+      tracking.currentVisitFirstChangeMs === null ||
+      tracking.currentVisitFirstChangeMs === undefined
+    ) {
       tracking.currentVisitFirstChangeMs = changeMs;
-      if (visitIndex === 1 && (tracking.firstVisitMs === null || tracking.firstVisitMs === undefined)) {
+      if (
+        visitIndex === 1 &&
+        (tracking.firstVisitMs === null || tracking.firstVisitMs === undefined)
+      ) {
         tracking.firstVisitMs = changeMs;
       }
       if (visitIndex > 1) {
-        const revisit = Array.isArray(tracking.revisitChangeMs) ? tracking.revisitChangeMs : [];
+        const revisit = Array.isArray(tracking.revisitChangeMs)
+          ? tracking.revisitChangeMs
+          : [];
         tracking.revisitChangeMs = [...revisit, changeMs];
       }
     }
@@ -677,9 +767,11 @@ export default function Exam() {
     const label = formatHistoryLabel(
       meta.questionType,
       meta.selectedAnswer || null,
-      meta.selectedAnswers || []
+      meta.selectedAnswers || [],
     );
-    const history = Array.isArray(tracking.answerHistory) ? tracking.answerHistory : [];
+    const history = Array.isArray(tracking.answerHistory)
+      ? tracking.answerHistory
+      : [];
     tracking.answerHistory = [...history, label];
     const prevCount = Number.isFinite(tracking.answerChangeCount)
       ? tracking.answerChangeCount
@@ -688,9 +780,9 @@ export default function Exam() {
     return tracking;
   };
 
-  const startVisit = (questionNumber) => {
+  const startVisit = (question) => {
     const now = Date.now();
-    updateAnswer(questionNumber, (prevAns) => {
+    updateAnswer(question, (prevAns) => {
       const tracking = prevAns.tracking || {};
       if (tracking.currentVisitStartedAt) return prevAns;
       return {
@@ -704,8 +796,8 @@ export default function Exam() {
     });
   };
 
-  const endVisit = (questionNumber, endAt = Date.now()) => {
-    updateAnswer(questionNumber, (prevAns) => {
+  const endVisit = (question, endAt = Date.now()) => {
+    updateAnswer(question, (prevAns) => {
       const tracking = prevAns.tracking || {};
       if (!tracking.currentVisitStartedAt) return prevAns;
       const durationMs = Math.max(0, endAt - tracking.currentVisitStartedAt);
@@ -728,7 +820,7 @@ export default function Exam() {
 
   const markSingleAttempted = (opt) => {
     if (!q) return;
-    updateAnswer(q.questionNumber, (prevAns) => {
+    updateAnswer(q, (prevAns) => {
       if (q.type === "branch_parent" && prevAns.selectedAnswer) return prevAns;
       const nextTracking = updateTrackingOnChange(prevAns.tracking, {
         questionType: q.type,
@@ -748,7 +840,7 @@ export default function Exam() {
 
   const toggleMultipleAttempt = (opt) => {
     if (!q) return;
-    updateAnswer(q.questionNumber, (prevAns) => {
+    updateAnswer(q, (prevAns) => {
       const prevSelected = prevAns.selectedAnswers || [];
       const exists = prevSelected.includes(opt);
       const updated = exists
@@ -771,7 +863,7 @@ export default function Exam() {
 
   const markSkipped = () => {
     if (!q || q.type === "branch_parent") return;
-    updateAnswer(q.questionNumber, (prevAns) => {
+    updateAnswer(q, (prevAns) => {
       const hadSelection =
         !!prevAns.selectedAnswer ||
         (Array.isArray(prevAns.selectedAnswers) &&
@@ -796,7 +888,7 @@ export default function Exam() {
 
   const handleConfidenceChange = (level) => {
     if (!q) return;
-    updateAnswer(q.questionNumber, { confidence: level });
+    updateAnswer(q, { confidence: level });
   };
 
   const hasSelectionFor = (question, answer) => {
@@ -807,11 +899,11 @@ export default function Exam() {
     return !!answer?.selectedAnswer;
   };
 
-  const finalizeAnswersForSubmit = (snapshotAnswers, activeQuestionNumber, endTimeMs) => {
-    if (activeQuestionNumber === null || activeQuestionNumber === undefined) {
+  const finalizeAnswersForSubmit = (snapshotAnswers, activeKey, endTimeMs) => {
+    if (!activeKey) {
       return snapshotAnswers;
     }
-    const currentAns = snapshotAnswers[activeQuestionNumber];
+    const currentAns = snapshotAnswers[activeKey];
     if (!currentAns?.tracking?.currentVisitStartedAt) return snapshotAnswers;
     const tracking = currentAns.tracking || {};
     const durationMs = Math.max(0, endTimeMs - tracking.currentVisitStartedAt);
@@ -822,7 +914,7 @@ export default function Exam() {
 
     return {
       ...snapshotAnswers,
-      [activeQuestionNumber]: {
+      [activeKey]: {
         ...currentAns,
         tracking: {
           ...tracking,
@@ -854,7 +946,11 @@ export default function Exam() {
       return;
     }
 
-    if (!hasSelection && aid?.status !== "skipped" && q.type !== "branch_parent") {
+    if (
+      !hasSelection &&
+      aid?.status !== "skipped" &&
+      q.type !== "branch_parent"
+    ) {
       markSkipped();
     }
     if (current < visibleQuestions.length - 1) {
@@ -873,21 +969,26 @@ export default function Exam() {
       const endTime = new Date();
       const finalizedAnswers = finalizeAnswersForSubmit(
         answers,
-        q?.questionNumber,
-        endTime.getTime()
+        `${q.type}_${q.branchKey || "main"}_${q.questionNumber}`,
+        endTime.getTime(),
       );
       const startedAtIso = examStartAt ? examStartAt.toISOString() : null;
       const timeTakenSeconds = examStartAt
-        ? Math.max(0, Math.floor((endTime.getTime() - examStartAt.getTime()) / 1000))
+        ? Math.max(
+            0,
+            Math.floor((endTime.getTime() - examStartAt.getTime()) / 1000),
+          )
         : null;
       const payload = questions.map((question) => {
-        const a = finalizedAnswers[question.questionNumber] || {};
+        const key = `${question.type}_${question.branchKey || "main"}_${question.questionNumber}`;
+        const a = finalizedAnswers[key] || {};
         let selectedAnswer = a.selectedAnswer || null;
         let selectedAnswers = a.selectedAnswers || [];
 
         const branchAllowed =
           question.type !== "branch_child" ||
-          finalizedAnswers[question.parentQuestion]?.selectedAnswer === question.branchKey;
+          finalizedAnswers[`branch_parent_main_${question.parentQuestion}`]
+            ?.selectedAnswer === question.branchKey;
 
         if (!branchAllowed) {
           selectedAnswer = null;
@@ -913,23 +1014,32 @@ export default function Exam() {
             : null;
         const visitDurationsMs = Array.isArray(tracking.visitDurationsMs)
           ? tracking.visitDurationsMs
-              .map((v) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : null))
+              .map((v) =>
+                Number.isFinite(Number(v)) ? Math.round(Number(v)) : null,
+              )
               .filter((v) => v !== null)
           : [];
         const revisitChangeMs = Array.isArray(tracking.revisitChangeMs)
           ? tracking.revisitChangeMs
-              .map((v) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : null))
+              .map((v) =>
+                Number.isFinite(Number(v)) ? Math.round(Number(v)) : null,
+              )
               .filter((v) => v !== null)
           : [];
         const totalTimeMs = visitDurationsMs.length
           ? visitDurationsMs.reduce((sum, v) => sum + v, 0)
-          : Number.isFinite(Number(tracking.totalTimeMs)) && Number(tracking.totalTimeMs) >= 0
-          ? Math.round(Number(tracking.totalTimeMs))
-          : null;
+          : Number.isFinite(Number(tracking.totalTimeMs)) &&
+              Number(tracking.totalTimeMs) >= 0
+            ? Math.round(Number(tracking.totalTimeMs))
+            : null;
         const answerHistory = Array.isArray(tracking.answerHistory)
-          ? tracking.answerHistory.map((v) => String(v || "").trim()).filter((v) => v)
+          ? tracking.answerHistory
+              .map((v) => String(v || "").trim())
+              .filter((v) => v)
           : [];
-        const answerChangeCount = Number.isFinite(Number(tracking.answerChangeCount))
+        const answerChangeCount = Number.isFinite(
+          Number(tracking.answerChangeCount),
+        )
           ? Math.max(0, Math.floor(Number(tracking.answerChangeCount)))
           : answerHistory.length;
 
@@ -979,16 +1089,16 @@ export default function Exam() {
         setExamStartAt(null);
         setTimeLeft(null);
         setExamDurationSeconds(null);
-        } else {
-          setError(data.message || "Submit failed");
-        }
-      } catch (e) {
-        const serverMsg =
-          e.response?.data?.error || e.response?.data?.message || "Submit failed";
-        setError(serverMsg);
-      } finally {
-        setSubmitLoading(false);
+      } else {
+        setError(data.message || "Submit failed");
       }
+    } catch (e) {
+      const serverMsg =
+        e.response?.data?.error || e.response?.data?.message || "Submit failed";
+      setError(serverMsg);
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -997,7 +1107,14 @@ export default function Exam() {
     if (autoSubmitted || submitLoading) return;
     setAutoSubmitted(true);
     handleSubmit(true);
-  }, [timeLeft, loading, questions.length, autoSubmitted, submitLoading, handleSubmit]);
+  }, [
+    timeLeft,
+    loading,
+    questions.length,
+    autoSubmitted,
+    submitLoading,
+    handleSubmit,
+  ]);
 
   if (!examCode) {
     if (pendingExamCode) {
@@ -1023,7 +1140,8 @@ export default function Exam() {
               </div>
 
               <div className="mb-4 text-center text-xs text-gray-600">
-                Conventional MCQs | Multiple correct answers MCQs | Confidence-Weighted MCQs | Decision Tree MCQs
+                Conventional MCQs | Multiple correct answers MCQs |
+                Confidence-Weighted MCQs | Decision Tree MCQs
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 text-left">
@@ -1035,7 +1153,10 @@ export default function Exam() {
                     Conventional MCQs
                   </h4>
                   <ul className="text-xs text-gray-700 list-disc list-inside space-y-1">
-                    <li>Every question will have only one correct option as answer.</li>
+                    <li>
+                      Every question will have only one correct option as
+                      answer.
+                    </li>
                   </ul>
                 </div>
 
@@ -1047,10 +1168,19 @@ export default function Exam() {
                     Multiple Correct Answers MCQs
                   </h4>
                   <ul className="text-xs text-gray-700 list-disc list-inside space-y-1">
-                    <li>Questions may have one or more correct options, up to all four.</li>
+                    <li>
+                      Questions may have one or more correct options, up to all
+                      four.
+                    </li>
                     <li>Candidates must select all correct options.</li>
-                    <li>Partial marking is applicable if no incorrect option is selected.</li>
-                    <li>Any incorrect option makes the response incorrect and negative marking applies.</li>
+                    <li>
+                      Partial marking is applicable if no incorrect option is
+                      selected.
+                    </li>
+                    <li>
+                      Any incorrect option makes the response incorrect and
+                      negative marking applies.
+                    </li>
                   </ul>
                 </div>
 
@@ -1064,7 +1194,9 @@ export default function Exam() {
                   <ul className="text-xs text-gray-700 list-disc list-inside space-y-1">
                     <li>Select one answer option for every question.</li>
                     <li>Select one confidence level: High, Average, or Low.</li>
-                    <li>Confidence selection is mandatory for every question.</li>
+                    <li>
+                      Confidence selection is mandatory for every question.
+                    </li>
                     <li>Correct: High +2, Average +1, Low +0.5.</li>
                     <li>Incorrect: High -1, Average -0.5, Low -0.1.</li>
                   </ul>
@@ -1082,8 +1214,13 @@ export default function Exam() {
                     <li>Question X decides the next set of 5 MCQs.</li>
                     <li>Once selected, Question X cannot be changed.</li>
                     <li>Each of the 5 MCQs has one correct answer.</li>
-                    <li>Correct answer: +2 marks. Incorrect answer: -0.5 marks.</li>
-                    <li>You may answer or skip these questions like conventional MCQs.</li>
+                    <li>
+                      Correct answer: +2 marks. Incorrect answer: -0.5 marks.
+                    </li>
+                    <li>
+                      You may answer or skip these questions like conventional
+                      MCQs.
+                    </li>
                     <li>Marks apply only to attempted questions.</li>
                   </ul>
                 </div>
@@ -1098,7 +1235,8 @@ export default function Exam() {
                     className="mt-1 h-4 w-4 accent-[#FFCD2C]"
                   />
                   <span>
-                   I have read and understood all the instructions carefully. I am ready to take the exam now.
+                    I have read and understood all the instructions carefully. I
+                    am ready to take the exam now.
                   </span>
                 </label>
               </div>
@@ -1109,13 +1247,21 @@ export default function Exam() {
                     const now = new Date();
                     const resolvedMockTestCode =
                       activeMockTestCode ||
-                      String(localStorage.getItem("examMockTestCode") || "").trim();
+                      String(
+                        localStorage.getItem("examMockTestCode") || "",
+                      ).trim();
                     localStorage.setItem("examCode", pendingExamCode);
                     localStorage.setItem("examStartAt", now.toISOString());
                     localStorage.setItem("examStartExamCode", pendingExamCode);
                     if (resolvedMockTestCode) {
-                      localStorage.setItem("examMockTestCode", resolvedMockTestCode);
-                      localStorage.setItem("examStartMockTestCode", resolvedMockTestCode);
+                      localStorage.setItem(
+                        "examMockTestCode",
+                        resolvedMockTestCode,
+                      );
+                      localStorage.setItem(
+                        "examStartMockTestCode",
+                        resolvedMockTestCode,
+                      );
                       setMockTestCode(resolvedMockTestCode);
                     } else {
                       clearMockSelection();
@@ -1171,9 +1317,7 @@ export default function Exam() {
               <h3 className="text-lg font-bold text-gray-900 mb-1">
                 Choose Your Exam
               </h3>
-              <p className="text-gray-600 text-sm">
-                Pick an exam to start.
-              </p>
+              <p className="text-gray-600 text-sm">Pick an exam to start.</p>
               <div className="mt-3 flex items-center justify-center">
                 <button
                   onClick={handleManualRefresh}
@@ -1229,12 +1373,12 @@ export default function Exam() {
                         </span>
                       </div>
 
-                        <button
-                          onClick={() => {
-                            setPendingExamCode(exam.examCode);
-                            setIntroAccepted(false);
-                            clearMockSelection();
-                          }}
+                      <button
+                        onClick={() => {
+                          setPendingExamCode(exam.examCode);
+                          setIntroAccepted(false);
+                          clearMockSelection();
+                        }}
                         className="mt-1 text-[11px] px-3 py-2 rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
                       >
                         Start Exam
@@ -1352,14 +1496,14 @@ export default function Exam() {
               ) : null}
             </p>
             <button
-                onClick={() => {
-                  setError("");
-                  localStorage.removeItem("examCode");
-                  clearExamStart();
-                  clearMockSelection();
-                  setExamCode("");
-                  navigate("/student");
-                }}
+              onClick={() => {
+                setError("");
+                localStorage.removeItem("examCode");
+                clearExamStart();
+                clearMockSelection();
+                setExamCode("");
+                navigate("/student");
+              }}
               className="px-6 py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-xl hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 mx-auto"
             >
               Go to Dashboard
@@ -1402,7 +1546,9 @@ export default function Exam() {
                     <h2 className="text-base font-bold text-gray-900">
                       {q?.type === "branch_parent"
                         ? "Question X"
-                        : `Question ${displayIndex}`}
+                        : q?.type === "x_option"
+                          ? "Information"
+                          : `Question ${q?.questionNumber}`}
                     </h2>
                     {timeLeft !== null && (
                       <div
@@ -1426,7 +1572,10 @@ export default function Exam() {
                         {SECTION_INFO[q?.type].blocks.map((block, idx) => {
                           if (block.type === "text") {
                             return (
-                              <p key={`t-${idx}`} className="text-[11px] text-amber-800">
+                              <p
+                                key={`t-${idx}`}
+                                className="text-[11px] text-amber-800"
+                              >
                                 {block.text}
                               </p>
                             );
@@ -1457,7 +1606,7 @@ export default function Exam() {
                   <div className="space-y-3 mb-6">
                     {(q?.type === "branch_parent"
                       ? (q?.options || []).filter(
-                          (o) => o.key === "A" || o.key === "B"
+                          (o) => o.key === "A" || o.key === "B",
                         )
                       : q?.options || []
                     ).map((o) => {
@@ -1465,7 +1614,8 @@ export default function Exam() {
                       const isSelected = isMultiple
                         ? (aid?.selectedAnswers || []).includes(o.key)
                         : aid?.selectedAnswer === o.key;
-                      const isDisabled = q?.type === "branch_parent" && branchLocked;
+                      const isDisabled =
+                        q?.type === "branch_parent" && branchLocked;
 
                       return (
                         <label
@@ -1476,8 +1626,8 @@ export default function Exam() {
                             isSelected
                               ? "border-[#FFCD2C] bg-gradient-to-r from-[#FFF9E6] to-[#FFF3C4] shadow-sm"
                               : hoveredOption === o.key
-                              ? "border-[#FFE1B5] bg-[#FFFDF5] shadow-sm"
-                              : "border-[#FFE1B5] hover:border-[#FFCD2C]"
+                                ? "border-[#FFE1B5] bg-[#FFFDF5] shadow-sm"
+                                : "border-[#FFE1B5] hover:border-[#FFCD2C]"
                           } ${isDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
                         >
                           <div
@@ -1501,7 +1651,9 @@ export default function Exam() {
                             <div className="flex items-center gap-2">
                               <span
                                 className={`font-semibold ${
-                                  isSelected ? "text-amber-800" : "text-gray-700"
+                                  isSelected
+                                    ? "text-amber-800"
+                                    : "text-gray-700"
                                 }`}
                               >
                                 {o.key}.
@@ -1528,7 +1680,8 @@ export default function Exam() {
 
                   {q?.type === "branch_parent" && !aid?.selectedAnswer && (
                     <div className="mb-4 text-xs text-amber-700">
-                      Please choose A or B to continue. (Branch decision required)
+                      Please choose A or B to continue. (Branch decision
+                      required)
                     </div>
                   )}
                   {q?.type === "branch_parent" && aid?.selectedAnswer && (
@@ -1546,7 +1699,8 @@ export default function Exam() {
                         </h3>
                         {error === CONFIDENCE_REQUIRED_ERROR && (
                           <span className="text-[11px] text-red-600 font-medium">
-                            Please choose a confidence option before moving ahead.
+                            Please choose a confidence option before moving
+                            ahead.
                           </span>
                         )}
                       </div>
@@ -1595,7 +1749,9 @@ export default function Exam() {
                           onClick={handleNext}
                           disabled={branchMustSelect}
                           className={`px-4 py-2.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-medium rounded-lg hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 ${
-                            branchMustSelect ? "opacity-60 cursor-not-allowed" : ""
+                            branchMustSelect
+                              ? "opacity-60 cursor-not-allowed"
+                              : ""
                           }`}
                         >
                           Next
@@ -1625,20 +1781,19 @@ export default function Exam() {
                   </h3>
                   <div className="grid grid-cols-10 gap-1">
                     {navItems.map(({ q: navQ, visibleIdx, label }) => {
-                      const answer = answers[navQ.questionNumber];
+                      const ansKey = `${navQ.type}_${navQ.branchKey || "main"}_${navQ.questionNumber}`;
+                      const answer = answers[ansKey];
                       const isCurrent = current === visibleIdx;
-                      const disableNav = branchMustSelect && visibleIdx !== current;
+                      const disableNav =
+                        branchMustSelect && visibleIdx !== current;
 
                       let bgClass = "bg-gray-200 text-gray-700";
                       if (isCurrent)
-                        bgClass =
-                          "bg-[#111827] text-white shadow-md";
+                        bgClass = "bg-[#111827] text-white shadow-md";
                       else if (answer?.status === "attempted")
-                        bgClass =
-                          "bg-emerald-600 text-white";
+                        bgClass = "bg-emerald-600 text-white";
                       else if (answer?.status === "skipped")
-                        bgClass =
-                          "bg-amber-500 text-white";
+                        bgClass = "bg-amber-500 text-white";
 
                       return (
                         <button
@@ -1691,9 +1846,7 @@ export default function Exam() {
                       <div className="text-lg font-bold text-emerald-600">
                         {attemptedCount}
                       </div>
-                      <div className="text-xs text-emerald-700">
-                        Attempted
-                      </div>
+                      <div className="text-xs text-emerald-700">Attempted</div>
                     </div>
                     <div className="p-2 bg-amber-50 rounded-lg">
                       <div className="text-lg font-bold text-amber-600">
@@ -1753,13 +1906,3 @@ export default function Exam() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-

@@ -144,6 +144,33 @@ export default function ExamResult() {
 
   const detailedAttempts = result?.detailedAttempts || [];
 
+  const questionTotals = useMemo(() => {
+    const counts = {
+      simple: 0,
+      multiple: 0,
+      confidence: 0,
+      branchA: 0,
+      branchB: 0,
+    };
+    detailedAttempts.forEach((a) => {
+      const type = a?.type;
+      if (type === "simple") counts.simple += 1;
+      else if (type === "multiple") counts.multiple += 1;
+      else if (type === "confidence") counts.confidence += 1;
+      else if (type === "branch_child") {
+        if (a.branchKey === "A") counts.branchA += 1;
+        else if (a.branchKey === "B") counts.branchB += 1;
+      }
+    });
+    return counts;
+  }, [detailedAttempts]);
+
+  const selectedBranchKey = useMemo(() => {
+    const parent = detailedAttempts.find((a) => a.type === "branch_parent");
+    const key = parent?.selectedAnswer;
+    return key === "A" || key === "B" ? key : null;
+  }, [detailedAttempts]);
+
   const visibleAttempts = useMemo(() => {
     const branchChoices = {};
     detailedAttempts.forEach((a) => {
@@ -161,33 +188,51 @@ export default function ExamResult() {
   }, [detailedAttempts]);
 
   const sortedVisibleAttempts = useMemo(() => {
-    return [...visibleAttempts].sort(
-      (a, b) => (a.questionNumber || 0) - (b.questionNumber || 0),
-    );
+    const TYPE_ORDER = {
+      simple: 1,
+      multiple: 2,
+      confidence: 3,
+      x_option: 4,
+      branch_parent: 5,
+      branch_child: 6,
+    };
+    return [...visibleAttempts].sort((a, b) => {
+      const oa = TYPE_ORDER[a.type] || 99;
+      const ob = TYPE_ORDER[b.type] || 99;
+      if (oa !== ob) return oa - ob;
+      return (a.questionNumber || 0) - (b.questionNumber || 0);
+    });
   }, [visibleAttempts]);
 
   const scoredAttempts = useMemo(
-    () => visibleAttempts.filter((a) => a.type !== "branch_parent"),
+    () =>
+      visibleAttempts.filter(
+        (a) => a.type !== "branch_parent" && a.type !== "x_option",
+      ),
     [visibleAttempts],
   );
 
-  const total = result?.totalMarks ?? 0;
-  const attempted =
-    result?.attemptedCount ??
-    scoredAttempts.filter((a) => a.status === "attempted").length;
-  const skipped =
-    result?.skippedCount ??
-    scoredAttempts.filter((a) => a.status === "skipped").length;
-  const correct =
-    result?.correctCount ??
-    scoredAttempts.filter((a) => a.isCorrect === true).length;
-  const wrong =
-    result?.wrongCount ??
-    scoredAttempts.filter(
-      (a) => a.isCorrect === false && a.status === "attempted",
-    ).length;
+  const total = parseFloat(result?.totalMarks || 0);
   const examCode = result?.examCode || "";
-  const totalQuestions = scoredAttempts.length;
+
+  const totalQuestions = useMemo(() => {
+    const { simple, multiple, confidence, branchA, branchB } = questionTotals;
+    const branchCount = selectedBranchKey === "A"
+      ? branchA
+      : selectedBranchKey === "B"
+        ? branchB
+        : Math.max(branchA, branchB);
+    return simple + multiple + confidence + branchCount;
+  }, [questionTotals, selectedBranchKey]);
+
+  const attempted = scoredAttempts.filter(
+    (a) => a.status === "attempted",
+  ).length;
+  const skipped = totalQuestions - attempted; // Ensure Attempted + Skipped = Total Questions
+  const correct = scoredAttempts.filter((a) => a.isCorrect === true).length;
+  const wrong = scoredAttempts.filter(
+    (a) => a.isCorrect === false && a.status === "attempted",
+  ).length;
 
   const formatMarks = (value) => {
     const num = Number.isFinite(Number(value)) ? Number(value) : 0;
@@ -257,18 +302,15 @@ export default function ExamResult() {
     return revisits.map((v) => `+${formatDurationMs(v)}`).join(", ");
   };
 
-  const getMaxMarksForAttempt = (attempt) => {
-    const type = attempt?.type;
-    if (type === "multiple") return 2;
-    if (type === "confidence") return 2;
-    if (type === "simple" || type === "branch_child") return 1;
-    return 0;
-  };
-
-  const maxMarks = useMemo(
-    () => scoredAttempts.reduce((sum, a) => sum + getMaxMarksForAttempt(a), 0),
-    [scoredAttempts],
-  );
+  const maxMarks = useMemo(() => {
+    const { simple, multiple, confidence, branchA, branchB } = questionTotals;
+    const branchCount = selectedBranchKey === "A"
+      ? branchA
+      : selectedBranchKey === "B"
+        ? branchB
+        : Math.max(branchA, branchB);
+    return simple * 1 + multiple * 2 + confidence * 2 + branchCount * 1;
+  }, [questionTotals, selectedBranchKey]);
 
   const positiveMarks = useMemo(
     () =>
@@ -340,15 +382,22 @@ export default function ExamResult() {
     const map = new Map();
     let index = 1;
     sortedVisibleAttempts.forEach((a) => {
-      if (a.type === "branch_parent") return;
-      map.set(a.questionNumber, index);
-      index += 1;
+      if (a.type === "branch_parent") {
+        map.set(String(a.questionNumber) + "_type_" + a.type, "X");
+      } else if (a.type === "x_option") {
+        map.set(String(a.questionNumber) + "_type_" + a.type, "Info");
+      } else {
+        map.set(String(a.questionNumber) + "_type_" + a.type, index);
+        index += 1;
+      }
     });
     return map;
   }, [sortedVisibleAttempts]);
 
   const getDisplayNumber = (attempt) =>
-    displayNumberMap.get(attempt.questionNumber) ?? attempt.questionNumber;
+    displayNumberMap.get(
+      String(attempt.questionNumber) + "_type_" + attempt.type,
+    ) ?? attempt.questionNumber;
 
   const detailBlocks = useMemo(() => {
     const blocks = [];
