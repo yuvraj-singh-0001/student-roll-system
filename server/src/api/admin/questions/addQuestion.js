@@ -53,11 +53,13 @@ async function addQuestion(req, res) {
       Number.isFinite(mockTimeNumber) && mockTimeNumber > 0
         ? mockTimeNumber
         : undefined;
-    const requiredOptionCount = type === "branch_parent" ? 2 : 4;
-    if (!normalizedExamCode || !type || !questionText || !options || options.length !== requiredOptionCount) {
+    const requiredOptionCount = type === "branch_parent" ? 2 : (type === "x_option" ? options.length : 4);
+    if (!normalizedExamCode || !type || !questionText || !options || (type !== "x_option" && options.length !== requiredOptionCount)) {
       return res.status(400).json({
         success: false,
-        message: `examCode, type, questionText and exactly ${requiredOptionCount} options are required.`,
+        message: type === "x_option" 
+          ? "examCode, type, questionText and options are required."
+          : `examCode, type, questionText and exactly ${requiredOptionCount} options are required.`,
       });
     }
 
@@ -122,6 +124,10 @@ async function addQuestion(req, res) {
       }
     }
 
+    if (type === "x_option") {
+       // x_option doesn't need correct answer
+    }
+
     // Upsert exam basic info (if provided)
     const metaUpdate = {};
     if (typeof examTitle === "string" && examTitle.trim()) {
@@ -159,12 +165,19 @@ async function addQuestion(req, res) {
       let finalMockTestCode = mockTestCode;
 
       // Filter existing questions by test type (main vs specific mock) 
-      // to ensure separate numbering (1, 2, 3...) for each.
+      // AND question type/branchKey to ensure separate numbering (1, 2, 3...) for each.
       const queryFilter = isMock
-        ? { examCode: normalizedExamCode, mockTestCode: finalMockTestCode }
+        ? { 
+            examCode: normalizedExamCode, 
+            mockTestCode: finalMockTestCode,
+            type,
+            branchKey: branchKey || undefined
+          }
         : {
             examCode: normalizedExamCode,
             $or: [{ isMock: false }, { isMock: { $exists: false } }],
+            type,
+            branchKey: branchKey || undefined
           };
 
       const existing = await (isMock ? MockQuestion : Question)
@@ -210,7 +223,7 @@ async function addQuestion(req, res) {
         savedQuestion = await newQuestion.save();
         break;
       } catch (err) {
-        if (err && err.code === 11000) {
+        if (err && (err.code === 11000 || err.name === 'MongoServerError' && err.code === 11000)) {
           lastErr = err;
           continue;
         }

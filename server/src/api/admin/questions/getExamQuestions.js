@@ -3,8 +3,51 @@ const Question = require("../../../models/Question");
 const MockQuestion = require("../../../models/MockQuestion");
 const ExamConfig = require("../../../models/ExamConfig");
 
+const TYPE_ORDER = {
+  simple: 1,
+  multiple: 2,
+  confidence: 3,
+  x_option: 4,
+  branch_parent: 5,
+  branch_child: 6,
+};
 
+function normalizeBranchKey(value) {
+  const key = String(value || "").trim().toUpperCase();
+  return key === "A" || key === "B" ? key : null;
+}
 
+function inferType(q) {
+  if (q?.type) return q.type;
+  const options = Array.isArray(q?.options) ? q.options : [];
+  if (options.length === 2) return "branch_parent";
+  if (q?.branchKey && q?.parentQuestion) return "branch_child";
+  if (q?.confidenceRequired) return "confidence";
+  return "simple";
+}
+
+function orderQuestionsByType(list) {
+  if (!Array.isArray(list)) return [];
+  return [...list].sort((a, b) => {
+    const ta = inferType(a);
+    const tb = inferType(b);
+    const oa = TYPE_ORDER[ta] || 99;
+    const ob = TYPE_ORDER[tb] || 99;
+    if (oa !== ob) return oa - ob;
+    if ((ta === "branch_child" || ta === "branch_parent") && (tb === "branch_child" || tb === "branch_parent")) {
+      const ka = normalizeBranchKey(a?.branchKey);
+      const kb = normalizeBranchKey(b?.branchKey);
+      if (ka !== kb) {
+         if (!ka) return 1; // parents usually have no branchKey, but they belong to the branch group
+         if (!kb) return -1;
+         return ka.localeCompare(kb);
+      }
+    }
+    const qa = Number(a?.questionNumber) || 0;
+    const qb = Number(b?.questionNumber) || 0;
+    return qa - qb;
+  });
+}
 async function getExamQuestions(req, res) {
   try {
     const { examCode, mockTestCode } = req.query || {};
@@ -33,7 +76,6 @@ async function getExamQuestions(req, res) {
     let questions = await (normalizedMockCode ? MockQuestion : Question)
       .find(questionFilter)
       .select("-correctAnswer -correctAnswers")
-      .sort({ questionNumber: 1 })
       .lean();
 
     // Legacy fallback for mock questions stored in Question collection
@@ -44,9 +86,11 @@ async function getExamQuestions(req, res) {
         mockTestCode: normalizedMockCode,
       })
         .select("-correctAnswer -correctAnswers")
-        .sort({ questionNumber: 1 })
         .lean();
     }
+
+    // Sort questions by Type and then Number
+    questions = orderQuestionsByType(questions);
 
     let mockTitle = "";
     let mockTimeMinutes = null;

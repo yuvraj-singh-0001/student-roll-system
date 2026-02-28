@@ -50,11 +50,18 @@ const questionSchema = new mongoose.Schema(
       required: true,
     },
 
-    // "simple" | "multiple" | "confidence" | "branch_parent" | "branch_child"
+    // "simple" | "multiple" | "confidence" | "x_option" | "branch_parent" | "branch_child"
     type: {
       type: String,
       required: true,
-      enum: ["simple", "multiple", "confidence", "branch_parent", "branch_child"],
+      enum: [
+        "simple",
+        "multiple",
+        "confidence",
+        "x_option",
+        "branch_parent",
+        "branch_child",
+      ],
     },
 
     questionText: {
@@ -68,10 +75,11 @@ const questionSchema = new mongoose.Schema(
       validate: {
         validator: function (val) {
           if (!val) return false;
+          if (this.type === "x_option") return true; // X option may not have options
           if (this.type === "branch_parent") return val.length === 2;
           return val.length === 4;
         },
-        message: "Exactly 4 options required (2 for branch_parent).",
+        message: "Exactly 4 options required (2 for branch_parent, variable for x_option).",
       },
     },
 
@@ -107,9 +115,16 @@ const questionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// unique examCode + mockTestCode + questionNumber (separate numbering for each test)
+// unique examCode + mockTestCode + type + branchKey + questionNumber
+// This allows separate numbering (1, 2, 3...) for each type group.
 questionSchema.index(
-  { examCode: 1, mockTestCode: 1, questionNumber: 1 },
+  {
+    examCode: 1,
+    mockTestCode: 1,
+    type: 1,
+    branchKey: 1,
+    questionNumber: 1,
+  },
   { unique: true }
 );
 

@@ -336,11 +336,11 @@ async function submitOlympiadExam(req, res) {
       });
     }
     const scoredAttempts = detailedAttempts.filter(
-      (a) => a.type !== "branch_parent" && isBranchVisible(a)
+      (a) => a.type !== "branch_parent" && a.type !== "x_option" && isBranchVisible(a)
     );
     const attemptedCount = scoredAttempts.filter((a) => a.status === "attempted")
       .length;
-    const skippedCount = scoredAttempts.filter((a) => a.status === "skipped")
+    let skippedCount = scoredAttempts.filter((a) => a.status === "skipped")
       .length;
     const correctCount = scoredAttempts.filter((a) => a.isCorrect === true).length;
     const wrongCount = scoredAttempts.filter(
@@ -349,6 +349,9 @@ async function submitOlympiadExam(req, res) {
     const notVisitedCount = scoredAttempts.filter(
       (a) => a.status === "not_visited"
     ).length;
+    
+    // Add pending (not_visited) to skipped to match user expectations
+    skippedCount += notVisitedCount;
 
     // IMPORTANT: db me attempt save karo
     const attemptDoc = new ExamAttempt({

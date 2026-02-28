@@ -354,15 +354,16 @@ async function submitMockExam(req, res) {
     }
 
     const scoredAttempts = detailedAttempts.filter(
-      (a) => a.type !== "branch_parent" && isBranchVisible(a)
+      (a) => a.type !== "branch_parent" && a.type !== "x_option" && isBranchVisible(a)
     );
     const attemptedCount = scoredAttempts.filter((a) => a.status === "attempted").length;
-    const skippedCount = scoredAttempts.filter((a) => a.status === "skipped").length;
+    let skippedCount = scoredAttempts.filter((a) => a.status === "skipped").length;
     const correctCount = scoredAttempts.filter((a) => a.isCorrect === true).length;
     const wrongCount = scoredAttempts.filter(
       (a) => a.isCorrect === false && a.status === "attempted"
     ).length;
     const notVisitedCount = scoredAttempts.filter((a) => a.status === "not_visited").length;
+    skippedCount += notVisitedCount;
 
     const attemptDoc = new MockExamAttempt({
       studentId: normalizedStudentId || null,
