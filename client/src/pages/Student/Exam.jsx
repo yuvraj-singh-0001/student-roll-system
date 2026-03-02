@@ -8,6 +8,11 @@ const EXAM_CACHE_KEY = "examListCacheV1";
 const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const EXAM_QUESTIONS_CACHE_TTL_MS = 10 * 60 * 1000;
 
+const getExamCacheKey = (studentIdentifier = "") => {
+  const safeId = String(studentIdentifier || "").trim() || "anonymous";
+  return `${EXAM_CACHE_KEY}:${safeId}`;
+};
+
 const getQuestionsCacheKey = (examCode, mockTestCode = "") => {
   const code = String(examCode || "").trim();
   if (!code) return "";
@@ -24,11 +29,11 @@ const getExamStoreKey = (examCode, mockTestCode = "") => {
   return mock ? `${code}::mock:${mock}` : code;
 };
 
-const readExamListCache = (options = {}) => {
+const readExamListCache = (cacheKey, options = {}) => {
   if (typeof window === "undefined") return null;
   const allowStale = options.allowStale === true;
   try {
-    const raw = localStorage.getItem(EXAM_CACHE_KEY);
+    const raw = localStorage.getItem(cacheKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.data) || !parsed.ts) return null;
@@ -40,11 +45,11 @@ const readExamListCache = (options = {}) => {
   }
 };
 
-const writeExamListCache = (list) => {
+const writeExamListCache = (cacheKey, list) => {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(
-      EXAM_CACHE_KEY,
+      cacheKey,
       JSON.stringify({ data: Array.isArray(list) ? list : [], ts: Date.now() }),
     );
   } catch {
@@ -262,7 +267,15 @@ export default function Exam() {
     if (fetchingRef.current || cancelledRef.current) return;
     fetchingRef.current = true;
 
-    const cachedNow = readExamListCache({ allowStale: true });
+    const currentStudentIdentifier = String(
+      localStorage.getItem("examStudentId") ||
+      localStorage.getItem("studentRoll") ||
+      localStorage.getItem("studentId") ||
+      ""
+    ).trim();
+    const examCacheKey = getExamCacheKey(currentStudentIdentifier);
+
+    const cachedNow = readExamListCache(examCacheKey, { allowStale: true });
     const hasCacheNow =
       Array.isArray(cachedNow?.data) && cachedNow.data.length > 0;
 
@@ -274,13 +287,16 @@ export default function Exam() {
       const { data } = await examApi.list({
         retries: 2,
         retryDelayMs: 1500,
-        params: forceRefresh ? { refresh: 1 } : undefined,
+        params: {
+          ...(forceRefresh ? { refresh: 1 } : {}),
+          ...(currentStudentIdentifier ? { studentId: currentStudentIdentifier } : {}),
+        },
       });
       if (cancelledRef.current) return;
       if (data.success) {
         const list = data.data || [];
         setExamList(list);
-        writeExamListCache(list);
+        writeExamListCache(examCacheKey, list);
       } else if (!silent && !hasCacheNow) {
         setExamError(data.message || "Failed to load exams");
       }
@@ -369,10 +385,18 @@ export default function Exam() {
   useEffect(() => {
     if (examCode) return;
     cancelledRef.current = false;
-    const cachedFresh = readExamListCache();
+    const currentStudentIdentifier = String(
+      localStorage.getItem("examStudentId") ||
+      localStorage.getItem("studentRoll") ||
+      localStorage.getItem("studentId") ||
+      ""
+    ).trim();
+    const examCacheKey = getExamCacheKey(currentStudentIdentifier);
+
+    const cachedFresh = readExamListCache(examCacheKey);
     const cachedStale = cachedFresh
       ? null
-      : readExamListCache({ allowStale: true });
+      : readExamListCache(examCacheKey, { allowStale: true });
     const activeCache = cachedFresh || cachedStale;
     const hasCache =
       Array.isArray(activeCache?.data) && activeCache.data.length > 0;

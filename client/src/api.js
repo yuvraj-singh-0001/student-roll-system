@@ -101,6 +101,11 @@ export const makePayment = async (body) => {
   return res.data;
 };
 
+export const paymentApi = {
+  debug: () => API.get("/payment/debug"),
+  payForExam: (body) => API.post("/payment/pay-for-exam", body),
+};
+
 /* ===================================================
    FORM B REGISTRATION
 =================================================== */
@@ -133,6 +138,7 @@ export const checkStudent = async (query) => {
 export const examApi = {
   register: (body) => API.post("/olympiad/register", body),
   submit: (body) => API.post("/olympiad/submit", body),
+  payForExam: (body) => API.post("/payment/pay-for-exam", body),
   list: (options = {}) => {
     const timeoutMs = Number.isFinite(options.timeoutMs)
       ? options.timeoutMs

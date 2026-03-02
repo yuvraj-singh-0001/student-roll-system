@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { examApi } from "../../api";
 
@@ -6,24 +6,89 @@ export default function ExamRegister() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [exams, setExams] = useState([]);
+  const [selectedExam, setSelectedExam] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     rollNumber: "",
     email: "",
   });
 
+  // Fetch available exams on mount
+  useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        const { data } = await examApi.getExams();
+        if (data.success) {
+          setExams(data.data.filter(e => e.registrationPrice > 0)); // Only show paid exams
+        }
+      } catch (err) {
+        console.error("Failed to fetch exams:", err);
+      }
+    };
+    fetchExams();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handlePayment = async () => {
+    if (!selectedExam) {
+      setError("Please select an exam");
+      return;
+    }
     setError("");
-    setLoading(true);
+    setPaymentLoading(true);
 
     try {
-      const { data } = await examApi.register(form);
+      // Initialize Razorpay (you'll need to load Razorpay script separately)
+      const options = {
+        key: "rzp_test_YOUR_KEY_HERE", // Replace with your Razorpay key
+        amount: exams.find(e => e.examCode === selectedExam)?.registrationPrice * 100 || 0,
+        currency: "INR",
+        name: "Olympiad Exam",
+        description: `Payment for ${selectedExam}`,
+        handler: async function (response) {
+          // Payment successful, submit registration with payment
+          await submitRegistration(response.razorpay_payment_id);
+        },
+        prefill: {
+          name: form.name,
+          email: form.email,
+        },
+        theme: {
+          color: "#FFCD2C",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      setError("Payment initialization failed");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const submitRegistration = async (paymentId) => {
+    setLoading(true);
+    try {
+      const exam = exams.find(e => e.examCode === selectedExam);
+      const payload = {
+        ...form,
+        examCode: selectedExam,
+        payment: {
+          paymentId,
+          amount: exam.registrationPrice,
+          status: "success",
+          gateway: "razorpay",
+        },
+      };
+
+      const { data } = await examApi.register(payload);
       if (data.success) {
         const registered = data.data;
 
@@ -34,7 +99,8 @@ export default function ExamRegister() {
         localStorage.setItem("studentProfileName", registered.name || "");
         localStorage.setItem("studentProfileEmail", registered.email || "");
 
-        navigate("/payment");
+        // Navigate to dashboard since exam is already paid
+        navigate("/student");
       }
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
@@ -42,6 +108,8 @@ export default function ExamRegister() {
       setLoading(false);
     }
   };
+
+  const selectedExamData = exams.find(e => e.examCode === selectedExam);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFF9E6] via-white to-[#FFF3C4] overflow-hidden relative">
@@ -68,7 +136,7 @@ export default function ExamRegister() {
               )}
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
+              <form onSubmit={(e) => { e.preventDefault(); handlePayment(); }} className="space-y-6 animate-fade-in">
                 <div className="text-center mb-6">
                   <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center shadow-lg">
                     <span className="text-xs font-bold text-gray-900">REG</span>
@@ -77,11 +145,42 @@ export default function ExamRegister() {
                     Student Registration
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Enter your details to continue to payment
+                    Select an exam and register to get instant access
                   </p>
                 </div>
 
                 <div className="space-y-4">
+                  <div className="group">
+                    <label className="block text-sm font-medium text-gray-800 mb-2">
+                      Select Exam
+                    </label>
+                    <select
+                      value={selectedExam}
+                      onChange={(e) => setSelectedExam(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 border border-[#FFE1B5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCD2C] focus:border-[#FFCD2C] transition-all duration-200 group-hover:shadow-sm bg-[#FFFDF5]"
+                    >
+                      <option value="">Choose an exam...</option>
+                      {exams.map((exam) => (
+                        <option key={exam.examCode} value={exam.examCode}>
+                          {exam.title} - ₹{exam.registrationPrice}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedExamData && (
+                    <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-700">Exam Price:</span>
+                        <span className="text-lg font-bold text-green-700">₹{selectedExamData.registrationPrice}</span>
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        Instant access after payment
+                      </div>
+                    </div>
+                  )}
+
                   <div className="group">
                     <label className="block text-sm font-medium text-gray-800 mb-2">
                       Full Name
@@ -129,16 +228,16 @@ export default function ExamRegister() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || paymentLoading || !selectedExam}
                   className="group w-full py-3.5 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-semibold rounded-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {loading ? (
+                  {(loading || paymentLoading) ? (
                     <>
                       <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
                       <span>Processing...</span>
                     </>
                   ) : (
-                    <>Continue to Payment</>
+                    <>Pay & Register</>
                   )}
                 </button>
               </form>

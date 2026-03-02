@@ -191,6 +191,44 @@ const Card = ({ children, style }) => (
   </div>
 );
 
+const EyeIcon = ({ open }) => (
+  <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {open ? (
+      <>
+        <path d="M3 3l18 18" /><path d="M10.5 10.5a2 2 0 0 0 2.9 2.9" />
+        <path d="M9.9 5.1a9.9 9.9 0 0 1 2.1-.2c6 0 9.8 7 9.8 7a18.4 18.4 0 0 1-3.1 4.3" />
+        <path d="M6.2 6.2A18.4 18.4 0 0 0 2.2 12s3.8 7 9.8 7a9.9 9.9 0 0 0 4.3-.9" />
+      </>
+    ) : (
+      <>
+        <path d="M1.5 12s4.5-7 10.5-7 10.5 7 10.5 7-4.5 7-10.5 7S1.5 12 1.5 12z" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    )}
+  </svg>
+);
+
+const PasswordInput = ({ value, onChange, placeholder, show, onToggle, invalid }) => (
+  <div style={{ position: "relative" }}>
+    <Input
+      type={show ? "text" : "password"}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      style={{ paddingRight: "40px" }}
+      invalid={invalid}
+    />
+    <button
+      type="button"
+      onClick={onToggle}
+      onMouseDown={(e) => e.preventDefault()}
+      style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: 0, display: "flex", alignItems: "center" }}
+    >
+      <EyeIcon open={show} />
+    </button>
+  </div>
+);
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function RegisterFormB() {
@@ -410,10 +448,6 @@ export default function RegisterFormB() {
         }
       }
 
-      if (!next.month) {
-        next.day = "";
-      }
-
       if (next.day) {
         let maxDay = getDaysInMonth(next.year, next.month);
         if (next.year === currentYear && next.month === todayParts.month) {
@@ -581,44 +615,6 @@ export default function RegisterFormB() {
   const usernameStatusColor =
     usernameStatus.state === "available" ? "#10B981" :
     usernameStatus.state === "checking" ? "#F59E0B" : "#EF4444";
-
-  const EyeIcon = ({ open }) => (
-    <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      {open ? (
-        <>
-          <path d="M3 3l18 18" /><path d="M10.5 10.5a2 2 0 0 0 2.9 2.9" />
-          <path d="M9.9 5.1a9.9 9.9 0 0 1 2.1-.2c6 0 9.8 7 9.8 7a18.4 18.4 0 0 1-3.1 4.3" />
-          <path d="M6.2 6.2A18.4 18.4 0 0 0 2.2 12s3.8 7 9.8 7a9.9 9.9 0 0 0 4.3-.9" />
-        </>
-      ) : (
-        <>
-          <path d="M1.5 12s4.5-7 10.5-7 10.5 7 10.5 7-4.5 7-10.5 7S1.5 12 1.5 12z" />
-          <circle cx="12" cy="12" r="3" />
-        </>
-      )}
-    </svg>
-  );
-
-  const PasswordInput = ({ value, onChange, placeholder, show, onToggle, invalid }) => (
-    <div style={{ position: "relative" }}>
-      <Input
-        type={show ? "text" : "password"}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        style={{ paddingRight: "40px" }}
-        invalid={invalid}
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        onMouseDown={e => e.preventDefault()}
-        style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: 0, display: "flex", alignItems: "center" }}
-      >
-        <EyeIcon open={show} />
-      </button>
-    </div>
-  );
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 50%, #FFF8DC 100%)" }}>
