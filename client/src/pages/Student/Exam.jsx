@@ -237,6 +237,13 @@ export default function Exam() {
   const [mockError, setMockError] = useState("");
   const [selectedExamForMocks, setSelectedExamForMocks] = useState(null);
   const [mockTests, setMockTests] = useState([]);
+  const [paymentSuccessToast, setPaymentSuccessToast] = useState({
+    visible: false,
+    title: "",
+    examCode: "",
+    amount: 0,
+  });
+  const paymentSuccessTimerRef = useRef(null);
 
   const location = useLocation();
   const examCodeKey = String(examCode || "").trim();
@@ -641,6 +648,63 @@ export default function Exam() {
     setMockError("");
   };
 
+  const playPaymentSuccessTone = () => {
+    if (typeof window === "undefined") return;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    try {
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(660, now);
+      gain1.gain.setValueAtTime(0.0001, now);
+      gain1.gain.exponentialRampToValueAtTime(0.05, now + 0.02);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.2);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880, now + 0.14);
+      gain2.gain.setValueAtTime(0.0001, now + 0.14);
+      gain2.gain.exponentialRampToValueAtTime(0.06, now + 0.18);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.33);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.14);
+      osc2.stop(now + 0.35);
+
+      setTimeout(() => {
+        if (ctx.state !== "closed") ctx.close().catch(() => {});
+      }, 800);
+    } catch {}
+  };
+
+  const showPaymentSuccessToast = (exam) => {
+    if (paymentSuccessTimerRef.current) {
+      clearTimeout(paymentSuccessTimerRef.current);
+    }
+
+    setPaymentSuccessToast({
+      visible: true,
+      title: String(exam?.title || "Olympiad Exam"),
+      examCode: String(exam?.examCode || ""),
+      amount: Number(exam?.registrationPrice) || 0,
+    });
+    playPaymentSuccessTone();
+
+    paymentSuccessTimerRef.current = setTimeout(() => {
+      setPaymentSuccessToast((prev) => ({ ...prev, visible: false }));
+    }, 3600);
+  };
+
   const handlePayForExam = async (exam) => {
     const code = String(exam?.examCode || "").trim();
     if (!code) return;
@@ -661,7 +725,7 @@ export default function Exam() {
       await fetchExamList({ silent: true, forceRefresh: true });
       localStorage.setItem("examPaymentSyncTick", String(Date.now()));
       window.dispatchEvent(new Event(EXAM_PAYMENT_SYNC_EVENT));
-      alert("Payment successful! Exam unlocked.");
+      showPaymentSuccessToast(exam);
     };
 
     try {
@@ -728,6 +792,14 @@ export default function Exam() {
       window.removeEventListener(EXAM_PAYMENT_SYNC_EVENT, handlePaymentSync);
     };
   }, [fetchExamList]);
+
+  useEffect(() => {
+    return () => {
+      if (paymentSuccessTimerRef.current) {
+        clearTimeout(paymentSuccessTimerRef.current);
+      }
+    };
+  }, []);
 
   const visibleQuestions = useMemo(() => {
     if (!questions.length) return [];
@@ -1786,6 +1858,46 @@ export default function Exam() {
                 </div>
               </div>
             ) : null}
+
+            <div
+              className={`fixed top-5 right-5 z-[70] w-[92vw] max-w-sm transition-all duration-500 ${
+                paymentSuccessToast.visible
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 -translate-y-4 pointer-events-none"
+              }`}
+            >
+              <div className="rounded-2xl border border-emerald-200 bg-white shadow-xl overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-emerald-500 to-green-400" />
+                <div className="p-4 flex items-start gap-3">
+                  <div className="mt-0.5 h-8 w-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 font-black animate-pulse">
+                    ✓
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-gray-900">Payment Successful</p>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      {paymentSuccessToast.title} unlocked successfully.
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+                      <span className="px-2 py-1 rounded-full border border-[#FFE6A3] bg-[#FFFDF5] text-gray-700 font-semibold">
+                        {paymentSuccessToast.examCode || "EXAM"}
+                      </span>
+                      <span className="px-2 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 font-bold">
+                        ₹{paymentSuccessToast.amount}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPaymentSuccessToast((prev) => ({ ...prev, visible: false }))
+                    }
+                    className="h-7 w-7 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
 
           </div>
         </div>
