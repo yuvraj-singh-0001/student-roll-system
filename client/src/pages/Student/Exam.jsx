@@ -232,6 +232,11 @@ export default function Exam() {
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
   const [payingExamCode, setPayingExamCode] = useState("");
+  const [mockModalOpen, setMockModalOpen] = useState(false);
+  const [mockLoading, setMockLoading] = useState(false);
+  const [mockError, setMockError] = useState("");
+  const [selectedExamForMocks, setSelectedExamForMocks] = useState(null);
+  const [mockTests, setMockTests] = useState([]);
 
   const location = useLocation();
   const examCodeKey = String(examCode || "").trim();
@@ -605,6 +610,35 @@ export default function Exam() {
       ...prev,
       [key]: !prev[key],
     }));
+  };
+
+  const openMocksForExam = async (exam) => {
+    if (!exam?.examCode) return;
+    setSelectedExamForMocks(exam);
+    setMockModalOpen(true);
+    setMockError("");
+    setMockTests([]);
+
+    try {
+      setMockLoading(true);
+      const { data } = await questionApi.mocks({ examCode: exam.examCode });
+      if (data?.success) {
+        setMockTests(data.data || []);
+      } else {
+        setMockError(data?.message || "Failed to load mock tests");
+      }
+    } catch (e) {
+      setMockError(e?.response?.data?.message || "Failed to load mock tests");
+    } finally {
+      setMockLoading(false);
+    }
+  };
+
+  const closeMockModal = () => {
+    setMockModalOpen(false);
+    setSelectedExamForMocks(null);
+    setMockTests([]);
+    setMockError("");
   };
 
   const handlePayForExam = async (exam) => {
@@ -1439,21 +1473,34 @@ export default function Exam() {
 
         <div className="relative z-10 min-h-screen">
           <div className="max-w-5xl mx-auto px-4 py-10">
-            <div className="text-center mb-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-1">
-                Choose Your Exam
-              </h3>
-              <p className="text-gray-600 text-sm">Pick an exam to start.</p>
-              <div className="mt-3 flex items-center justify-center">
-                <button
-                  onClick={handleManualRefresh}
-                  disabled={examRefreshing}
-                  className={`text-[11px] px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition ${
-                    examRefreshing ? "opacity-60 cursor-not-allowed" : ""
-                  }`}
-                >
-                  {examRefreshing ? "Refreshing..." : "Refresh Exams"}
-                </button>
+            <div className="mb-6 rounded-2xl border border-[#FFE6A3] bg-white/90 backdrop-blur px-4 py-4 sm:px-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Choose Your Exam</h3>
+                  <p className="text-gray-600 text-sm mt-0.5">Pick an olympiad and start when ready.</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                    <span className="rounded-full border border-[#FFE6A3] bg-[#FFF9E6] px-2.5 py-1 font-semibold text-amber-800">
+                      Total: {examList.length}
+                    </span>
+                    <span className="rounded-full border border-green-200 bg-green-50 px-2.5 py-1 font-semibold text-green-700">
+                      Paid: {examList.filter((item) => item?.isStudentPaid).length}
+                    </span>
+                    <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 font-semibold text-red-600">
+                      Unpaid: {examList.filter((item) => !item?.isStudentPaid).length}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <button
+                    onClick={handleManualRefresh}
+                    disabled={examRefreshing}
+                    className={`text-[11px] px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition ${
+                      examRefreshing ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    {examRefreshing ? "Refreshing..." : "Refresh Exams"}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1470,6 +1517,7 @@ export default function Exam() {
                 examList.map((exam) => {
                   const isStudentPaid = !!exam?.isStudentPaid;
                   const canStartExam = !!exam?.canStartExam;
+                  const hasMocks = !!exam?.hasMocks;
                   const paymentAmount = Number(exam?.payment?.amount) || 0;
                   const paymentDate = exam?.payment?.paidAt || null;
                   const examPrice = Number(exam?.registrationPrice) || 0;
@@ -1486,6 +1534,13 @@ export default function Exam() {
                       key={exam.examCode}
                       className="group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm hover:shadow-md transition"
                     >
+                      <div
+                        className={`h-1 w-full bg-gradient-to-r ${
+                          isStudentPaid
+                            ? "from-green-500 to-emerald-600"
+                            : "from-red-500 to-rose-600"
+                        }`}
+                      />
                       <div className="absolute inset-0 pointer-events-none opacity-40 bg-gradient-to-br from-[#FFF3C4]/60 via-transparent to-[#FFE0D9]/70" />
                       <div className="relative p-3 flex flex-col gap-2">
                         <div className="flex items-start justify-between gap-3">
@@ -1504,7 +1559,7 @@ export default function Exam() {
                           <span
                             className={`text-[10px] font-bold rounded-full px-2.5 py-1 border ${
                               isStudentPaid
-                                ? "bg-green-50 text-green-700 border-green-200 animate-pulse"
+                                ? "bg-green-50 text-green-700 border-green-200"
                                 : "bg-red-50 text-red-600 border-red-200"
                             }`}
                           >
@@ -1582,39 +1637,51 @@ export default function Exam() {
                           </div>
                         ) : null}
 
-                        {isStudentPaid ? (
-                          <button
-                            onClick={() => {
-                              if (!canStartExam) return;
-                              setPendingExamCode(exam.examCode);
-                              setIntroAccepted(false);
-                              clearMockSelection();
-                            }}
-                            disabled={!canStartExam}
-                            className={`mt-1 text-[11px] px-3 py-2 rounded-full font-semibold transition ${
-                              canStartExam
-                                ? "bg-[#FFCD2C] text-gray-900 hover:bg-[#FFC107]"
-                                : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                            }`}
-                          >
-                            Start Exam
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handlePayForExam(exam)}
-                            disabled={payingExamCode === exam.examCode}
-                            className={`mt-1 text-[11px] px-3 py-2 rounded-full font-semibold transition ${
-                              payingExamCode === exam.examCode
-                                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                : "bg-emerald-600 text-white hover:bg-emerald-700"
-                            }`}
-                          >
-                            {payingExamCode === exam.examCode
-                              ? "Processing..."
-                              : `Pay ₹${examPrice}`}
-                          </button>
-                        )}
+                        <div className="mt-1 flex items-center flex-wrap gap-2">
+                          {isStudentPaid ? (
+                            <button
+                              onClick={() => {
+                                if (!canStartExam) return;
+                                setPendingExamCode(exam.examCode);
+                                setIntroAccepted(false);
+                                clearMockSelection();
+                              }}
+                              disabled={!canStartExam}
+                              className={`text-[11px] px-3 py-2 rounded-full font-semibold transition ${
+                                canStartExam
+                                  ? "bg-[#FFCD2C] text-gray-900 hover:bg-[#FFC107]"
+                                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                              }`}
+                            >
+                              Start Exam
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handlePayForExam(exam)}
+                              disabled={payingExamCode === exam.examCode}
+                              className={`text-[11px] px-3 py-2 rounded-full font-semibold transition ${
+                                payingExamCode === exam.examCode
+                                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                  : "bg-emerald-600 text-white hover:bg-emerald-700"
+                              }`}
+                            >
+                              {payingExamCode === exam.examCode
+                                ? "Processing..."
+                                : `Pay ₹${examPrice}`}
+                            </button>
+                          )}
+
+                          {hasMocks ? (
+                            <button
+                              type="button"
+                              onClick={() => openMocksForExam(exam)}
+                              className="text-[11px] px-3 py-2 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFFDF5] hover:bg-[#FFF3C4] transition"
+                            >
+                              Mock Tests
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   );
@@ -1626,14 +1693,97 @@ export default function Exam() {
               )}
             </div>
 
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => navigate("/student")}
-                className="px-6 py-3 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00] text-gray-900 font-semibold rounded-lg hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+            {mockModalOpen ? (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) closeMockModal();
+                }}
               >
-                Go to Dashboard
-              </button>
-            </div>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-[#FFE6A3]">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-[#FFE6A3] bg-[#FFFDF5]">
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">Mock Tests</h3>
+                      <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                        {selectedExamForMocks?.title || selectedExamForMocks?.examCode}
+                        {selectedExamForMocks?.isStudentPaid ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5">
+                            ✓ PAID
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 text-red-600 text-[10px] font-bold px-2 py-0.5">
+                            ✗ UNPAID
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={closeMockModal}
+                      className="w-8 h-8 rounded-lg bg-[#FFF9E6] border border-[#FFE6A3] hover:bg-[#FFEBB5] flex items-center justify-center text-gray-500 hover:text-gray-900 transition text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="p-5 max-h-96 overflow-y-auto space-y-3 bg-white">
+                    {mockLoading ? (
+                      <div className="py-8 text-center">
+                        <div className="w-5 h-5 border-2 border-[#FFD765] border-t-[#B8860B] rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-xs text-gray-400">Loading mock tests...</p>
+                      </div>
+                    ) : mockError ? (
+                      <p className="py-6 text-center text-xs text-red-500">{mockError}</p>
+                    ) : mockTests.length === 0 ? (
+                      <p className="py-6 text-center text-xs text-gray-400">No mock tests found.</p>
+                    ) : (
+                      mockTests.map((mock) => (
+                        <div
+                          key={mock.mockTestCode}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-4 py-3 hover:shadow-sm transition-all"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-gray-900 truncate">
+                              {mock.mockTitle || mock.mockTestCode}
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1.5 text-[10px]">
+                              <span className="px-2 py-0.5 rounded-full border border-[#FFE6A3] bg-white text-gray-600">
+                                Code: {mock.mockTestCode}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full border border-[#FFE6A3] bg-white text-gray-600">
+                                {mock.questionCount || 0} Qs
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full border border-[#FFE6A3] bg-white text-gray-600">
+                                {mock.mockTime || selectedExamForMocks?.totalTimeMinutes || 60} min
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!selectedExamForMocks) return;
+                              const code = String(selectedExamForMocks.examCode || "").trim();
+                              const mockCode = String(mock.mockTestCode || "").trim();
+                              if (!code || !mockCode) return;
+                              localStorage.setItem("examCode", code);
+                              localStorage.setItem("examMockTestCode", mockCode);
+                              navigate(
+                                `/student/exam?examCode=${encodeURIComponent(code)}&mockTestCode=${encodeURIComponent(mockCode)}`,
+                              );
+                              closeMockModal();
+                            }}
+                            className="flex-shrink-0 px-4 py-2 rounded-full bg-[#FFCD2C] hover:bg-[#FFC107] text-gray-900 text-xs font-bold transition-all hover:-translate-y-0.5 hover:shadow-md"
+                          >
+                            Start →
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
           </div>
         </div>
       </div>

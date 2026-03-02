@@ -621,7 +621,13 @@ export default function StudentDashboard() {
                     className="relative h-full rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
                   >
                     {/* Accent bar */}
-                    <div className="h-[3px] w-full bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00]" />
+                    <div
+                      className={`h-[3px] w-full bg-gradient-to-r ${
+                        isStudentPaid
+                          ? "from-green-500 to-emerald-600"
+                          : "from-red-500 to-rose-600"
+                      }`}
+                    />
 
                     <div className="p-4 h-full flex flex-col gap-3">
                       {/* Title row */}
