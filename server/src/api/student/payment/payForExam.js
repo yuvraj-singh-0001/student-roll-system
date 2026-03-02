@@ -6,10 +6,14 @@ const { resolveStudentFromRequest } = require("../olympiad/listOlympiadExams");
 async function payForExam(req, res) {
   try {
     const { examCode, paymentId, amount, gateway = "razorpay" } = req.body;
-    if (!examCode || !paymentId || !amount) {
+    const normalizedExamCode = String(examCode || "").trim();
+    const normalizedPaymentId = String(paymentId || "").trim();
+    const requestedAmount = Number(amount);
+
+    if (!normalizedExamCode || !normalizedPaymentId) {
       return res.status(400).json({
         success: false,
-        message: "examCode, paymentId, and amount are required",
+        message: "examCode and paymentId are required",
       });
     }
 
@@ -22,7 +26,7 @@ async function payForExam(req, res) {
     }
 
     // Check if exam exists
-    const examConfig = await ExamConfig.findOne({ examCode });
+    const examConfig = await ExamConfig.findOne({ examCode: normalizedExamCode });
     if (!examConfig) {
       return res.status(404).json({
         success: false,
@@ -30,10 +34,18 @@ async function payForExam(req, res) {
       });
     }
 
+    const configuredAmount = Number(examConfig?.registrationPrice) || 0;
+    const resolvedAmount =
+      Number.isFinite(requestedAmount) && requestedAmount > 0
+        ? requestedAmount
+        : configuredAmount;
+
+    const finalAmount = Number.isFinite(resolvedAmount) && resolvedAmount >= 0 ? resolvedAmount : 0;
+
     // Check if already paid for this exam
     const existingPayment = await Payment.findOne({
       studentId: student._id,
-      examCode,
+      examCode: normalizedExamCode,
       status: "success",
     });
     if (existingPayment) {
@@ -50,9 +62,9 @@ async function payForExam(req, res) {
     // Create payment record
     const payment = new Payment({
       studentId: student._id,
-      examCode: String(examCode).trim(),
-      amount: Number(amount),
-      paymentId: String(paymentId).trim(),
+      examCode: normalizedExamCode,
+      amount: finalAmount,
+      paymentId: normalizedPaymentId,
       status: "success",
       paidAt: new Date(),
       gateway,
@@ -66,7 +78,7 @@ async function payForExam(req, res) {
     await Student.findByIdAndUpdate(student._id, {
       $push: {
         examPayments: {
-          examCode,
+          examCode: normalizedExamCode,
           paymentId: payment.paymentId,
           amount: payment.amount,
           status: "success",
@@ -79,7 +91,7 @@ async function payForExam(req, res) {
       success: true,
       message: "Payment successful",
       data: {
-        examCode,
+        examCode: normalizedExamCode,
         paymentId: payment.paymentId,
         amount: payment.amount,
         paidAt: payment.paidAt.toISOString(),

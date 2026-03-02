@@ -331,7 +331,8 @@ export default function StudentDashboard() {
       const shouldUseFakePayment =
         typeof window === "undefined" ||
         typeof window.Razorpay !== "function" ||
-        !RAZORPAY_KEY;
+        !RAZORPAY_KEY ||
+        !(amount > 0);
 
       if (shouldUseFakePayment) {
         if (!ENABLE_FAKE_PAYMENT) {
@@ -770,7 +771,9 @@ export default function StudentDashboard() {
                           >
                             {payingExamCode === exam.examCode
                               ? "Processing..."
-                              : `Pay ₹${examPrice}`}
+                              : examPrice > 0
+                                ? `Pay ₹${examPrice}`
+                                : "Pay Now"}
                           </button>
                         )}
                         {hasMocks && (

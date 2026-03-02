@@ -305,7 +305,11 @@ async function listOlympiadExams(req, res) {
       .filter((code) => code && !configCodeSet.has(code))
       .sort((a, b) => a.localeCompare(b));
     const orderedExamCodes = [...configOrderedCodes, ...remainingCodes];
-    const legacyFallbackExamCode = orderedExamCodes[0] || "";
+    const tttPreferredLegacyCode =
+      orderedExamCodes.find((code) => /^TTT(?:_|$)/i.test(String(code || "").trim())) ||
+      orderedExamCodes.find((code) => /TTT/i.test(String(code || "").trim())) ||
+      "";
+    const legacyFallbackExamCode = tttPreferredLegacyCode || orderedExamCodes[0] || "";
 
     if (legacyFallbackExamCode && Number(legacyGeneralPaidCount) > 0) {
       const prev = paidCountMap.get(legacyFallbackExamCode) || 0;
