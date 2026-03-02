@@ -7,6 +7,8 @@ const initialExamInfo = {
   examCode: "",
   totalTimeMinutes: "",
   registrationPrice: "",
+  examStartAt: "",
+  examEndAt: "",
 };
 
 const getInitialQuestionState = () => ({
@@ -275,6 +277,8 @@ function AdminQuestionBuilder() {
       examTitle: examInfo.title,
       totalTimeMinutes: examInfo.totalTimeMinutes,
       registrationPrice: examInfo.registrationPrice,
+      examStartAt: examInfo.examStartAt,
+      examEndAt: examInfo.examEndAt,
       type: question.type,
       questionText: question.questionText,
       options: payloadOptions,
@@ -523,6 +527,26 @@ function AdminQuestionBuilder() {
               value={examInfo.registrationPrice}
               onChange={handleExamInfoChange}
               placeholder="299"
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Exam Start Date & Time</label>
+            <input
+              type="datetime-local"
+              name="examStartAt"
+              value={examInfo.examStartAt}
+              onChange={handleExamInfoChange}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Exam End Date & Time</label>
+            <input
+              type="datetime-local"
+              name="examEndAt"
+              value={examInfo.examEndAt}
+              onChange={handleExamInfoChange}
               style={inputStyle}
             />
           </div>

@@ -1,6 +1,10 @@
 // This API returns the list of olympiad exams
 const ExamConfig = require("../../../models/ExamConfig");
 const Question = require("../../../models/Question");
+const MockQuestion = require("../../../models/MockQuestion");
+const Student = require("../../../models/Student");
+const User = require("../../../models/User");
+const jwt = require("jsonwebtoken");
 
 
 
@@ -11,6 +15,86 @@ const VALID_TYPES = [
   "branch_parent",
   "branch_child",
 ];
+
+const PAYMENT_VALIDITY_DAYS = 10;
+const PAYMENT_VALIDITY_MS = PAYMENT_VALIDITY_DAYS * 24 * 60 * 60 * 1000;
+
+function readAuthToken(req) {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  const headerToken =
+    typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : undefined;
+  return req.cookies?.token || headerToken || req.headers["x-auth-token"] || "";
+}
+
+function toDateOrNull(value) {
+  if (!value) return null;
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt;
+}
+
+async function resolveStudentFromRequest(req) {
+  let userId = req.user?.userId;
+  if (!userId) {
+    const token = readAuthToken(req);
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded?.userId;
+      } catch {
+        userId = undefined;
+      }
+    }
+  }
+
+  if (!userId) return null;
+
+  let student = await Student.findById(userId).lean();
+  if (student) return student;
+
+  const user = await User.findById(userId).lean();
+  if (!user?.email) return null;
+
+  student = await Student.findOne({
+    $or: [{ email: user.email }, { "formB.contact.email": user.email }],
+  }).lean();
+  return student || null;
+}
+
+function deriveStudentPaymentInfo(student, nowMs) {
+  if (!student) {
+    return {
+      isStudentPaid: false,
+      payment: null,
+      paymentAvailableFrom: null,
+      paymentValidTill: null,
+      isPaymentValidityActive: false,
+    };
+  }
+
+  const paymentStatus = String(student.payment?.status || "").toLowerCase();
+  const paid = paymentStatus === "success" || !!student.isPaid;
+  const paidAt =
+    toDateOrNull(student.payment?.paidAt) ||
+    (paid ? toDateOrNull(student.updatedAt) || toDateOrNull(student.createdAt) : null);
+  const validTill = paidAt ? new Date(paidAt.getTime() + PAYMENT_VALIDITY_MS) : null;
+  const isActive = !!(paid && validTill && nowMs <= validTill.getTime());
+
+  return {
+    isStudentPaid: paid,
+    payment: {
+      paymentId: student.payment?.paymentId || "",
+      amount: Number(student.payment?.amount) || 0,
+      status: paymentStatus || (paid ? "success" : "pending"),
+      paidAt: paidAt ? paidAt.toISOString() : null,
+    },
+    paymentAvailableFrom: paidAt ? paidAt.toISOString() : null,
+    paymentValidTill: validTill ? validTill.toISOString() : null,
+    isPaymentValidityActive: isActive,
+  };
+}
 
 function inferType(q) {
   const options = Array.isArray(q?.options) ? q.options : [];
@@ -99,7 +183,22 @@ function buildExamQuestionStats(questions) {
 async function listOlympiadExams(req, res) {
   try {
     const now = Date.now();
-    const configs = await ExamConfig.find().sort({ createdAt: -1 }).lean();
+    const [configs, student, totalRegisteredPaidStudents, legacyMockCodes, mockCodes] =
+      await Promise.all([
+        ExamConfig.find().sort({ createdAt: -1 }).lean(),
+        resolveStudentFromRequest(req),
+        Student.countDocuments({
+          course: "Exam",
+          $or: [{ isPaid: true }, { "payment.status": "success" }],
+        }),
+        Question.distinct("examCode", {
+          isMock: true,
+          mockTestCode: { $exists: true, $ne: "" },
+        }),
+        MockQuestion.distinct("examCode", {
+          mockTestCode: { $exists: true, $ne: "" },
+        }),
+      ]);
 
     const questions = await Question.find({
       $or: [{ isMock: { $exists: false } }, { isMock: false }],
@@ -108,6 +207,8 @@ async function listOlympiadExams(req, res) {
       .lean();
 
     const countMap = buildExamQuestionStats(questions);
+    const mockExamCodeSet = new Set([...(legacyMockCodes || []), ...(mockCodes || [])]);
+    const studentPaymentInfo = deriveStudentPaymentInfo(student, now);
 
     const configMap = Object.fromEntries(
       configs.map((c) => [c.examCode, c])
@@ -124,13 +225,35 @@ async function listOlympiadExams(req, res) {
         totalQuestions: 0,
         totalQuestionsAll: 0,
       };
+      const examStartAt = toDateOrNull(c?.examStartAt);
+      const examEndAt = toDateOrNull(c?.examEndAt);
+      const startsOk = !examStartAt || now >= examStartAt.getTime();
+      const endsOk = !examEndAt || now <= examEndAt.getTime();
+      const isExamWindowActive = startsOk && endsOk;
+      const canStartExam =
+        studentPaymentInfo.isStudentPaid &&
+        studentPaymentInfo.isPaymentValidityActive &&
+        isExamWindowActive;
+
       return {
         examCode: code,
         title: c?.title || code,
         totalTimeMinutes: c?.totalTimeMinutes || 60,
         registrationPrice: c?.registrationPrice || 0,
+        examStartAt: examStartAt ? examStartAt.toISOString() : null,
+        examEndAt: examEndAt ? examEndAt.toISOString() : null,
         totalQuestions: counts.totalQuestions || 0,
         totalQuestionsAll: counts.totalQuestionsAll || 0,
+        totalRegisteredPaidStudents: Number(totalRegisteredPaidStudents) || 0,
+        paymentValidityDays: PAYMENT_VALIDITY_DAYS,
+        isStudentPaid: studentPaymentInfo.isStudentPaid,
+        payment: studentPaymentInfo.payment,
+        paymentAvailableFrom: studentPaymentInfo.paymentAvailableFrom,
+        paymentValidTill: studentPaymentInfo.paymentValidTill,
+        isPaymentValidityActive: studentPaymentInfo.isPaymentValidityActive,
+        isExamWindowActive,
+        canStartExam,
+        hasMocks: mockExamCodeSet.has(code),
         createdAt: c?.createdAt || null,
       };
     });

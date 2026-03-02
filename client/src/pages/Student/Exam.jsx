@@ -221,6 +221,7 @@ export default function Exam() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [examStartAt, setExamStartAt] = useState(null);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({});
 
   const location = useLocation();
   const examCodeKey = String(examCode || "").trim();
@@ -560,6 +561,29 @@ export default function Exam() {
     const m = Math.floor(safe / 60);
     const s = safe % 60;
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return "-";
+    return dt.toLocaleString();
+  };
+
+  const formatDateOnly = (value) => {
+    if (!value) return "-";
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return "-";
+    return dt.toLocaleDateString();
+  };
+
+  const toggleExamSection = (examCodeValue, section) => {
+    const key = `${String(examCodeValue || "").trim()}::${section}`;
+    if (!key) return;
+    setExpandedSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
 
   const visibleQuestions = useMemo(() => {
@@ -1341,51 +1365,134 @@ export default function Exam() {
                   {examError}
                 </div>
               ) : examList.length > 0 ? (
-                examList.map((exam) => (
-                  <div
-                    key={exam.examCode}
-                    className="group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm hover:shadow-md transition"
-                  >
-                    <div className="absolute inset-0 pointer-events-none opacity-40 bg-gradient-to-br from-[#FFF3C4]/60 via-transparent to-[#FFE0D9]/70" />
-                    <div className="relative p-4 flex flex-col gap-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wide text-amber-700/80">
-                            Exam Paper
-                          </p>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {exam.title || exam.examCode}
-                          </p>
-                          <p className="text-[11px] text-gray-600">
-                            Exam Code: {exam.examCode} | Time:{" "}
-                            {exam.totalTimeMinutes || 60} min
-                          </p>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-[10px] font-bold text-gray-900 shadow">
-                          TTT
-                        </div>
-                      </div>
+                examList.map((exam) => {
+                  const isStudentPaid = !!exam?.isStudentPaid;
+                  const canStartExam = !!exam?.canStartExam;
+                  const paymentAmount = Number(exam?.payment?.amount) || 0;
+                  const paymentDate = exam?.payment?.paidAt || null;
+                  const startReason = !isStudentPaid
+                    ? "Payment required"
+                    : !exam?.isPaymentValidityActive
+                      ? "10-day validity expired"
+                      : !exam?.isExamWindowActive
+                        ? "Exam time window inactive"
+                        : "";
 
-                      <div className="text-[11px] text-gray-600">
-                        Total Questions:{" "}
-                        <span className="font-medium text-gray-900">
-                          {exam.totalQuestions || 0}
-                        </span>
-                      </div>
+                  return (
+                    <div
+                      key={exam.examCode}
+                      className="group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm hover:shadow-md transition"
+                    >
+                      <div className="absolute inset-0 pointer-events-none opacity-40 bg-gradient-to-br from-[#FFF3C4]/60 via-transparent to-[#FFE0D9]/70" />
+                      <div className="relative p-3 flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-amber-700/80">
+                              Exam Paper
+                            </p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {exam.title || exam.examCode}
+                            </p>
+                            <p className="text-[11px] text-gray-600">
+                              Exam Code: {exam.examCode} | Time:{" "}
+                              {exam.totalTimeMinutes || 60} min
+                            </p>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-[10px] font-bold text-gray-900 shadow">
+                            TTT
+                          </div>
+                        </div>
 
-                      <button
-                        onClick={() => {
-                          setPendingExamCode(exam.examCode);
-                          setIntroAccepted(false);
-                          clearMockSelection();
-                        }}
-                        className="mt-1 text-[11px] px-3 py-2 rounded-full bg-[#FFCD2C] text-gray-900 font-semibold hover:bg-[#FFC107] transition"
-                      >
-                        Start Exam
-                      </button>
+                        <div className="text-[11px] text-gray-600 leading-tight">
+                          Total Questions:{" "}
+                          <span className="font-medium text-gray-900">
+                            {exam.totalQuestions || 0}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleExamSection(exam.examCode, "payment")}
+                            className="text-[11px] px-3 py-2 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFFDF5] hover:bg-[#FFF3C4] transition"
+                          >
+                            Paid Details {expandedSections[`${exam.examCode}::payment`] ? "- Hide" : "- Show"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleExamSection(exam.examCode, "time")}
+                            className="text-[11px] px-3 py-2 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFFDF5] hover:bg-[#FFF3C4] transition"
+                          >
+                            Exam Time {expandedSections[`${exam.examCode}::time`] ? "- Hide" : "- Show"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleExamSection(exam.examCode, "validity")}
+                            className="text-[11px] px-3 py-2 rounded-full border border-[#FFE6A3] text-gray-800 bg-[#FFFDF5] hover:bg-[#FFF3C4] transition"
+                          >
+                            Exam Validity {expandedSections[`${exam.examCode}::validity`] ? "- Hide" : "- Show"}
+                          </button>
+                        </div>
+
+                        {expandedSections[`${exam.examCode}::payment`] ? (
+                          <div className="rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-[11px] text-gray-700">
+                            <div>Status: {isStudentPaid ? "Paid" : "Not Paid"}</div>
+                            <div>Amount: {isStudentPaid ? `₹${paymentAmount}` : "-"}</div>
+                            <div>Paid At: {formatDateTime(paymentDate)}</div>
+                          </div>
+                        ) : null}
+
+                        {expandedSections[`${exam.examCode}::time`] ? (
+                          <div className="rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-[11px] text-gray-700">
+                            <div>Start: {formatDateTime(exam.examStartAt)}</div>
+                            <div>End: {formatDateTime(exam.examEndAt)}</div>
+                          </div>
+                        ) : null}
+
+                        <div className="text-[11px] text-gray-700">
+                          Total Students Registered & Paid:{" "}
+                          <span className="font-semibold text-gray-900">
+                            {Number(exam.totalRegisteredPaidStudents) || 0}
+                          </span>
+                        </div>
+
+                        {expandedSections[`${exam.examCode}::validity`] ? (
+                          <div className="rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] px-3 py-2 text-[11px] text-gray-700">
+                            <div>
+                              Available From: {formatDateOnly(exam.paymentAvailableFrom)}
+                            </div>
+                            <div>
+                              Valid Till: {formatDateOnly(exam.paymentValidTill)}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {startReason ? (
+                          <div className="text-[10px] text-rose-700">
+                            Start Exam disabled: {startReason}
+                          </div>
+                        ) : null}
+
+                        <button
+                          onClick={() => {
+                            if (!canStartExam) return;
+                            setPendingExamCode(exam.examCode);
+                            setIntroAccepted(false);
+                            clearMockSelection();
+                          }}
+                          disabled={!canStartExam}
+                          className={`mt-1 text-[11px] px-3 py-2 rounded-full font-semibold transition ${
+                            canStartExam
+                              ? "bg-[#FFCD2C] text-gray-900 hover:bg-[#FFC107]"
+                              : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                          }`}
+                        >
+                          Start Exam
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-xs text-gray-500 sm:col-span-2">
                   No exams available yet.

@@ -7,6 +7,8 @@ const examConfigSchema = new mongoose.Schema(
     title: { type: String, trim: true, default: "" },
     totalTimeMinutes: { type: Number, default: 60 },
     registrationPrice: { type: Number, default: 0 },
+    examStartAt: { type: Date, default: null },
+    examEndAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

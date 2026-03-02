@@ -32,6 +32,8 @@ async function addQuestion(req, res) {
       examTitle,
       totalTimeMinutes,
       registrationPrice,
+      examStartAt,
+      examEndAt,
       // Mock test support
       isMock: rawIsMock,
       mockMode: rawMockMode,
@@ -143,6 +145,26 @@ async function addQuestion(req, res) {
       const num = Number(registrationPrice);
       if (!Number.isNaN(num) && num >= 0) {
         metaUpdate.registrationPrice = num;
+      }
+    }
+    if (examStartAt !== undefined) {
+      if (!examStartAt) {
+        metaUpdate.examStartAt = null;
+      } else {
+        const dt = new Date(examStartAt);
+        if (!Number.isNaN(dt.getTime())) {
+          metaUpdate.examStartAt = dt;
+        }
+      }
+    }
+    if (examEndAt !== undefined) {
+      if (!examEndAt) {
+        metaUpdate.examEndAt = null;
+      } else {
+        const dt = new Date(examEndAt);
+        if (!Number.isNaN(dt.getTime())) {
+          metaUpdate.examEndAt = dt;
+        }
       }
     }
 
