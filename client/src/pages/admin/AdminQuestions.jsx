@@ -12,7 +12,7 @@ const initialExamInfo = {
 };
 
 const getInitialQuestionState = () => ({
-  type: "simple", // simple | multiple | confidence | x_option | branch_parent | branch_child
+  type: "simple", // simple | multiple | confidence | branch_parent | branch_child
   questionText: "",
   options: [
     { key: "A", text: "" },
@@ -822,19 +822,6 @@ function AdminQuestionBuilder() {
                 border: "1px solid #e5e7eb",
               }}
             >
-              X Option
-              <div style={{ fontSize: "18px", fontWeight: 700 }}>
-                {typeCounts.x_option}
-              </div>
-            </div>
-            <div
-              style={{
-                padding: "8px",
-                borderRadius: "8px",
-                background: "#f9fafb",
-                border: "1px solid #e5e7eb",
-              }}
-            >
               Branch Parent
               <div style={{ fontSize: "18px", fontWeight: 700 }}>
                 {typeCounts.branch_parent}
@@ -932,9 +919,6 @@ function AdminQuestionBuilder() {
                 <option value="simple">Set 1 - Simple (single correct)</option>
                 <option value="multiple">Set 2 - Multiple correct</option>
                 <option value="confidence">Set 3 - Confidence based</option>
-                <option value="x_option">
-                  X - Logic / Instruction (No marks)
-                </option>
                 <option value="branch_parent">
                   Set 4 - Branch parent (X choice)
                 </option>
@@ -970,12 +954,6 @@ function AdminQuestionBuilder() {
                   <>
                     Confidence: student chooses answer + confidence level. Marks
                     vary by confidence.
-                  </>
-                )}
-                {question.type === "x_option" && (
-                  <>
-                    X Option: Instructions or information for student. Not
-                    counted as a question.
                   </>
                 )}
                 {question.type === "branch_parent" && (

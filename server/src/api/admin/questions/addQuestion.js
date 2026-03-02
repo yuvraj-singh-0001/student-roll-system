@@ -186,20 +186,16 @@ async function addQuestion(req, res) {
     for (let attempt = 0; attempt < maxRetries; attempt += 1) {
       let finalMockTestCode = mockTestCode;
 
-      // Filter existing questions by test type (main vs specific mock) 
-      // AND question type/branchKey to ensure separate numbering (1, 2, 3...) for each.
+      // Filter existing questions by test (main vs specific mock).
+      // questionNumber must stay unique across the same paper.
       const queryFilter = isMock
         ? { 
             examCode: normalizedExamCode, 
             mockTestCode: finalMockTestCode,
-            type,
-            branchKey: branchKey || undefined
           }
         : {
             examCode: normalizedExamCode,
             $or: [{ isMock: false }, { isMock: { $exists: false } }],
-            type,
-            branchKey: branchKey || undefined
           };
 
       const existing = await (isMock ? MockQuestion : Question)
