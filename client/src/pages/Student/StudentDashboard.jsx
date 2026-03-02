@@ -167,6 +167,12 @@ export default function StudentDashboard() {
     return dt.toLocaleDateString();
   };
 
+  const formatScore = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "0.00";
+    return num.toFixed(2);
+  };
+
   const playPaymentSuccessTone = () => {
     if (typeof window === "undefined") return;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -839,7 +845,7 @@ export default function StudentDashboard() {
                       <td className="py-3 px-3 text-gray-500">
                         {res.createdAt ? new Date(res.createdAt).toLocaleDateString() : "—"}
                       </td>
-                      <td className="py-3 px-3 font-bold text-gray-900">{res.totalMarks}</td>
+                      <td className="py-3 px-3 font-bold text-gray-900">{formatScore(res.totalMarks)}</td>
                       <td className="py-3 px-3 text-gray-600">{res.attemptedCount} / {res.skippedCount}</td>
                       <td className="py-3 px-3">
                         <span className="text-emerald-700 font-semibold">{res.correctCount}</span>

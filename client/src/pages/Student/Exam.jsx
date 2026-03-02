@@ -7,6 +7,10 @@ import { setExamQuestions } from "../../store/examSlice";
 const EXAM_CACHE_KEY = "examListCacheV1";
 const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const EXAM_QUESTIONS_CACHE_TTL_MS = 10 * 60 * 1000;
+const RAZORPAY_KEY = String(import.meta.env.VITE_RAZORPAY_KEY_ID || "").trim();
+const ENABLE_FAKE_PAYMENT =
+  String(import.meta.env.VITE_ENABLE_FAKE_PAYMENT || "true").toLowerCase() !== "false";
+const EXAM_PAYMENT_SYNC_EVENT = "exam-payment-updated";
 
 const getExamCacheKey = (studentIdentifier = "") => {
   const safeId = String(studentIdentifier || "").trim() || "anonymous";
@@ -227,6 +231,7 @@ export default function Exam() {
   const [examStartAt, setExamStartAt] = useState(null);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
+  const [payingExamCode, setPayingExamCode] = useState("");
 
   const location = useLocation();
   const examCodeKey = String(examCode || "").trim();
@@ -343,14 +348,6 @@ export default function Exam() {
       setMockTestCode(activeMockTestCode);
     }
   }, [activeMockTestCode, mockTestCodeKey]);
-
-  useEffect(() => {
-    if (pendingExamCode || examCode) return;
-    const storedExam = localStorage.getItem("examCode");
-    if (storedExam) setPendingExamCode(storedExam);
-    const storedMock = localStorage.getItem("examMockTestCode");
-    if (storedMock) setMockTestCode(String(storedMock || "").trim());
-  }, [pendingExamCode, examCode]);
 
   useEffect(() => {
     if (!examCode) return;
@@ -609,6 +606,93 @@ export default function Exam() {
       [key]: !prev[key],
     }));
   };
+
+  const handlePayForExam = async (exam) => {
+    const code = String(exam?.examCode || "").trim();
+    if (!code) return;
+    const amount = Number(exam?.registrationPrice) || 0;
+
+    const completeExamPayment = async (paymentId, gateway = "razorpay") => {
+      const { data } = await examApi.payForExam({
+        examCode: code,
+        paymentId,
+        amount,
+        gateway,
+      });
+
+      if (!data?.success) {
+        throw new Error(data?.message || "Payment verification failed");
+      }
+
+      await fetchExamList({ silent: true, forceRefresh: true });
+      localStorage.setItem("examPaymentSyncTick", String(Date.now()));
+      window.dispatchEvent(new Event(EXAM_PAYMENT_SYNC_EVENT));
+      alert("Payment successful! Exam unlocked.");
+    };
+
+    try {
+      setPayingExamCode(code);
+
+      const shouldUseFakePayment =
+        typeof window === "undefined" ||
+        typeof window.Razorpay !== "function" ||
+        !RAZORPAY_KEY;
+
+      if (shouldUseFakePayment) {
+        if (!ENABLE_FAKE_PAYMENT) {
+          throw new Error("Payment gateway is not configured");
+        }
+        await completeExamPayment(`FAKE_${code}_${Date.now()}`, "fake");
+        return;
+      }
+
+      const options = {
+        key: RAZORPAY_KEY,
+        amount: amount * 100,
+        currency: "INR",
+        name: "Olympiad Exam",
+        description: `Payment for ${exam.title || code}`,
+        handler: async function (response) {
+          try {
+            await completeExamPayment(response.razorpay_payment_id, "razorpay");
+          } catch (err) {
+            alert(err?.response?.data?.message || err?.message || "Payment verification failed");
+          } finally {
+            setPayingExamCode("");
+          }
+        },
+        prefill: {
+          name: localStorage.getItem("studentName") || "",
+          email: localStorage.getItem("studentEmail") || "",
+        },
+        theme: {
+          color: "#FFCD2C",
+        },
+        modal: {
+          ondismiss: function () {
+            setPayingExamCode("");
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      alert(error?.response?.data?.message || error?.message || "Payment failed");
+      setPayingExamCode("");
+    }
+  };
+
+  useEffect(() => {
+    const handlePaymentSync = () => {
+      fetchExamList({ silent: true, forceRefresh: true });
+    };
+
+    window.addEventListener(EXAM_PAYMENT_SYNC_EVENT, handlePaymentSync);
+    return () => {
+      window.removeEventListener(EXAM_PAYMENT_SYNC_EVENT, handlePaymentSync);
+    };
+  }, [fetchExamList]);
 
   const visibleQuestions = useMemo(() => {
     if (!questions.length) return [];
@@ -1176,9 +1260,6 @@ export default function Exam() {
           <div className="relative z-10 min-h-screen">
             <div className="max-w-5xl mx-auto px-4 py-10">
               <div className="text-center mb-6">
-                <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] rounded-xl flex items-center justify-center shadow">
-                  <span className="text-xs font-bold text-gray-900">TTT</span>
-                </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1">
                   Question Types - Instructions
                 </h3>
@@ -1359,9 +1440,6 @@ export default function Exam() {
         <div className="relative z-10 min-h-screen">
           <div className="max-w-5xl mx-auto px-4 py-10">
             <div className="text-center mb-6">
-              <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] rounded-xl flex items-center justify-center shadow">
-                <span className="text-xs font-bold text-gray-900">TTT</span>
-              </div>
               <h3 className="text-lg font-bold text-gray-900 mb-1">
                 Choose Your Exam
               </h3>
@@ -1394,6 +1472,7 @@ export default function Exam() {
                   const canStartExam = !!exam?.canStartExam;
                   const paymentAmount = Number(exam?.payment?.amount) || 0;
                   const paymentDate = exam?.payment?.paidAt || null;
+                  const examPrice = Number(exam?.registrationPrice) || 0;
                   const startReason = !isStudentPaid
                     ? "Payment required"
                     : !exam?.isPaymentValidityActive
@@ -1422,9 +1501,15 @@ export default function Exam() {
                               {exam.totalTimeMinutes || 60} min
                             </p>
                           </div>
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFCD2C] to-[#E0AC00] flex items-center justify-center text-[10px] font-bold text-gray-900 shadow">
-                            TTT
-                          </div>
+                          <span
+                            className={`text-[10px] font-bold rounded-full px-2.5 py-1 border ${
+                              isStudentPaid
+                                ? "bg-green-50 text-green-700 border-green-200 animate-pulse"
+                                : "bg-red-50 text-red-600 border-red-200"
+                            }`}
+                          >
+                            {isStudentPaid ? "PAID" : "UNPAID"}
+                          </span>
                         </div>
 
                         <div className="text-[11px] text-gray-600 leading-tight">
@@ -1497,22 +1582,39 @@ export default function Exam() {
                           </div>
                         ) : null}
 
-                        <button
-                          onClick={() => {
-                            if (!canStartExam) return;
-                            setPendingExamCode(exam.examCode);
-                            setIntroAccepted(false);
-                            clearMockSelection();
-                          }}
-                          disabled={!canStartExam}
-                          className={`mt-1 text-[11px] px-3 py-2 rounded-full font-semibold transition ${
-                            canStartExam
-                              ? "bg-[#FFCD2C] text-gray-900 hover:bg-[#FFC107]"
-                              : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                          }`}
-                        >
-                          Start Exam
-                        </button>
+                        {isStudentPaid ? (
+                          <button
+                            onClick={() => {
+                              if (!canStartExam) return;
+                              setPendingExamCode(exam.examCode);
+                              setIntroAccepted(false);
+                              clearMockSelection();
+                            }}
+                            disabled={!canStartExam}
+                            className={`mt-1 text-[11px] px-3 py-2 rounded-full font-semibold transition ${
+                              canStartExam
+                                ? "bg-[#FFCD2C] text-gray-900 hover:bg-[#FFC107]"
+                                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                            }`}
+                          >
+                            Start Exam
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handlePayForExam(exam)}
+                            disabled={payingExamCode === exam.examCode}
+                            className={`mt-1 text-[11px] px-3 py-2 rounded-full font-semibold transition ${
+                              payingExamCode === exam.examCode
+                                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                : "bg-emerald-600 text-white hover:bg-emerald-700"
+                            }`}
+                          >
+                            {payingExamCode === exam.examCode
+                              ? "Processing..."
+                              : `Pay ₹${examPrice}`}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
