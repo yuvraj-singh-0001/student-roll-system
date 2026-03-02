@@ -21,10 +21,10 @@ async function registerOlympiadStudent(req, res) {
       rollNumber: studentId,
       isPaid: !!payment, // mark as paid if payment provided
       payment: payment ? {
+        paymentId: payment.paymentId,
         paidAt: new Date(),
         amount: payment.amount,
-        transactionId: payment.paymentId,
-        status: "completed",
+        status: "success",
       } : undefined,
     });
     await student.save();

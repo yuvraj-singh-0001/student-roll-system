@@ -228,7 +228,7 @@ async function listOlympiadExams(req, res) {
     // First resolve student separately to avoid temporal dead zone
     const student = await resolveStudentFromRequest(req);
     
-    const [configs, paidCountsAgg, legacyMockCodes, mockCodes, studentPayments] =
+    const [configs, paidCountsAgg, legacyGeneralPaidCount, legacyMockCodes, mockCodes, studentPayments] =
       await Promise.all([
         ExamConfig.find().sort({ createdAt: -1 }).lean(),
         Student.aggregate([
@@ -249,6 +249,15 @@ async function listOlympiadExams(req, res) {
             },
           },
         ]),
+        Student.countDocuments({
+          isPaid: true,
+          "payment.status": "success",
+          examPayments: {
+            $not: {
+              $elemMatch: { status: "success" },
+            },
+          },
+        }),
         Question.distinct("examCode", {
           isMock: true,
           mockTestCode: { $exists: true, $ne: "" },
@@ -279,13 +288,29 @@ async function listOlympiadExams(req, res) {
     });
 
     const configMap = Object.fromEntries(
-      configs.map((c) => [c.examCode, c])
+      configs.map((c) => [String(c?.examCode || "").trim(), c])
     );
 
     const examCodes = new Set([
       ...Array.from(countMap.keys()),
-      ...configs.map((c) => c.examCode),
+      ...configs.map((c) => String(c?.examCode || "").trim()),
     ]);
+
+    const configOrderedCodes = configs
+      .map((c) => String(c?.examCode || "").trim())
+      .filter(Boolean);
+    const configCodeSet = new Set(configOrderedCodes);
+    const remainingCodes = Array.from(examCodes)
+      .map((code) => String(code || "").trim())
+      .filter((code) => code && !configCodeSet.has(code))
+      .sort((a, b) => a.localeCompare(b));
+    const orderedExamCodes = [...configOrderedCodes, ...remainingCodes];
+    const legacyFallbackExamCode = orderedExamCodes[0] || "";
+
+    if (legacyFallbackExamCode && Number(legacyGeneralPaidCount) > 0) {
+      const prev = paidCountMap.get(legacyFallbackExamCode) || 0;
+      paidCountMap.set(legacyFallbackExamCode, prev + Number(legacyGeneralPaidCount));
+    }
 
     const legacyGeneralPayment =
       student &&
@@ -301,7 +326,7 @@ async function listOlympiadExams(req, res) {
 
     let legacyGeneralPaymentConsumed = false;
 
-    const data = Array.from(examCodes).map((code) => {
+    const data = orderedExamCodes.map((code) => {
       const c = configMap[code];
       const counts = countMap.get(code) || {
         totalQuestions: 0,
@@ -319,7 +344,12 @@ async function listOlympiadExams(req, res) {
         String(legacyExamPaymentRecord?.status || "").toLowerCase() === "success"
       ) {
         effectivePaymentRecord = legacyExamPaymentRecord;
-      } else if (legacyGeneralPayment && !legacyGeneralPaymentConsumed) {
+      } else if (
+        legacyGeneralPayment &&
+        !legacyGeneralPaymentConsumed &&
+        legacyFallbackExamCode &&
+        code === legacyFallbackExamCode
+      ) {
         effectivePaymentRecord = legacyGeneralPayment;
         legacyGeneralPaymentConsumed = true;
       }

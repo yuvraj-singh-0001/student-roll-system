@@ -125,6 +125,30 @@ const studentSchema = new mongoose.Schema(
       paidAt: Date
     },
 
+    examPayments: [
+      {
+        examCode: {
+          type: String,
+          trim: true,
+          index: true,
+        },
+        paymentId: {
+          type: String,
+          trim: true,
+        },
+        amount: {
+          type: Number,
+          default: 0,
+        },
+        status: {
+          type: String,
+          enum: ["pending", "success", "failed"],
+          default: "pending",
+        },
+        paidAt: Date,
+      },
+    ],
+
     trackingId: {
       type: String
     },
@@ -162,5 +186,6 @@ studentSchema.index({ mobile: 1 });
 studentSchema.index({ trackingId: 1 });
 studentSchema.index({ course: 1 });
 studentSchema.index({ createdAt: -1 });
+studentSchema.index({ "examPayments.examCode": 1, "examPayments.status": 1 });
 
 module.exports = mongoose.model("Student", studentSchema);

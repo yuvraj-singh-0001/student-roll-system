@@ -22,6 +22,7 @@ const EXAM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const RAZORPAY_KEY = String(import.meta.env.VITE_RAZORPAY_KEY_ID || "").trim();
 const ENABLE_FAKE_PAYMENT =
   String(import.meta.env.VITE_ENABLE_FAKE_PAYMENT || "true").toLowerCase() !== "false";
+const EXAM_PAYMENT_SYNC_EVENT = "exam-payment-updated";
 
 const getExamCacheKey = (studentIdentifier = "") => {
   const safeId = String(studentIdentifier || "").trim() || "anonymous";
@@ -313,6 +314,8 @@ export default function StudentDashboard() {
       }
 
       await fetchExamList({ silent: true, forceRefresh: true });
+      localStorage.setItem("examPaymentSyncTick", String(Date.now()));
+      window.dispatchEvent(new Event(EXAM_PAYMENT_SYNC_EVENT));
       showPaymentSuccessToast(exam);
     };
 
@@ -478,6 +481,17 @@ export default function StudentDashboard() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const handlePaymentSync = () => {
+      fetchExamList({ silent: true, forceRefresh: true });
+    };
+
+    window.addEventListener(EXAM_PAYMENT_SYNC_EVENT, handlePaymentSync);
+    return () => {
+      window.removeEventListener(EXAM_PAYMENT_SYNC_EVENT, handlePaymentSync);
+    };
+  }, [fetchExamList]);
 
   return (
     <div className="min-h-screen bg-[#FFFDF5] text-gray-900">
@@ -720,7 +734,7 @@ export default function StudentDashboard() {
                               if (!code) return;
                               localStorage.setItem("examCode", code);
                               localStorage.removeItem("examMockTestCode");
-                              navigate("/student/exam");
+                              navigate(`/student/exam?examCode=${encodeURIComponent(code)}`);
                             }}
                             disabled={!canStartExam}
                             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${

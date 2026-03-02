@@ -3,7 +3,7 @@ const Student = require("../../../models/Student");
 
 const paymentSuccess = async (req, res) => {
   try {
-    const { paymentId, amount } = req.body;
+    const { paymentId, amount, examCode } = req.body;
     const studentId = req.user.userId;
 
     const student = await Student.findById(studentId);
@@ -15,19 +15,52 @@ const paymentSuccess = async (req, res) => {
       });
     }
 
+    const paidAt = new Date();
+    const normalizedExamCode = String(examCode || "").trim();
+    const safeAmount = Number(amount) || 0;
+
     student.isPaid = true;
     student.payment = {
       paymentId,
-      amount,
+      amount: safeAmount,
       status: "success",
-      paidAt: new Date(),
+      paidAt,
     };
+
+    if (normalizedExamCode) {
+      const existingIndex = Array.isArray(student.examPayments)
+        ? student.examPayments.findIndex(
+            (entry) => String(entry?.examCode || "").trim() === normalizedExamCode,
+          )
+        : -1;
+
+      const nextEntry = {
+        examCode: normalizedExamCode,
+        paymentId,
+        amount: safeAmount,
+        status: "success",
+        paidAt,
+      };
+
+      if (!Array.isArray(student.examPayments)) {
+        student.examPayments = [nextEntry];
+      } else if (existingIndex >= 0) {
+        student.examPayments[existingIndex] = {
+          ...student.examPayments[existingIndex],
+          ...nextEntry,
+        };
+      } else {
+        student.examPayments.push(nextEntry);
+      }
+    }
 
     await student.save();
 
     res.json({
       success: true,
-      message: `Registration successful with payment. Please remember your Name: ${student.name} and Mobile: ${student.mobile}`,
+      message: normalizedExamCode
+        ? `Payment successful for exam ${normalizedExamCode}.`
+        : `Registration successful with payment. Please remember your Name: ${student.name} and Mobile: ${student.mobile}`,
     });
 
   } catch (error) {

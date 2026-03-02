@@ -8,6 +8,33 @@ const { listOlympiadAttempts, getOlympiadAttemptDetails } = require("../../api/s
 const listOlympiadExams = require("../../api/student/olympiad/listOlympiadExams");
 const registerOlympiadStudent = require("../../api/student/olympiad/registerOlympiadStudent");
 
+// Debug route to check exam configs
+router.get("/debug-configs", async (req, res) => {
+  try {
+    const ExamConfig = require("../../models/ExamConfig");
+    const configs = await ExamConfig.find().lean();
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalConfigs: configs.length,
+        configs: configs.map(c => ({
+          examCode: c.examCode,
+          title: c.title,
+          registrationPrice: c.registrationPrice,
+          totalTimeMinutes: c.totalTimeMinutes,
+          createdAt: c.createdAt
+        }))
+      }
+    });
+  } catch (err) {
+    console.error("Debug configs error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 router.post("/submit", submitOlympiadExam); // real exam submit
 router.post("/mock/submit", submitMockExam); // mock test submit (saved in mocktest_results)
 router.get("/list", listOlympiadExams);
