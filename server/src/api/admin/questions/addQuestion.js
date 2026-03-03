@@ -30,6 +30,9 @@ async function addQuestion(req, res) {
       parentQuestion,
       branchKey,
       examTitle,
+      examType,
+      mockAllowed,
+      paymentRequired,
       totalTimeMinutes,
       registrationPrice,
       examStartAt,
@@ -156,6 +159,34 @@ async function addQuestion(req, res) {
           metaUpdate.examStartAt = dt;
         }
       }
+    }
+
+    if (examType !== undefined && examType !== null) {
+      const normalizedExamType = String(examType || "").trim().toLowerCase();
+      if (normalizedExamType) {
+        metaUpdate.examType = normalizedExamType;
+      }
+    }
+
+    if (mockAllowed !== undefined && mockAllowed !== null) {
+      metaUpdate.mockAllowed = !!mockAllowed;
+    }
+
+    if (paymentRequired !== undefined && paymentRequired !== null) {
+      metaUpdate.paymentRequired = !!paymentRequired;
+    }
+
+    const effectiveExamStartAt = metaUpdate.examStartAt;
+    const effectiveExamEndAt = metaUpdate.examEndAt;
+    if (
+      effectiveExamStartAt instanceof Date &&
+      effectiveExamEndAt instanceof Date &&
+      effectiveExamEndAt.getTime() <= effectiveExamStartAt.getTime()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Live end date/time must be after live start date/time.",
+      });
     }
     if (examEndAt !== undefined) {
       if (!examEndAt) {

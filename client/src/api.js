@@ -195,6 +195,7 @@ export const olympiadExamApi = {
   submit: (body) => API.post("/olympiad/submit", body),
   // mock test submit (results stored in mocktest_results collection)
   submitMock: (body) => API.post("/olympiad/mock/submit", body),
+  interested: (body) => API.post("/olympiad/interested", body),
   attempts: (params) => API.get("/olympiad/attempts", { params }),
   attemptDetails: (attemptId) =>
     API.get(`/olympiad/attempts/${attemptId}`),

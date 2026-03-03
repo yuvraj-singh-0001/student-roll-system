@@ -5,6 +5,9 @@ import { questionApi } from "../../api";
 const initialExamInfo = {
   title: "",
   examCode: "",
+  examType: "olympiad",
+  mockAllowed: true,
+  paymentRequired: true,
   totalTimeMinutes: "",
   registrationPrice: "",
   examStartAt: "",
@@ -78,6 +81,12 @@ function AdminQuestionBuilder() {
   useEffect(() => {
     setMessage("");
   }, [question.type, examInfo.examCode]);
+
+  useEffect(() => {
+    if (!examInfo.mockAllowed && isMock) {
+      setIsMock(false);
+    }
+  }, [examInfo.mockAllowed, isMock]);
 
   useEffect(() => {
     const code = examInfo.examCode.trim();
@@ -154,8 +163,11 @@ function AdminQuestionBuilder() {
   }, [examInfo.examCode, isMock, mockTestCode]);
 
   const handleExamInfoChange = (e) => {
-    const { name, value } = e.target;
-    setExamInfo((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setExamInfo((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleQuestionTextChange = (e) => {
@@ -225,6 +237,15 @@ function AdminQuestionBuilder() {
       setMessage("Please enter question text.");
       return;
     }
+
+    if (examInfo.examStartAt && examInfo.examEndAt) {
+      const startMs = new Date(examInfo.examStartAt).getTime();
+      const endMs = new Date(examInfo.examEndAt).getTime();
+      if (Number.isFinite(startMs) && Number.isFinite(endMs) && endMs <= startMs) {
+        setMessage("Live End Date & Time must be after Live Start Date & Time.");
+        return;
+      }
+    }
     const requiredOptionCount = question.type === "branch_parent" ? 2 : 4;
     const emptyOption = question.options
       .slice(0, requiredOptionCount)
@@ -275,6 +296,9 @@ function AdminQuestionBuilder() {
     const payload = {
       examCode: examInfo.examCode.trim(),
       examTitle: examInfo.title,
+      examType: examInfo.examType,
+      mockAllowed: examInfo.mockAllowed,
+      paymentRequired: examInfo.paymentRequired,
       totalTimeMinutes: examInfo.totalTimeMinutes,
       registrationPrice: examInfo.registrationPrice,
       examStartAt: examInfo.examStartAt,
@@ -509,6 +533,20 @@ function AdminQuestionBuilder() {
             />
           </div>
           <div>
+            <label style={labelStyle}>Exam Type</label>
+            <select
+              name="examType"
+              value={examInfo.examType}
+              onChange={handleExamInfoChange}
+              style={inputStyle}
+            >
+              <option value="olympiad">Olympiad</option>
+              <option value="practice">Practice</option>
+              <option value="mock_only">Mock Only</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div>
             <label style={labelStyle}>Total Time (Mins)</label>
             <input
               type="number"
@@ -549,6 +587,30 @@ function AdminQuestionBuilder() {
               onChange={handleExamInfoChange}
               style={inputStyle}
             />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: "8px" }}>
+            <label style={{ ...labelStyle, marginBottom: 0 }}>Mock Allowed?</label>
+            <label style={{ fontSize: "13px", color: "#374151", display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="checkbox"
+                name="mockAllowed"
+                checked={!!examInfo.mockAllowed}
+                onChange={handleExamInfoChange}
+              />
+              Enable mock tests for this exam
+            </label>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: "8px" }}>
+            <label style={{ ...labelStyle, marginBottom: 0 }}>Payment Required?</label>
+            <label style={{ fontSize: "13px", color: "#374151", display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="checkbox"
+                name="paymentRequired"
+                checked={!!examInfo.paymentRequired}
+                onChange={handleExamInfoChange}
+              />
+              Student must pay before starting
+            </label>
           </div>
         </div>
       </div>
@@ -598,7 +660,11 @@ function AdminQuestionBuilder() {
             </button>
             <button
               type="button"
-              onClick={() => setIsMock(true)}
+              onClick={() => {
+                if (!examInfo.mockAllowed) return;
+                setIsMock(true);
+              }}
+              disabled={!examInfo.mockAllowed}
               style={{
                 padding: "6px 14px",
                 borderRadius: "8px",
@@ -606,7 +672,8 @@ function AdminQuestionBuilder() {
                 background: isMock ? "#ffffff" : "transparent",
                 color: isMock ? "#2563eb" : "#4b5563",
                 boxShadow: isMock ? "0 1px 2px rgba(0,0,0,0.1)" : "none",
-                cursor: "pointer",
+                cursor: examInfo.mockAllowed ? "pointer" : "not-allowed",
+                opacity: examInfo.mockAllowed ? 1 : 0.5,
                 fontWeight: 700,
                 fontSize: "12px",
               }}
@@ -616,7 +683,13 @@ function AdminQuestionBuilder() {
           </div>
         </div>
 
-        {isMock && (
+        {!examInfo.mockAllowed && (
+          <div style={{ fontSize: "12px", color: "#b45309", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "8px", padding: "8px 10px" }}>
+            Mock tests are disabled for this exam config.
+          </div>
+        )}
+
+        {isMock && examInfo.mockAllowed && (
           <div
             style={{
               display: "grid",

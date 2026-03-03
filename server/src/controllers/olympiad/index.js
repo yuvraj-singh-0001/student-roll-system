@@ -7,6 +7,7 @@ const submitMockExam = require("../../api/student/olympiad/submitMockExam");
 const { listOlympiadAttempts, getOlympiadAttemptDetails } = require("../../api/student/olympiad/olympiadAttempts");
 const listOlympiadExams = require("../../api/student/olympiad/listOlympiadExams");
 const registerOlympiadStudent = require("../../api/student/olympiad/registerOlympiadStudent");
+const markExamInterested = require("../../api/student/olympiad/markExamInterested");
 
 // Debug route to check exam configs
 router.get("/debug-configs", async (req, res) => {
@@ -41,5 +42,6 @@ router.get("/list", listOlympiadExams);
 router.get("/attempts", listOlympiadAttempts);
 router.get("/attempts/:attemptId", getOlympiadAttemptDetails);
 router.post("/register", registerOlympiadStudent);
+router.post("/interested", markExamInterested);
 
 module.exports = router;

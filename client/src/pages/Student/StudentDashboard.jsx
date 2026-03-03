@@ -90,6 +90,7 @@ export default function StudentDashboard() {
   const [mockTests, setMockTests] = useState([]);
   const [expandedSections, setExpandedSections] = useState({});
   const [payingExamCode, setPayingExamCode] = useState("");
+  const [interestLoadingByCode, setInterestLoadingByCode] = useState({});
   const [paymentSuccessToast, setPaymentSuccessToast] = useState({
     visible: false,
     title: "",
@@ -165,6 +166,18 @@ export default function StudentDashboard() {
     const dt = new Date(value);
     if (Number.isNaN(dt.getTime())) return "—";
     return dt.toLocaleDateString();
+  };
+
+  const formatUpcomingStart = (value) => {
+    if (!value) return "Exam start time will be announced";
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return "Exam start time will be announced";
+    return `Exam starts on ${dt.toLocaleString(undefined, {
+      day: "2-digit",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
   };
 
   const formatScore = (value) => {
@@ -429,6 +442,37 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleMarkInterested = async (examCode) => {
+    const code = String(examCode || "").trim();
+    if (!code) return;
+    if (interestLoadingByCode[code]) return;
+
+    try {
+      setInterestLoadingByCode((prev) => ({ ...prev, [code]: true }));
+      const { data } = await olympiadExamApi.interested({ examCode: code });
+      if (!data?.success) {
+        throw new Error(data?.message || "Failed to save interest");
+      }
+
+      setExamList((prev) =>
+        (prev || []).map((item) =>
+          String(item?.examCode || "").trim() === code
+            ? {
+                ...item,
+                studentInterested: true,
+                interestedCount:
+                  Number(data?.data?.interestedCount) || Number(item?.interestedCount) || 0,
+              }
+            : item,
+        ),
+      );
+    } catch (err) {
+      alert(err?.response?.data?.message || err?.message || "Failed to save interest");
+    } finally {
+      setInterestLoadingByCode((prev) => ({ ...prev, [code]: false }));
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     setResultsLoading(true);
@@ -500,6 +544,30 @@ export default function StudentDashboard() {
     };
   }, [fetchExamList]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchExamList({ silent: true, forceRefresh: true });
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [fetchExamList]);
+
+  const nowMs = Date.now();
+  const isUpcomingExam = (exam) => {
+    if (typeof exam?.isUpcoming === "boolean") return exam.isUpcoming;
+    const startMs = exam?.examStartAt ? new Date(exam.examStartAt).getTime() : null;
+    return Number.isFinite(startMs) ? startMs > nowMs : false;
+  };
+  const isLiveExam = (exam) => {
+    if (typeof exam?.isLiveNow === "boolean") return exam.isLiveNow;
+    const startMs = exam?.examStartAt ? new Date(exam.examStartAt).getTime() : null;
+    const endMs = exam?.examEndAt ? new Date(exam.examEndAt).getTime() : null;
+    const started = !Number.isFinite(startMs) || startMs <= nowMs;
+    const notEnded = !Number.isFinite(endMs) || endMs >= nowMs;
+    return started && notEnded;
+  };
+  const availableOlympiads = (examList || []).filter((exam) => isLiveExam(exam));
+  const upcomingOlympiads = (examList || []).filter((exam) => isUpcomingExam(exam));
+
   return (
     <div className="min-h-screen bg-[#FFFDF5] text-gray-900">
       {/* Background blobs */}
@@ -562,7 +630,7 @@ export default function StudentDashboard() {
             <div>
               <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Examination</p>
               <h2 className="text-sm font-bold text-gray-900">Available Olympiads</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Start your exam directly from here.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Currently live exams. Start exam only during live window.</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
@@ -594,19 +662,20 @@ export default function StudentDashboard() {
             </div>
           ) : examError ? (
             <p className="py-8 text-center text-xs text-red-500">{examError}</p>
-          ) : examList.length === 0 ? (
+          ) : availableOlympiads.length === 0 ? (
             <p className="py-8 text-center text-xs text-gray-400">No exams available yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {examList.map((exam) => {
+              {availableOlympiads.map((exam) => {
                 const isStudentPaid    = !!exam?.isStudentPaid;
                 const canStartExam     = !!exam?.canStartExam;
                 const hasMocks         = !!exam?.hasMocks;
                 const paymentAmount    = Number(exam?.payment?.amount) || 0;
                 const paymentDate      = exam?.payment?.paidAt || null;
                 const examPrice        = Number(exam?.registrationPrice) || 0;
+                const paymentRequired  = exam?.paymentRequired !== false;
                 const startReason      = !isStudentPaid
-                  ? "Payment required"
+                  ? (paymentRequired ? "Payment required" : "")
                   : !exam?.isPaymentValidityActive
                   ? "10-day validity expired"
                   : !exam?.isExamWindowActive
@@ -739,7 +808,7 @@ export default function StudentDashboard() {
 
                       {/* Actions */}
                       <div className="flex items-center gap-2 pt-1 mt-auto">
-                        {isStudentPaid ? (
+                        {isStudentPaid || !paymentRequired ? (
                           <button
                             onClick={() => {
                               if (!canStartExam) return;
@@ -783,6 +852,118 @@ export default function StudentDashboard() {
                             className="px-4 py-2 rounded-full border border-[#FFE6A3] bg-[#FFFDF5] hover:bg-[#FFF3C4] text-xs font-semibold text-gray-800 transition-all"
                           >
                             Mock Tests
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── Upcoming Olympiads ────────────────────────────────────────── */}
+        <div className="bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Examination</p>
+              <h2 className="text-sm font-bold text-gray-900">Upcoming Olympiads</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Future exams with schedule and interest tracking.</p>
+            </div>
+          </div>
+
+          {upcomingOlympiads.length === 0 ? (
+            <p className="py-8 text-center text-xs text-gray-400">No upcoming olympiads right now.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {upcomingOlympiads.map((exam) => {
+                const isStudentPaid = !!exam?.isStudentPaid;
+                const paymentRequired = exam?.paymentRequired !== false;
+                const examPrice = Number(exam?.registrationPrice) || 0;
+                const startLabel = exam?.examStartAt
+                  ? new Date(exam.examStartAt).toLocaleString([], {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "scheduled time";
+                const interestedCount = Number(exam?.interestedCount) || 0;
+                const studentInterested = !!exam?.studentInterested;
+
+                return (
+                  <div
+                    key={`upcoming-${exam.examCode}`}
+                    className="rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm"
+                  >
+                    <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 to-indigo-600" />
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-bold text-gray-900">{exam.title || exam.examCode}</h3>
+                        <span className="text-[10px] font-bold rounded-full px-2.5 py-1 border bg-blue-50 text-blue-700 border-blue-200">
+                          UPCOMING
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl bg-[#FFFDF5] border border-[#FFE6A3] px-3 py-2.5 text-[11px] space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">Live Start</span>
+                          <span className="font-semibold text-gray-900">{formatDateTime(exam.examStartAt)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500">Exam Code</span>
+                          <span className="font-semibold text-gray-900">{exam.examCode}</span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                        Exam starts on {startLabel}
+                      </p>
+
+                      <p className="text-[11px] text-gray-600">
+                        {interestedCount} Students Interested
+                      </p>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => handleMarkInterested(exam.examCode)}
+                          disabled={studentInterested}
+                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                            studentInterested
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : "bg-indigo-600 text-white hover:bg-indigo-700"
+                          }`}
+                        >
+                          {studentInterested ? "Interested ✓" : "Interested"}
+                        </button>
+
+                        {paymentRequired && !isStudentPaid ? (
+                          <button
+                            type="button"
+                            onClick={() => handlePayForExam(exam)}
+                            disabled={payingExamCode === exam.examCode}
+                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                              payingExamCode === exam.examCode
+                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : "bg-emerald-600 text-white hover:bg-emerald-700"
+                            }`}
+                          >
+                            {payingExamCode === exam.examCode
+                              ? "Processing..."
+                              : examPrice > 0
+                              ? `Pay ₹${examPrice}`
+                              : "Pay Now"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="px-4 py-2 rounded-full text-xs font-bold bg-gray-100 text-gray-400 cursor-not-allowed"
+                          >
+                            Exam starts on {startLabel}
                           </button>
                         )}
                       </div>
