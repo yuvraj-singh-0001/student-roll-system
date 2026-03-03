@@ -356,6 +356,30 @@ export default function Exam() {
   }, [urlExamCode, urlMockTestCode, examCode, pendingExamCode, searchParams]);
 
   useEffect(() => {
+    if (examCode) return;
+    const storedExamCode = String(
+      typeof window !== "undefined" ? localStorage.getItem("examCode") || "" : "",
+    ).trim();
+    if (!storedExamCode) return;
+
+    const storedStartExamCode = String(
+      typeof window !== "undefined"
+        ? localStorage.getItem("examStartExamCode") || ""
+        : "",
+    ).trim();
+
+    if (storedStartExamCode && storedStartExamCode === storedExamCode) {
+      setExamCode(storedExamCode);
+      setPendingExamCode("");
+      return;
+    }
+
+    if (!urlExamCode && !pendingExamCode) {
+      setPendingExamCode(storedExamCode);
+    }
+  }, [examCode, pendingExamCode, urlExamCode]);
+
+  useEffect(() => {
     if (activeMockTestCode && activeMockTestCode !== mockTestCodeKey) {
       setMockTestCode(activeMockTestCode);
     }
@@ -510,8 +534,7 @@ export default function Exam() {
     setSubmitSuccess(null);
     setAutoSubmitted(false);
 
-    const shouldFetch =
-      !usedCache || cacheIsStale || cachedQuestions.length === 0;
+    const shouldFetch = true;
 
     if (!shouldFetch) {
       return () => {
