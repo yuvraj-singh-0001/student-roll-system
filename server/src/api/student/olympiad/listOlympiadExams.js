@@ -4,6 +4,7 @@ const Question = require("../../../models/Question");
 const MockQuestion = require("../../../models/MockQuestion");
 const Student = require("../../../models/Student");
 const Payment = require("../../../models/Payment");
+const ExamInterest = require("../../../models/ExamInterest");
 const User = require("../../../models/User");
 const jwt = require("jsonwebtoken");
 
@@ -42,6 +43,11 @@ function toDateOrNull(value) {
   const dt = new Date(value);
   if (Number.isNaN(dt.getTime())) return null;
   return dt;
+}
+
+function toBooleanOrDefault(value, defaultValue) {
+  if (value === undefined || value === null) return defaultValue;
+  return !!value;
 }
 
 async function resolveStudentFromRequest(req) {
@@ -228,7 +234,16 @@ async function listOlympiadExams(req, res) {
     // First resolve student separately to avoid temporal dead zone
     const student = await resolveStudentFromRequest(req);
     
-    const [configs, paidCountsAgg, legacyGeneralPaidCount, legacyMockCodes, mockCodes, studentPayments] =
+    const [
+      configs,
+      paidCountsAgg,
+      legacyGeneralPaidCount,
+      legacyMockCodes,
+      mockCodes,
+      studentPayments,
+      interestedCountsAgg,
+      studentInterests,
+    ] =
       await Promise.all([
         ExamConfig.find().sort({ createdAt: -1 }).lean(),
         Student.aggregate([
@@ -266,6 +281,17 @@ async function listOlympiadExams(req, res) {
           mockTestCode: { $exists: true, $ne: "" },
         }),
         student ? Payment.find({ studentId: student._id, status: "success" }).lean() : [],
+        ExamInterest.aggregate([
+          {
+            $group: {
+              _id: "$examCode",
+              total: { $sum: 1 },
+            },
+          },
+        ]),
+        student
+          ? ExamInterest.find({ studentId: student._id }).select({ examCode: 1, _id: 0 }).lean()
+          : [],
       ]);
 
     const questions = await Question.find({
@@ -279,6 +305,12 @@ async function listOlympiadExams(req, res) {
     const studentExamPaymentMap = buildStudentExamPaymentMap(student);
     const paidCountMap = new Map(
       (paidCountsAgg || []).map((item) => [String(item?._id || "").trim(), Number(item?.total) || 0]),
+    );
+    const interestedCountMap = new Map(
+      (interestedCountsAgg || []).map((item) => [String(item?._id || "").trim(), Number(item?.total) || 0]),
+    );
+    const studentInterestedSet = new Set(
+      (studentInterests || []).map((entry) => String(entry?.examCode || "").trim()).filter(Boolean),
     );
 
     // Build payment map from new Payment model
@@ -362,17 +394,23 @@ async function listOlympiadExams(req, res) {
 
       const examStartAt = toDateOrNull(c?.examStartAt);
       const examEndAt = toDateOrNull(c?.examEndAt);
+      const isUpcoming = !!(examStartAt && now < examStartAt.getTime());
       const startsOk = !examStartAt || now >= examStartAt.getTime();
       const endsOk = !examEndAt || now <= examEndAt.getTime();
       const isExamWindowActive = startsOk && endsOk;
-      const canStartExam =
-        paymentState.isStudentPaid &&
-        paymentState.isPaymentValidityActive &&
-        isExamWindowActive;
+      const isLiveNow = !isUpcoming && isExamWindowActive;
+
+      const isPaymentRequired = toBooleanOrDefault(c?.paymentRequired, true);
+      const canStartExam = isLiveNow && (isPaymentRequired
+        ? paymentState.isStudentPaid && paymentState.isPaymentValidityActive
+        : true);
 
       return {
         examCode: code,
         title: c?.title || code,
+        examType: c?.examType || "olympiad",
+        mockAllowed: toBooleanOrDefault(c?.mockAllowed, true),
+        paymentRequired: isPaymentRequired,
         totalTimeMinutes: c?.totalTimeMinutes || 60,
         registrationPrice: c?.registrationPrice || 0,
         examStartAt: examStartAt ? examStartAt.toISOString() : null,
@@ -386,8 +424,12 @@ async function listOlympiadExams(req, res) {
         paymentAvailableFrom: paymentState.paymentAvailableFrom,
         paymentValidTill: paymentState.paymentValidTill,
         isPaymentValidityActive: paymentState.isPaymentValidityActive,
+        isUpcoming,
+        isLiveNow,
         isExamWindowActive,
         canStartExam,
+        interestedCount: interestedCountMap.get(code) || 0,
+        studentInterested: studentInterestedSet.has(code),
         hasMocks: mockExamCodeSet.has(code),
         createdAt: c?.createdAt || null,
       };
