@@ -5,6 +5,7 @@ const adminLinks = [
   { path: "/admin", label: "Dashboard", icon: "🏠" },
   { path: "/admin/questions", label: "Questions", icon: "📝" },
   { path: "/admin/exam-dashboard", label: "Exam Dashboard", icon: "📊" },
+  { path: "/admin/exam-interest", label: "Exam Interest", icon: "🎯" },
   { path: "/admin/view-students", label: "View Students", icon: "👨‍🎓" },
   { path: "/admin/add-student", label: "Add Student", icon: "➕" },
   { path: "/admin/send-notification", label: "Notifications", icon: "📨" },

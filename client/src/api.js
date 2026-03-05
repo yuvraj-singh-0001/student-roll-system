@@ -224,6 +224,7 @@ export const analysisApi = {
     API.get("/analysis/exam/question-highlights", { params }),
   examStudentResults: (params) =>
     API.get("/analysis/exam/student-results", { params }),
+  examInterests: (params) => API.get("/analysis/exam/interests", { params }),
   adminOverview: () => API.get("/analysis/admin/overview"),
 };
 

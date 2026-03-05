@@ -7,6 +7,7 @@ const getStudentExamDetails = require("../../api/admin/analysis/getStudentExamDe
 const getExamQuestionHighlights = require("../../api/admin/analysis/getExamQuestionHighlights");
 const getExamStudentResults = require("../../api/admin/analysis/getExamStudentResults");
 const getAdminDashboardOverview = require("../../api/admin/analysis/getAdminDashboardOverview");
+const getExamInterests = require("../../api/admin/analysis/getExamInterests");
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ router.get("/dashboard", getDashboardAnalysis);
 router.get("/student-details/:studentId", getStudentExamDetails);
 router.get("/exam/question-highlights", getExamQuestionHighlights);
 router.get("/exam/student-results", getExamStudentResults);
+router.get("/exam/interests", getExamInterests);
 router.get("/admin/overview", getAdminDashboardOverview);
 
 module.exports = router;

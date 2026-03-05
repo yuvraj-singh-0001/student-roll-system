@@ -17,6 +17,7 @@ import OlympiadExamPage from "../pages/Student/OlympiadExamPage";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminQuestions from "../pages/admin/AdminQuestions";
 import ExamDashboard from "../pages/admin/ExamDashboard";
+import ExamInterest from "../pages/admin/ExamInterest";
 import AddStudent from "../pages/admin/AddStudent";
 import ViewStudents from "../pages/admin/ViewStudents";
 import SendNotification from "../pages/admin/SendNotification";
@@ -67,6 +68,7 @@ export default function AppRouter() {
           <Route index element={<AdminDashboard />} />
           <Route path="questions" element={<AdminQuestions />} />
           <Route path="exam-dashboard" element={<ExamDashboard />} />
+          <Route path="exam-interest" element={<ExamInterest />} />
           <Route path="add-student" element={<AddStudent />} />
           <Route path="view-students" element={<ViewStudents />} />
           <Route path="send-notification" element={<SendNotification />} />
