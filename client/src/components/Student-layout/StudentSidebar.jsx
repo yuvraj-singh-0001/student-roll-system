@@ -133,7 +133,7 @@ export default function StudentSidebar({
                 sidebarOpen ? "opacity-100" : "opacity-0 w-0"
               }`}
             >
-              Back to Home
+              Back to Home   
             </span>
           </button>
         </div>
