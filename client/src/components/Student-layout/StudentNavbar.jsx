@@ -18,6 +18,13 @@ const PROFILE_KEYS = {
   avatar: "studentProfileAvatar",
 };
 
+const PROFILE_SOCIALS = [
+  { id: "youtube", label: "YouTube", Icon: FaYoutube, color: "text-red-600" },
+  { id: "instagram", label: "Instagram", Icon: FaInstagram, color: "text-pink-600" },
+  { id: "linkedin", label: "LinkedIn", Icon: FaLinkedinIn, color: "text-sky-700" },
+  { id: "x", label: "X (Twitter)", Icon: FaTwitter, color: "text-gray-800" },
+];
+
 const readProfile = () => {
   if (typeof window === "undefined") {
     return {
@@ -323,35 +330,18 @@ export default function StudentNavbar({ onToggleSidebar }) {
                       <div className="text-[11px] uppercase tracking-wide text-gray-500">
                         Social Media
                       </div>
-                      <div className="mt-2 grid grid-cols-4 gap-2">
-                        <button
-                          onClick={() => openSocialModal("youtube")}
-                          className="flex h-10 items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-red-600"
-                          aria-label="YouTube"
-                        >
-                          <FaYoutube className="text-lg" />
-                        </button>
-                        <button
-                          onClick={() => openSocialModal("instagram")}
-                          className="flex h-10 items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-pink-600"
-                          aria-label="Instagram"
-                        >
-                          <FaInstagram className="text-lg" />
-                        </button>
-                        <button
-                          onClick={() => openSocialModal("linkedin")}
-                          className="flex h-10 items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-sky-700"
-                          aria-label="LinkedIn"
-                        >
-                          <FaLinkedinIn className="text-lg" />
-                        </button>
-                        <button
-                          onClick={() => openSocialModal("x")}
-                          className="flex h-10 items-center justify-center rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-gray-800"
-                          aria-label="X"
-                        >
-                          <FaTwitter className="text-lg" />
-                        </button>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {PROFILE_SOCIALS.map(({ id, label, Icon, color }) => (
+                          <button
+                            key={id}
+                            onClick={() => openSocialModal(id)}
+                            className={`flex h-10 items-center justify-center gap-2 rounded-lg border border-[#FFE6A3] bg-white hover:bg-[#FFF3C4] transition text-[11px] font-semibold ${color}`}
+                            aria-label={label}
+                          >
+                            <Icon className="text-base" />
+                            <span>{label}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -367,6 +357,7 @@ export default function StudentNavbar({ onToggleSidebar }) {
         onClose={() => setIsModalOpen(false)}
         platform={selectedPlatform}
         studentId={studentId}
+        linkSource="personal"
       />
     </header>
   );

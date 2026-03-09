@@ -568,6 +568,34 @@ export default function StudentDashboard() {
   const availableOlympiads = (examList || []).filter((exam) => isLiveExam(exam));
   const upcomingOlympiads = (examList || []).filter((exam) => isUpcomingExam(exam));
 
+  useEffect(() => {
+    const cards = Array.from(document.querySelectorAll(".sd-reveal"));
+    if (!cards.length) return;
+
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      cards.forEach((card) => card.classList.add("is-visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.12,
+        rootMargin: "0px 0px -10% 0px",
+      }
+    );
+
+    cards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [availableOlympiads.length, upcomingOlympiads.length, recentResults.length]);
+
   return (
     <div className="min-h-screen bg-[#FFFDF5] text-gray-900">
       {/* Background blobs */}
@@ -580,7 +608,7 @@ export default function StudentDashboard() {
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-5">
 
         {/* ── Official Socials ───────────────────────────────────────────── */}
-        <div className="bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5">
+        <div className="sd-reveal sd-reveal-left sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "30ms" }}>
           <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Connect</p>
           <h2 className="text-sm font-bold text-gray-900">Official Socials</h2>
           <p className="text-xs text-gray-500 mt-0.5">Follow @TheTrueTopper for updates & resources.</p>
@@ -594,7 +622,7 @@ export default function StudentDashboard() {
               <button
                 key={platform}
                 onClick={() => openSocialModal(platform)}
-                className={`flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] hover:bg-[#FFF3C4] px-3 py-2.5 text-xs font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm ${color}`}
+                className={`sd-button flex items-center justify-center gap-2 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] hover:bg-[#FFF7DD] px-3 py-2.5 text-xs font-semibold transition-all ${color}`}
               >
                 <Icon className="text-sm" />
                 {label}
@@ -604,7 +632,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* ── Usage Analytics ────────────────────────────────────────────── */}
-        <div className="bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5">
+        <div className="sd-reveal sd-reveal-right sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "80ms" }}>
           <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Analytics</p>
           <h2 className="text-sm font-bold text-gray-900">Usage Stats</h2>
           <p className="text-xs text-gray-500 mt-0.5">Time tracked across website & social media.</p>
@@ -625,7 +653,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* ── Available Olympiads ────────────────────────────────────────── */}
-        <div className="bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5">
+        <div className="sd-reveal sd-reveal-left sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "140ms" }}>
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Examination</p>
@@ -636,19 +664,19 @@ export default function StudentDashboard() {
               <button
                 onClick={handleManualRefresh}
                 disabled={examRefreshing}
-                className="text-xs px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="sd-button text-xs px-3 py-1.5 rounded-full border border-[#E9D18A] text-amber-900 bg-[#FFF9E6] hover:bg-[#FFF2CC] transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {examRefreshing ? "Refreshing…" : "↻ Refresh"}
               </button>
               <button
                 onClick={handleDebugPayments}
-                className="text-xs px-3 py-1.5 rounded-full border border-orange-300 text-orange-800 bg-orange-50 hover:bg-orange-100 transition font-medium"
+                className="sd-button text-xs px-3 py-1.5 rounded-full border border-orange-300 text-orange-800 bg-orange-50 hover:bg-orange-100 transition font-medium"
               >
                 🔍 Debug
               </button>
               <button
                 onClick={() => navigate("/student/exam")}
-                className="text-xs px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition font-medium"
+                className="sd-button text-xs px-3 py-1.5 rounded-full border border-[#E9D18A] text-amber-900 bg-[#FFF9E6] hover:bg-[#FFF2CC] transition font-medium"
               >
                 View All →
               </button>
@@ -666,7 +694,7 @@ export default function StudentDashboard() {
             <p className="py-8 text-center text-xs text-gray-400">No exams available yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {availableOlympiads.map((exam) => {
+              {availableOlympiads.map((exam, idx) => {
                 const isStudentPaid    = !!exam?.isStudentPaid;
                 const canStartExam     = !!exam?.canStartExam;
                 const hasMocks         = !!exam?.hasMocks;
@@ -688,7 +716,8 @@ export default function StudentDashboard() {
                 return (
                   <div
                     key={exam.examCode}
-                    className="relative h-full rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
+                    className={`sd-reveal ${idx % 2 === 0 ? "sd-reveal-left" : "sd-reveal-right"} sd-card sd-card-hover relative h-full rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm transition-all`}
+                    style={{ "--sd-delay": `${Math.min(idx * 70, 280)}ms` }}
                   >
                     {/* Accent bar */}
                     <div
@@ -752,7 +781,7 @@ export default function StudentDashboard() {
                               key={key}
                               type="button"
                               onClick={() => toggleExamSection(exam.examCode, key)}
-                              className={`flex items-center gap-1.5 text-[10px] font-semibold rounded-full px-3 py-1.5 border transition-all ${
+                              className={`sd-button flex items-center gap-1.5 text-[10px] font-semibold rounded-full px-3 py-1.5 border transition-all ${
                                 isOpen
                                   ? "bg-[#FFF3C4] border-[#FFD765] text-gray-900"
                                   : "bg-[#FFFDF5] border-[#FFE6A3] text-gray-700 hover:bg-[#FFF3C4]"
@@ -819,9 +848,9 @@ export default function StudentDashboard() {
                               navigate(`/student/exam?examCode=${encodeURIComponent(code)}`);
                             }}
                             disabled={!canStartExam}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                            className={`sd-button flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
                               canStartExam
-                                ? "bg-[#FFCD2C] text-gray-900 hover:bg-[#FFC107] shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                ? "bg-[#F5C842] text-gray-900 hover:bg-[#EFBF2A] shadow-sm"
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                           >
@@ -832,10 +861,10 @@ export default function StudentDashboard() {
                             type="button"
                             onClick={() => handlePayForExam(exam)}
                             disabled={payingExamCode === exam.examCode}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                            className={`sd-button flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
                               payingExamCode === exam.examCode
                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
                             }`}
                           >
                             {payingExamCode === exam.examCode
@@ -849,7 +878,7 @@ export default function StudentDashboard() {
                           <button
                             type="button"
                             onClick={() => openMocksForExam(exam)}
-                            className="px-4 py-2 rounded-full border border-[#FFE6A3] bg-[#FFFDF5] hover:bg-[#FFF3C4] text-xs font-semibold text-gray-800 transition-all"
+                            className="sd-button px-4 py-2 rounded-full border border-[#FFE6A3] bg-[#FFFDF5] hover:bg-[#FFF7DD] text-xs font-semibold text-gray-800 transition-all"
                           >
                             Mock Tests
                           </button>
@@ -864,7 +893,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* ── Upcoming Olympiads ────────────────────────────────────────── */}
-        <div className="bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5">
+        <div className="sd-reveal sd-reveal-right sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "190ms" }}>
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Examination</p>
@@ -877,7 +906,7 @@ export default function StudentDashboard() {
             <p className="py-8 text-center text-xs text-gray-400">No upcoming olympiads right now.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {upcomingOlympiads.map((exam) => {
+              {upcomingOlympiads.map((exam, idx) => {
                 const isStudentPaid = !!exam?.isStudentPaid;
                 const paymentRequired = exam?.paymentRequired !== false;
                 const examPrice = Number(exam?.registrationPrice) || 0;
@@ -896,7 +925,8 @@ export default function StudentDashboard() {
                 return (
                   <div
                     key={`upcoming-${exam.examCode}`}
-                    className="rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm"
+                    className={`sd-reveal ${idx % 2 === 0 ? "sd-reveal-left" : "sd-reveal-right"} sd-card sd-card-hover rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm`}
+                    style={{ "--sd-delay": `${Math.min(idx * 70, 280)}ms` }}
                   >
                     <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 to-indigo-600" />
                     <div className="p-4 space-y-3">
@@ -931,7 +961,7 @@ export default function StudentDashboard() {
                           type="button"
                           onClick={() => handleMarkInterested(exam.examCode)}
                           disabled={studentInterested}
-                          className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                          className={`sd-button px-4 py-2 rounded-full text-xs font-bold transition-all ${
                             studentInterested
                               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                               : "bg-indigo-600 text-white hover:bg-indigo-700"
@@ -945,7 +975,7 @@ export default function StudentDashboard() {
                             type="button"
                             onClick={() => handlePayForExam(exam)}
                             disabled={payingExamCode === exam.examCode}
-                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                            className={`sd-button px-4 py-2 rounded-full text-xs font-bold transition-all ${
                               payingExamCode === exam.examCode
                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                 : "bg-emerald-600 text-white hover:bg-emerald-700"
@@ -976,7 +1006,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* ── Recent Test Results ────────────────────────────────────────── */}
-        <div className="bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5">
+        <div className="sd-reveal sd-reveal-left sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "240ms" }}>
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">History</p>
@@ -989,7 +1019,7 @@ export default function StudentDashboard() {
                   ? navigate(`/student/result/${recentResults[0].attemptId}`)
                   : navigate("/student/result")
               }
-              className="flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-[#FFD765] text-amber-800 bg-[#FFF9E6] hover:bg-[#FFEBB5] transition font-medium"
+              className="sd-button flex-shrink-0 text-xs px-3 py-1.5 rounded-full border border-[#E9D18A] text-amber-900 bg-[#FFF9E6] hover:bg-[#FFF2CC] transition font-medium"
             >
               Full History →
             </button>
@@ -1059,7 +1089,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* ── Quick Actions ──────────────────────────────────────────────── */}
-        <div className="bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5">
+        <div className="sd-reveal sd-reveal-up sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "300ms" }}>
           <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Shortcuts</p>
           <h2 className="text-sm font-bold text-gray-900 mb-3">Quick Actions</h2>
           <button
@@ -1068,7 +1098,7 @@ export default function StudentDashboard() {
                 ? navigate(`/student/result/${recentResults[0].attemptId}`)
                 : navigate("/student/result")
             }
-            className="w-full flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] hover:bg-[#FFF3C4] px-4 py-3 transition-all group"
+            className="sd-button w-full flex items-center justify-between gap-3 rounded-xl border border-[#FFE6A3] bg-[#FFFDF5] hover:bg-[#FFF7DD] px-4 py-3 transition-all group"
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-sky-400 flex items-center justify-center text-xs font-black text-white flex-shrink-0">
@@ -1091,6 +1121,7 @@ export default function StudentDashboard() {
         onClose={handleModalClose}
         platform={selectedPlatform}
         studentId={studentId}
+        linkSource="official"
       />
 
       {/* Mock Tests Modal */}
@@ -1169,7 +1200,7 @@ export default function StudentDashboard() {
                         );
                         closeMockModal();
                       }}
-                      className="flex-shrink-0 px-4 py-2 rounded-full bg-[#FFCD2C] hover:bg-[#FFC107] text-gray-900 text-xs font-bold transition-all hover:-translate-y-0.5 hover:shadow-md"
+                      className="sd-button flex-shrink-0 px-4 py-2 rounded-full bg-[#F5C842] hover:bg-[#EFBF2A] text-gray-900 text-xs font-bold transition-all"
                     >
                       Start →
                     </button>

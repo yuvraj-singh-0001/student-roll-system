@@ -199,3 +199,101 @@ body {
 .admin-bg { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%); }
 .admin-accent { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); }
 .admin-accent-card { border-color: #475569; }
+
+/* Student dashboard professional motion system */
+:root {
+  --sd-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes sdGlowSweep {
+  0% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  25% { opacity: 0.32; }
+  100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+}
+
+.sd-reveal {
+  opacity: 0;
+  transition: transform 700ms var(--sd-ease), opacity 700ms var(--sd-ease);
+  transition-delay: var(--sd-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+.sd-reveal-left {
+  transform: translate3d(-48px, 0, 0);
+}
+
+.sd-reveal-right {
+  transform: translate3d(48px, 0, 0);
+}
+
+.sd-reveal-up {
+  transform: translate3d(0, 28px, 0);
+}
+
+.sd-reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.sd-card,
+.sd-card-hover,
+.sd-button {
+  transition: transform 250ms var(--sd-ease), box-shadow 250ms var(--sd-ease), border-color 220ms ease, background-color 220ms ease;
+}
+
+.sd-card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -22px rgba(15, 23, 42, 0.42);
+}
+
+.sd-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -16px rgba(15, 23, 42, 0.35);
+}
+
+.sd-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.sd-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 44%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.5) 46%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-120%) skewX(-18deg);
+  opacity: 0;
+}
+
+.sd-shine:hover::after {
+  animation: sdGlowSweep 680ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-reveal,
+  .sd-card,
+  .sd-card-hover,
+  .sd-button {
+    transition: none;
+  }
+
+  .sd-reveal,
+  .sd-reveal-left,
+  .sd-reveal-right,
+  .sd-reveal-up {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sd-shine::after,
+  .sd-shine:hover::after {
+    animation: none;
+  }
+}
