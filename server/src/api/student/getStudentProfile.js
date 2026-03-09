@@ -1,5 +1,5 @@
-const Student = require("../../models/Student");
-const User = require("../../models/User");
+import Student from "../../models/Student.js";
+import User from "../../models/User.js";
 
 const buildProfile = (student = {}) => ({
   studentId: student._id ? String(student._id) : "",
@@ -68,4 +68,4 @@ const getStudentProfile = async (req, res) => {
   }
 };
 
-module.exports = getStudentProfile;
+export default getStudentProfile;

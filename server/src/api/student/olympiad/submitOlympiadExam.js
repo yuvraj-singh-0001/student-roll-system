@@ -1,7 +1,7 @@
 // यह API olympiad exam submit करता है
 // backend/api/student/olympiad/submitOlympiadExam.js
-const Question = require("../../../models/Question");
-const ExamAttempt = require("../../../models/ExamAttempt");
+import Question from "../../../models/Question.js";
+import ExamAttempt from "../../../models/ExamAttempt.js";
 
 // --- scoring functions same ---
 
@@ -409,5 +409,5 @@ async function submitOlympiadExam(req, res) {
   }
 }
 
-module.exports = submitOlympiadExam;
+export default submitOlympiadExam;
 

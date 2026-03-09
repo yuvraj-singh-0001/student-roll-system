@@ -1,6 +1,6 @@
-const Student = require("../../models/Student");
-const Teacher = require("../../models/Teacher");
-const Parent = require("../../models/Parent");
+import Student from "../../models/Student.js";
+import Teacher from "../../models/Teacher.js";
+import Parent from "../../models/Parent.js";
 
 const normalizeLower = (value) => String(value || "").trim().toLowerCase();
 
@@ -62,4 +62,4 @@ const checkUsername = async (req, res) => {
   }
 };
 
-module.exports = checkUsername;
+export default checkUsername;

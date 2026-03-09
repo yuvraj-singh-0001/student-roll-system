@@ -1,7 +1,7 @@
-const bcrypt = require("bcryptjs");
-const Student = require("../../models/Student");
-const Teacher = require("../../models/Teacher");
-const Parent = require("../../models/Parent");
+import bcrypt from "bcryptjs";
+import Student from "../../models/Student.js";
+import Teacher from "../../models/Teacher.js";
+import Parent from "../../models/Parent.js";
 
 const normalizeText = (value) => String(value || "").trim();
 const normalizeLower = (value) => normalizeText(value).toLowerCase();
@@ -354,4 +354,4 @@ const registerFormB = async (req, res) => {
   }
 };
 
-module.exports = registerFormB;
+export default registerFormB;

@@ -1,5 +1,5 @@
 // यह API payment success handle करता है
-const Student = require("../../../models/Student");
+import Student from "../../../models/Student.js";
 
 const paymentSuccess = async (req, res) => {
   try {
@@ -71,4 +71,4 @@ const paymentSuccess = async (req, res) => {
   }
 };
 
-module.exports = paymentSuccess;
+export default paymentSuccess;

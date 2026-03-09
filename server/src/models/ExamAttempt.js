@@ -1,5 +1,5 @@
 // backend/models/ExamAttempt.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const answerSchema = new mongoose.Schema(
   {
@@ -88,4 +88,4 @@ examAttemptSchema.index({ examCode: 1, createdAt: -1 });
 examAttemptSchema.index({ createdAt: -1 });
 
 const ExamAttempt = mongoose.model("ExamAttempt", examAttemptSchema);
-module.exports = ExamAttempt;
+export default ExamAttempt;

@@ -9,4 +9,4 @@ function getMarks(isCorrect, confidenceLevel) {
   return table[confidenceLevel] ?? 0;
 }
 
-module.exports = { getMarks, MARKS };
+export {  getMarks, MARKS  };

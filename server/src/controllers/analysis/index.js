@@ -1,13 +1,13 @@
-const express = require("express");
-const getStudentWiseAnalysis = require("../../api/admin/analysis/getStudentWiseAnalysis");
-const getQuestionWiseAnalysis = require("../../api/admin/analysis/getQuestionWiseAnalysis");
-const getConfidenceWiseAnalysis = require("../../api/admin/analysis/getConfidenceWiseAnalysis");
-const getDashboardAnalysis = require("../../api/admin/analysis/getDashboardAnalysis");
-const getStudentExamDetails = require("../../api/admin/analysis/getStudentExamDetails");
-const getExamQuestionHighlights = require("../../api/admin/analysis/getExamQuestionHighlights");
-const getExamStudentResults = require("../../api/admin/analysis/getExamStudentResults");
-const getAdminDashboardOverview = require("../../api/admin/analysis/getAdminDashboardOverview");
-const getExamInterests = require("../../api/admin/analysis/getExamInterests");
+import express from "express";
+import getStudentWiseAnalysis from "../../api/admin/analysis/getStudentWiseAnalysis.js";
+import getQuestionWiseAnalysis from "../../api/admin/analysis/getQuestionWiseAnalysis.js";
+import getConfidenceWiseAnalysis from "../../api/admin/analysis/getConfidenceWiseAnalysis.js";
+import getDashboardAnalysis from "../../api/admin/analysis/getDashboardAnalysis.js";
+import getStudentExamDetails from "../../api/admin/analysis/getStudentExamDetails.js";
+import getExamQuestionHighlights from "../../api/admin/analysis/getExamQuestionHighlights.js";
+import getExamStudentResults from "../../api/admin/analysis/getExamStudentResults.js";
+import getAdminDashboardOverview from "../../api/admin/analysis/getAdminDashboardOverview.js";
+import getExamInterests from "../../api/admin/analysis/getExamInterests.js";
 
 const router = express.Router();
 
@@ -21,4 +21,4 @@ router.get("/exam/student-results", getExamStudentResults);
 router.get("/exam/interests", getExamInterests);
 router.get("/admin/overview", getAdminDashboardOverview);
 
-module.exports = router;
+export default router;

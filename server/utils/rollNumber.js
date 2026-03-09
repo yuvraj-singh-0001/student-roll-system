@@ -7,5 +7,5 @@ function generateExamStudentId(count) {
   return `EXM${100 + count}`;
 }
 
-module.exports = generateRollNumber;
-module.exports.generateExamStudentId = generateExamStudentId;
+export default generateRollNumber;
+export { generateExamStudentId };

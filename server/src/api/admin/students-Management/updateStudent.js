@@ -1,4 +1,4 @@
-const Student = require("../../../models/Student");
+import Student from "../../../models/Student.js";
 
 const updateStudent = async (req, res) => {
   try {
@@ -54,4 +54,4 @@ const updateStudent = async (req, res) => {
   }
 };
 
-module.exports = updateStudent;
+export default updateStudent;

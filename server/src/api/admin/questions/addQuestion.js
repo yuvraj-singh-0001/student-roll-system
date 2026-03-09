@@ -1,7 +1,7 @@
 // यह API exam के लिए typed question जोड़ता है
-const Question = require("../../../models/Question");
-const MockQuestion = require("../../../models/MockQuestion");
-const ExamConfig = require("../../../models/ExamConfig");
+import Question from "../../../models/Question.js";
+import MockQuestion from "../../../models/MockQuestion.js";
+import ExamConfig from "../../../models/ExamConfig.js";
 
 function getNextQuestionNumber(existing) {
   let next = 1;
@@ -304,4 +304,4 @@ async function addQuestion(req, res) {
   }
 }
 
-module.exports = addQuestion;
+export default addQuestion;

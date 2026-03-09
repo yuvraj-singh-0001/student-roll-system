@@ -1,14 +1,14 @@
-const express = require("express");
-const addStudent = require("../../api/admin/students-Management/addStudent");
-const getAllStudents = require("../../api/admin/students-Management/getAllStudents");
-const getStudentByRollNumber = require("../../api/student/getStudentByRollNumber");
-const getStudentProfile = require("../../api/student/getStudentProfile");
-const trackEmailOpen = require("../../api/student/trackEmailOpen");
-const updateStudent = require("../../api/admin/students-Management/updateStudent");
-const deleteStudent = require("../../api/admin/students-Management/deleteStudent");
-const registerFormB = require("../../api/student/registerFormB");
-const checkUsername = require("../../api/student/checkUsername");
-const authMiddleware = require("../../middlewares/auth");
+import express from "express";
+import addStudent from "../../api/admin/students-Management/addStudent.js";
+import getAllStudents from "../../api/admin/students-Management/getAllStudents.js";
+import getStudentByRollNumber from "../../api/student/getStudentByRollNumber.js";
+import getStudentProfile from "../../api/student/getStudentProfile.js";
+import trackEmailOpen from "../../api/student/trackEmailOpen.js";
+import updateStudent from "../../api/admin/students-Management/updateStudent.js";
+import deleteStudent from "../../api/admin/students-Management/deleteStudent.js";
+import registerFormB from "../../api/student/registerFormB.js";
+import checkUsername from "../../api/student/checkUsername.js";
+import authMiddleware from "../../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -39,4 +39,4 @@ router.delete("/:id", deleteStudent);
 // GET - Get student by roll number
 router.get("/:rollNumber", getStudentByRollNumber);
 
-module.exports = router;
+export default router;

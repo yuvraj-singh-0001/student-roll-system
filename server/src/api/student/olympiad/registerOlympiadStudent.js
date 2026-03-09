@@ -1,7 +1,7 @@
 // यह API olympiad के लिए student register करता है
-const Student = require("../../../models/Student");
-const Payment = require("../../../models/Payment");
-const { generateExamStudentId } = require("../../../../utils/rollNumber");
+import Student from "../../../models/Student.js";
+import Payment from "../../../models/Payment.js";
+import { generateExamStudentId } from "../../../../utils/rollNumber.js";
 
 async function registerOlympiadStudent(req, res) {
   try {
@@ -59,4 +59,4 @@ async function registerOlympiadStudent(req, res) {
   }
 }
 
-module.exports = registerOlympiadStudent;
+export default registerOlympiadStudent;

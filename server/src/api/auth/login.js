@@ -1,10 +1,10 @@
 // यह API user login करता है
-const User = require("../../models/User");
-const Student = require("../../models/Student");
-const Teacher = require("../../models/Teacher");
-const Parent = require("../../models/Parent");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import User from "../../models/User.js";
+import Student from "../../models/Student.js";
+import Teacher from "../../models/Teacher.js";
+import Parent from "../../models/Parent.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const login = async (req, res) => {
   try {
@@ -89,4 +89,4 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = login;
+export default login;

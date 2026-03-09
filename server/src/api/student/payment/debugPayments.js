@@ -1,6 +1,6 @@
-const Payment = require("../../../models/Payment");
-const Student = require("../../../models/Student");
-const { resolveStudentFromRequest } = require("../olympiad/listOlympiadExams");
+import Payment from "../../../models/Payment.js";
+import Student from "../../../models/Student.js";
+import { resolveStudentFromRequest } from "../olympiad/listOlympiadExams.js";
 
 async function debugPayments(req, res) {
   try {
@@ -41,4 +41,4 @@ async function debugPayments(req, res) {
   }
 }
 
-module.exports = debugPayments;
+export default debugPayments;

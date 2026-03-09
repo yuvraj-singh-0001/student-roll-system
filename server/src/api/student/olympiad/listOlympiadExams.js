@@ -1,12 +1,12 @@
 // This API returns the list of olympiad exams
-const ExamConfig = require("../../../models/ExamConfig");
-const Question = require("../../../models/Question");
-const MockQuestion = require("../../../models/MockQuestion");
-const Student = require("../../../models/Student");
-const Payment = require("../../../models/Payment");
-const ExamInterest = require("../../../models/ExamInterest");
-const User = require("../../../models/User");
-const jwt = require("jsonwebtoken");
+import ExamConfig from "../../../models/ExamConfig.js";
+import Question from "../../../models/Question.js";
+import MockQuestion from "../../../models/MockQuestion.js";
+import Student from "../../../models/Student.js";
+import Payment from "../../../models/Payment.js";
+import ExamInterest from "../../../models/ExamInterest.js";
+import User from "../../../models/User.js";
+import jwt from "jsonwebtoken";
 
 
 
@@ -446,5 +446,5 @@ async function listOlympiadExams(req, res) {
   }
 }
 
-module.exports = listOlympiadExams;
-module.exports.resolveStudentFromRequest = resolveStudentFromRequest;
+export default listOlympiadExams;
+export { resolveStudentFromRequest };

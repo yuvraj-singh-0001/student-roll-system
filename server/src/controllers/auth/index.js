@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const register = require("../../api/auth/Register");
-const login = require("../../api/auth/login");
-const authMiddleware = require("../../middlewares/auth");
+import register from "../../api/auth/Register.js";
+import login from "../../api/auth/login.js";
+import authMiddleware from "../../middlewares/auth.js";
 
 // ✅ CORRECT endpoints
 router.post("/register", register);  // This will be /api/auth/register
@@ -17,4 +17,4 @@ router.get("/profile", authMiddleware, (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;

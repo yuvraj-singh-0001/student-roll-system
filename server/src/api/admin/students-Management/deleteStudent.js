@@ -1,4 +1,4 @@
-const Student = require("../../../models/Student");
+import Student from "../../../models/Student.js";
 
 const deleteStudent = async (req, res) => {
   try {
@@ -26,4 +26,4 @@ const deleteStudent = async (req, res) => {
   }
 };
 
-module.exports = deleteStudent;
+export default deleteStudent;

@@ -1,6 +1,6 @@
 // backend/models/MockExamAttempt.js
 // Separate collection for mock test attempts (practice results)
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const mockAnswerSchema = new mongoose.Schema(
   {
@@ -76,4 +76,4 @@ mockExamAttemptSchema.index({ examCode: 1, mockTestCode: 1, createdAt: -1 });
 mockExamAttemptSchema.index({ createdAt: -1 });
 
 const MockExamAttempt = mongoose.model("MockExamAttempt", mockExamAttemptSchema);
-module.exports = MockExamAttempt;
+export default MockExamAttempt;

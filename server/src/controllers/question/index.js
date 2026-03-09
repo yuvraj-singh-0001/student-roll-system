@@ -1,11 +1,11 @@
 // backend/controllers/question/index.js
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const addQuestion = require("../../api/admin/questions/addQuestion");
-const getExamQuestions = require("../../api/admin/questions/getExamQuestions");
-const getAllQuestions = require("../../api/admin/questions/getAllQuestions");
-const getExamMocks = require("../../api/admin/questions/getExamMocks");
+import addQuestion from "../../api/admin/questions/addQuestion.js";
+import getExamQuestions from "../../api/admin/questions/getExamQuestions.js";
+import getAllQuestions from "../../api/admin/questions/getAllQuestions.js";
+import getExamMocks from "../../api/admin/questions/getExamMocks.js";
 
 router.post("/add", addQuestion);
 router.get("/all", getAllQuestions);
@@ -13,4 +13,4 @@ router.get("/exam", getExamQuestions); // ⭐ OlympiadExamPage yahi hit karega
 router.get("/mocks", getExamMocks); // ⭐ list of mock tests per examCode
 // future: router.get("/all", ... ) agar chaho to
 
-module.exports = router;
+export default router;

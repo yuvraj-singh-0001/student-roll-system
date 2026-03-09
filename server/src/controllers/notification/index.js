@@ -1,8 +1,8 @@
-const express = require("express");
-const sendNotification = require("../../api/admin/notification/sendNotification");
+import express from "express";
+import sendNotification from "../../api/admin/notification/sendNotification.js";
 
 const router = express.Router();
 
 router.post("/send", sendNotification);
 
-module.exports = router;
+export default router;

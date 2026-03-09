@@ -1,6 +1,6 @@
 // यह API नया user register करता है
-const Student = require("../../models/Student");
-const jwt = require("jsonwebtoken");
+import Student from "../../models/Student.js";
+import jwt from "jsonwebtoken";
 
 const registerFormA = async (req, res) => {
   try {
@@ -105,4 +105,4 @@ const registerFormA = async (req, res) => {
   }
 };
 
-module.exports = registerFormA;
+export default registerFormA;

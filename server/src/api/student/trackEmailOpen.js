@@ -1,5 +1,5 @@
 // यह API email open tracking update करता है
-const Student = require("../../models/Student");
+import Student from "../../models/Student.js";
 
 // Track Email Open API
 const trackEmailOpen = async (req, res) => {
@@ -59,4 +59,4 @@ const trackEmailOpen = async (req, res) => {
   }
 };
 
-module.exports = trackEmailOpen;
+export default trackEmailOpen;

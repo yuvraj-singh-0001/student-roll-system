@@ -1,5 +1,5 @@
 // backend/models/QuestionCounter.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const questionCounterSchema = new mongoose.Schema(
   {
@@ -10,4 +10,4 @@ const questionCounterSchema = new mongoose.Schema(
 );
 
 const QuestionCounter = mongoose.model("QuestionCounter", questionCounterSchema);
-module.exports = QuestionCounter;
+export default QuestionCounter;

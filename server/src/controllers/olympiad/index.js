@@ -1,18 +1,17 @@
-// backend/controllers/olympiad/olympiadRoutes.js
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const submitOlympiadExam = require("../../api/student/olympiad/submitOlympiadExam");
-const submitMockExam = require("../../api/student/olympiad/submitMockExam");
-const { listOlympiadAttempts, getOlympiadAttemptDetails } = require("../../api/student/olympiad/olympiadAttempts");
-const listOlympiadExams = require("../../api/student/olympiad/listOlympiadExams");
-const registerOlympiadStudent = require("../../api/student/olympiad/registerOlympiadStudent");
-const markExamInterested = require("../../api/student/olympiad/markExamInterested");
+import submitOlympiadExam from "../../api/student/olympiad/submitOlympiadExam.js";
+import submitMockExam from "../../api/student/olympiad/submitMockExam.js";
+import { listOlympiadAttempts, getOlympiadAttemptDetails } from "../../api/student/olympiad/olympiadAttempts.js";
+import listOlympiadExams from "../../api/student/olympiad/listOlympiadExams.js";
+import registerOlympiadStudent from "../../api/student/olympiad/registerOlympiadStudent.js";
+import markExamInterested from "../../api/student/olympiad/markExamInterested.js";
+import ExamConfig from "../../models/ExamConfig.js";
 
 // Debug route to check exam configs
 router.get("/debug-configs", async (req, res) => {
   try {
-    const ExamConfig = require("../../models/ExamConfig");
     const configs = await ExamConfig.find().lean();
     return res.status(200).json({
       success: true,
@@ -44,4 +43,4 @@ router.get("/attempts/:attemptId", getOlympiadAttemptDetails);
 router.post("/register", registerOlympiadStudent);
 router.post("/interested", markExamInterested);
 
-module.exports = router;
+export default router;

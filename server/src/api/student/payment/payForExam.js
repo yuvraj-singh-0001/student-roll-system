@@ -1,7 +1,7 @@
-const Payment = require("../../../models/Payment");
-const Student = require("../../../models/Student");
-const ExamConfig = require("../../../models/ExamConfig");
-const { resolveStudentFromRequest } = require("../olympiad/listOlympiadExams");
+import Payment from "../../../models/Payment.js";
+import Student from "../../../models/Student.js";
+import ExamConfig from "../../../models/ExamConfig.js";
+import { resolveStudentFromRequest } from "../olympiad/listOlympiadExams.js";
 
 async function payForExam(req, res) {
   try {
@@ -107,4 +107,4 @@ async function payForExam(req, res) {
   }
 }
 
-module.exports = payForExam;
+export default payForExam;

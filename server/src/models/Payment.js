@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema(
   {
@@ -48,4 +48,4 @@ const paymentSchema = new mongoose.Schema(
 // Compound index for quick lookups
 paymentSchema.index({ studentId: 1, examCode: 1 }, { unique: true });
 
-module.exports = mongoose.model("Payment", paymentSchema);
+export default mongoose.model("Payment", paymentSchema);

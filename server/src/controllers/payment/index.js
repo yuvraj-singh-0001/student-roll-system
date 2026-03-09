@@ -1,12 +1,12 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const paymentSuccess = require("../../api/student/payment/paymentSuccess");
-const payForExam = require("../../api/student/payment/payForExam");
-const debugPayments = require("../../api/student/payment/debugPayments");
-const authMiddleware = require("../../middlewares/auth");
+import paymentSuccess from "../../api/student/payment/paymentSuccess.js";
+import payForExam from "../../api/student/payment/payForExam.js";
+import debugPayments from "../../api/student/payment/debugPayments.js";
+import authMiddleware from "../../middlewares/auth.js";
 
 router.post("/success", authMiddleware, paymentSuccess);
 router.post("/pay-for-exam", authMiddleware, payForExam);
 router.get("/debug", authMiddleware, debugPayments);
 
-module.exports = router;
+export default router;

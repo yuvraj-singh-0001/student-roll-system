@@ -1,6 +1,6 @@
 // यह API छात्र जोड़ता है
-const Student = require("../../../models/Student");
-const generateRollNumber = require("../../../../utils/rollNumber");
+import Student from "../../../models/Student.js";
+import generateRollNumber from "../../../../utils/rollNumber.js";
 
 // Add Student API
 const addStudent = async (req, res) => {
@@ -44,4 +44,4 @@ const addStudent = async (req, res) => {
   }
 };
 
-module.exports = addStudent;
+export default addStudent;

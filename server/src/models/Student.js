@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const studentSchema = new mongoose.Schema(
   {
@@ -188,4 +188,4 @@ studentSchema.index({ course: 1 });
 studentSchema.index({ createdAt: -1 });
 studentSchema.index({ "examPayments.examCode": 1, "examPayments.status": 1 });
 
-module.exports = mongoose.model("Student", studentSchema);
+export default mongoose.model("Student", studentSchema);

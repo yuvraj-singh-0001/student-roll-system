@@ -1,5 +1,5 @@
 // यह API roll number से छात्र detail देता है
-const Student = require("../../models/Student");
+import Student from "../../models/Student.js";
 
 // Get Student by Roll Number API
 const getStudentByRollNumber = async (req, res) => {
@@ -27,4 +27,4 @@ const getStudentByRollNumber = async (req, res) => {
   }
 };
 
-module.exports = getStudentByRollNumber;
+export default getStudentByRollNumber;

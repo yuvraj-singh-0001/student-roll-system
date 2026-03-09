@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const teacherSchema = new mongoose.Schema(
   {
@@ -157,4 +157,4 @@ teacherSchema.index({ trackingId: 1 });
 teacherSchema.index({ course: 1 });
 teacherSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model("Teacher", teacherSchema);
+export default mongoose.model("Teacher", teacherSchema);

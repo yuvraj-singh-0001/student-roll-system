@@ -1,15 +1,15 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const notificationRoutes = require("../controllers/notification");
-const studentRoutes = require("../controllers/student");
-const questionRoutes = require("../controllers/question");
-const olympiadRoutes = require("../controllers/olympiad/index");
-const analysisRoutes = require("../controllers/analysis");
-const authRoutes = require("../controllers/auth");
-const paymentRoutes = require("../controllers/payment");
-const activityRoutes = require("../controllers/activity");
+import notificationRoutes from "../controllers/notification/index.js";
+import studentRoutes from "../controllers/student/index.js";
+import questionRoutes from "../controllers/question/index.js";
+import olympiadRoutes from "../controllers/olympiad/index.js";
+import analysisRoutes from "../controllers/analysis/index.js";
+import authRoutes from "../controllers/auth/index.js";
+import paymentRoutes from "../controllers/payment/index.js";
+import activityRoutes from "../controllers/activity/index.js";
 
-// ✅ REMOVE duplicate auth routes
+
 router.use("/notification", notificationRoutes);
 router.use("/student", studentRoutes);
 router.use("/question", questionRoutes);
@@ -19,4 +19,4 @@ router.use("/auth", authRoutes); // This is enough
 router.use("/payment", paymentRoutes);
 router.use("/activity", activityRoutes);
 
-module.exports = router;
+export default router;

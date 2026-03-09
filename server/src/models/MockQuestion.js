@@ -1,5 +1,5 @@
 // models/MockQuestion.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const optionSchema = new mongoose.Schema(
   {
@@ -123,4 +123,4 @@ mockQuestionSchema.index(
 );
 
 const MockQuestion = mongoose.model("MockQuestion", mockQuestionSchema);
-module.exports = MockQuestion;
+export default MockQuestion;

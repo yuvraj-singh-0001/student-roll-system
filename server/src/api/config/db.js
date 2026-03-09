@@ -1,10 +1,10 @@
 // यह API database से कनेक्शन बनाता है
-const mongoose = require("mongoose");
-const Question = require("../../models/Question");
-const ExamConfig = require("../../models/ExamConfig");
-const QuestionCounter = require("../../models/QuestionCounter");
-const Student = require("../../models/Student");
-const ExamAttempt = require("../../models/ExamAttempt");
+import mongoose from "mongoose";
+import Question from "../../models/Question.js";
+import ExamConfig from "../../models/ExamConfig.js";
+import QuestionCounter from "../../models/QuestionCounter.js";
+import Student from "../../models/Student.js";
+import ExamAttempt from "../../models/ExamAttempt.js";
 
 const shouldRunMigrations = process.env.RUN_DB_MIGRATIONS === "true";
 
@@ -84,4 +84,4 @@ const connectDB = async () => {
   }
 };
 // Export kiya hu ki dusre files me use kar saku
-module.exports = connectDB;
+export default connectDB;

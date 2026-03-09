@@ -1,5 +1,5 @@
 // backend/models/ExamConfig.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const examConfigSchema = new mongoose.Schema(
   {
@@ -22,4 +22,4 @@ const examConfigSchema = new mongoose.Schema(
 );
 
 const ExamConfig = mongoose.model("ExamConfig", examConfigSchema);
-module.exports = ExamConfig;
+export default ExamConfig;

@@ -1,4 +1,4 @@
-const SibApiV3Sdk = require("sib-api-v3-sdk");
+import SibApiV3Sdk from "sib-api-v3-sdk";
 
 const client = SibApiV3Sdk.ApiClient.instance;
 
@@ -8,7 +8,7 @@ client.authentications["api-key"].apiKey =
 
 const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 // Function to send email
-exports.sendMail = async (to, subject, html) => {
+export const sendMail = async (to, subject, html) => {
   try {
     console.log("------ EMAIL DEBUG LOG ------");
     console.log("API KEY LOADED:", process.env.BREVO_API_KEY ? "YES" : "NO");

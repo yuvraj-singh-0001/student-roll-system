@@ -1,5 +1,5 @@
 // यह API सभी छात्रों की सूची देता है
-const Student = require("../../../models/Student");
+import Student from "../../../models/Student.js";
 
 // Get All Students API
 const getAllStudents = async (req, res) => {
@@ -19,4 +19,4 @@ const getAllStudents = async (req, res) => {
   }
 };
 
-module.exports = getAllStudents;
+export default getAllStudents;
