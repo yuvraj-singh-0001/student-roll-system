@@ -1,4 +1,4 @@
-const ExamConfig = require("../../../models/ExamConfig");
+import ExamConfig from "../../../models/ExamConfig.js";
 
 async function checkExamConfigs(req, res) {
   try {
@@ -25,4 +25,4 @@ async function checkExamConfigs(req, res) {
   }
 }
 
-module.exports = checkExamConfigs;
+export default checkExamConfigs;

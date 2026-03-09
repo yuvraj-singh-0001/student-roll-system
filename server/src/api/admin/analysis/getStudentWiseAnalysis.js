@@ -1,5 +1,5 @@
 // यह API student-wise analysis data देता है
-const { getStudentWiseData } = require("./analysisDataService");
+import { getStudentWiseData } from "./analysisDataService.js";
 
 async function getStudentWiseAnalysis(req, res) {
   try {
@@ -10,4 +10,4 @@ async function getStudentWiseAnalysis(req, res) {
   }
 }
 
-module.exports = getStudentWiseAnalysis;
+export default getStudentWiseAnalysis;

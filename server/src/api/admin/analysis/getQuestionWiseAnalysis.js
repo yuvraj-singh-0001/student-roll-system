@@ -1,5 +1,5 @@
 // यह API question-wise analysis data देता है
-const { getQuestionWiseData } = require("./analysisDataService");
+import { getQuestionWiseData } from "./analysisDataService.js";
 
 async function getQuestionWiseAnalysis(req, res) {
   try {
@@ -10,4 +10,4 @@ async function getQuestionWiseAnalysis(req, res) {
   }
 }
 
-module.exports = getQuestionWiseAnalysis;
+export default getQuestionWiseAnalysis;

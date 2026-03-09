@@ -1,5 +1,5 @@
 // यह API student के latest exam details देता है
-const ExamAttempt = require("../../../models/ExamAttempt");
+import ExamAttempt from "../../../models/ExamAttempt.js";
 
 async function getStudentExamDetails(req, res) {
   try {
@@ -46,4 +46,4 @@ async function getStudentExamDetails(req, res) {
   }
 }
 
-module.exports = getStudentExamDetails;
+export default getStudentExamDetails;
