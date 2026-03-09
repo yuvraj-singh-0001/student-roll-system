@@ -1,7 +1,7 @@
 // यह API छात्रों को notification email भेजता है
-const Student = require("../../../models/Student");
-const { sendMail } = require("../../../../utils/email");
-const { v4: uuidv4 } = require("uuid");
+import Student from "../../../models/Student.js";
+import { sendMail } from "../../../../utils/email.js";
+import { v4 as uuidv4 } from "uuid";
 const serverBaseUrl = (process.env.SERVER_BASE_URL || `http://localhost:${process.env.PORT || 5000}`)
   .replace(/\/+$/, "");
 
@@ -125,4 +125,4 @@ const sendNotification = async (req, res) => {
   }
 };
 
-module.exports = sendNotification;
+export default sendNotification;

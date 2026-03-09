@@ -1,7 +1,7 @@
 // यह API examCode के हिसाब से questions देता है
-const Question = require("../../../models/Question");
-const MockQuestion = require("../../../models/MockQuestion");
-const ExamConfig = require("../../../models/ExamConfig");
+import Question from "../../../models/Question.js";
+import MockQuestion from "../../../models/MockQuestion.js";
+import ExamConfig from "../../../models/ExamConfig.js";
 
 const TYPE_ORDER = {
   simple: 1,
@@ -144,4 +144,4 @@ async function getExamQuestions(req, res) {
   }
 }
 
-module.exports = getExamQuestions;
+export default getExamQuestions;

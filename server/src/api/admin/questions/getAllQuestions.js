@@ -1,5 +1,5 @@
 // यह API सभी questions की सूची देता है
-const Question = require("../../../models/Question");
+import Question from "../../../models/Question.js";
 
 async function getAllQuestions(req, res) {
   try {
@@ -10,4 +10,4 @@ async function getAllQuestions(req, res) {
   }
 }
 
-module.exports = getAllQuestions;
+export default getAllQuestions;

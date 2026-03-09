@@ -1,8 +1,8 @@
 // backend/api/admin/questions/getExamMocks.js
 // This API returns list of available mock tests for a given examCode.
 
-const Question = require("../../../models/Question");
-const MockQuestion = require("../../../models/MockQuestion");
+import Question from "../../../models/Question.js";
+import MockQuestion from "../../../models/MockQuestion.js";
 
 async function getExamMocks(req, res) {
   try {
@@ -95,4 +95,4 @@ async function getExamMocks(req, res) {
   }
 }
 
-module.exports = getExamMocks;
+export default getExamMocks;
