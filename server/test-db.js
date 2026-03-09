@@ -1,7 +1,8 @@
-const mongoose = require('mongoose');
-require('dotenv').config();
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
 
-const ExamConfig = require('./src/models/ExamConfig');
+import ExamConfig from "./src/models/ExamConfig.js";
 
 async function checkDB() {
   try {

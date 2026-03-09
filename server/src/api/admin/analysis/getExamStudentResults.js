@@ -1,8 +1,8 @@
 // This API returns student-wise results for an examCode
-const ExamAttempt = require("../../../models/ExamAttempt");
-const Student = require("../../../models/Student");
-const Question = require("../../../models/Question");
-const mongoose = require("mongoose");
+import ExamAttempt from "../../../models/ExamAttempt.js";
+import Student from "../../../models/Student.js";
+import Question from "../../../models/Question.js";
+import mongoose from "mongoose";
 
 const BRANCH_KEYS = ["A", "B"];
 const VALID_TYPES = [
@@ -268,4 +268,4 @@ async function getExamStudentResults(req, res) {
   }
 }
 
-module.exports = getExamStudentResults;
+export default getExamStudentResults;

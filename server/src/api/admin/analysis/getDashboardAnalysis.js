@@ -1,7 +1,7 @@
 // यह API analysis dashboard का data देता है
-const { getStudentWiseData, getQuestionWiseData, getConfidenceWiseData } = require("./analysisDataService");
-const ExamAttempt = require("../../../models/ExamAttempt");
-const Question = require("../../../models/Question");
+import { getStudentWiseData, getQuestionWiseData, getConfidenceWiseData } from "./analysisDataService.js";
+import ExamAttempt from "../../../models/ExamAttempt.js";
+import Question from "../../../models/Question.js";
 
 async function getDashboardAnalysis(req, res) {
   try {
@@ -60,4 +60,4 @@ async function getDashboardAnalysis(req, res) {
   }
 }
 
-module.exports = getDashboardAnalysis;
+export default getDashboardAnalysis;

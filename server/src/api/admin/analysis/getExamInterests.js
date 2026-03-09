@@ -1,5 +1,5 @@
-const ExamInterest = require("../../../models/ExamInterest");
-const ExamConfig = require("../../../models/ExamConfig");
+import ExamInterest from "../../../models/ExamInterest.js";
+import ExamConfig from "../../../models/ExamConfig.js";
 
 function toDateOrNull(value) {
   if (!value) return null;
@@ -134,4 +134,4 @@ async function getExamInterests(req, res) {
   }
 }
 
-module.exports = getExamInterests;
+export default getExamInterests;

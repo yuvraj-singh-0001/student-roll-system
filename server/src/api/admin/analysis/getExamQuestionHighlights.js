@@ -1,6 +1,6 @@
 // This API returns question highlights for an examCode
-const ExamAttempt = require("../../../models/ExamAttempt");
-const Question = require("../../../models/Question");
+import ExamAttempt from "../../../models/ExamAttempt.js";
+import Question from "../../../models/Question.js";
 
 const BRANCH_KEYS = ["A", "B"];
 const VALID_TYPES = [
@@ -616,4 +616,4 @@ async function getExamQuestionHighlights(req, res) {
   }
 }
 
-module.exports = getExamQuestionHighlights;
+export default getExamQuestionHighlights;
