@@ -1,7 +1,7 @@
-const ActivityLog = require('../../models/ActivityLog');
+import ActivityLog from "../../models/ActivityLog.js";
 
 // GET /activity/summary/:studentId
-module.exports = async (req, res) => {
+export default async (req, res) => {
   try {
     const { studentId } = req.params;
     const logs = await ActivityLog.find({ student: studentId });

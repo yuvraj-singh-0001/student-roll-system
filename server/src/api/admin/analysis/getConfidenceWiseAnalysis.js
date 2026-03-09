@@ -1,5 +1,5 @@
 // यह API confidence-wise analysis data देता है
-const { getConfidenceWiseData } = require("./analysisDataService");
+import { getConfidenceWiseData } from "./analysisDataService.js";
 
 async function getConfidenceWiseAnalysis(req, res) {
   try {
@@ -10,4 +10,4 @@ async function getConfidenceWiseAnalysis(req, res) {
   }
 }
 
-module.exports = getConfidenceWiseAnalysis;
+export default getConfidenceWiseAnalysis;

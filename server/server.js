@@ -1,10 +1,11 @@
-﻿require("dotenv").config();
+﻿import dotenv from "dotenv";
+dotenv.config();
 
-const express = require("express");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
-const connectDB = require("./src/api/config/db");
-const routes = require("./src/routes/router");
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import connectDB from "./src/api/config/db.js";
+import routes from "./src/routes/router.js";
 
 const app = express();
 app.set("trust proxy", 1);

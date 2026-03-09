@@ -1,9 +1,9 @@
 // यह API admin dashboard के लिए real counts और recent activities देता है
-const Student = require("../../../models/Student");
-const Question = require("../../../models/Question");
-const ExamConfig = require("../../../models/ExamConfig");
-const ExamAttempt = require("../../../models/ExamAttempt");
-const mongoose = require("mongoose");
+import Student from "../../../models/Student.js";
+import Question from "../../../models/Question.js";
+import ExamConfig from "../../../models/ExamConfig.js";
+import ExamAttempt from "../../../models/ExamAttempt.js";
+import mongoose from "mongoose";
 
 const HOURS_24 = 24 * 60 * 60 * 1000;
 
@@ -219,4 +219,4 @@ async function getAdminDashboardOverview(req, res) {
   }
 }
 
-module.exports = getAdminDashboardOverview;
+export default getAdminDashboardOverview;

@@ -1,6 +1,7 @@
-require("dotenv").config();
-const connectDB = require("../src/api/config/db");
-const Question = require("../src/models/Question");
+import dotenv from "dotenv";
+dotenv.config();
+import connectDB from "../src/api/config/db.js";
+import Question from "../src/models/Question.js";
 
 const QUESTIONS = [
   { questionNumber: 1, questionText: "What is the capital of India?", options: [{ key: "A", text: "Mumbai" }, { key: "B", text: "Delhi" }, { key: "C", text: "Kolkata" }, { key: "D", text: "Chennai" }], correctAnswer: "B" },

@@ -1,8 +1,8 @@
-const ActivityLog = require('../../models/ActivityLog');
+import ActivityLog from "../../models/ActivityLog.js";
 
 // POST /activity/social
 // body: { studentId, platform, durationMs }
-module.exports = async (req, res) => {
+export default async (req, res) => {
   try {
     const { studentId, platform, durationMs } = req.body;
     if (!studentId || !platform || typeof durationMs !== 'number') {

@@ -1,8 +1,8 @@
 // यह फाइल analysis data के helpers देती है
-const Student = require("../../../models/Student");
-const Question = require("../../../models/Question");
-const ExamAttempt = require("../../../models/ExamAttempt");
-const mongoose = require("mongoose");
+import Student from "../../../models/Student.js";
+import Question from "../../../models/Question.js";
+import ExamAttempt from "../../../models/ExamAttempt.js";
+import mongoose from "mongoose";
 
 async function getStudentWiseData() {
   const attempts = await ExamAttempt.aggregate([
@@ -141,4 +141,4 @@ async function getConfidenceWiseData() {
   return out;
 }
 
-module.exports = { getStudentWiseData, getQuestionWiseData, getConfidenceWiseData };
+export {  getStudentWiseData, getQuestionWiseData, getConfidenceWiseData  };
