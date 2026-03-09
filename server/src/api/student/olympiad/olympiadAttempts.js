@@ -1,7 +1,7 @@
 // यह API olympiad attempts की सूची और detail देता है
 // backend/api/student/olympiad/olympiadAttempts.js
-const ExamAttempt = require("../../../models/ExamAttempt");
-const MockExamAttempt = require("../../../models/MockExamAttempt");
+import ExamAttempt from "../../../models/ExamAttempt.js";
+import MockExamAttempt from "../../../models/MockExamAttempt.js";
 
 const BRANCH_KEYS = ["A", "B"];
 
@@ -250,4 +250,4 @@ async function getOlympiadAttemptDetails(req, res) {
   }
 }
 
-module.exports = { listOlympiadAttempts, getOlympiadAttemptDetails };
+export {  listOlympiadAttempts, getOlympiadAttemptDetails  };

@@ -1,12 +1,12 @@
 // backend/api/student/olympiad/submitMockExam.js
 // This API handles submission of mock tests and stores results in mocktest_results collection.
 
-const Question = require("../../../models/Question");
-const MockQuestion = require("../../../models/MockQuestion");
-const MockExamAttempt = require("../../../models/MockExamAttempt");
+import Question from "../../../models/Question.js";
+import MockQuestion from "../../../models/MockQuestion.js";
+import MockExamAttempt from "../../../models/MockExamAttempt.js";
 
 // Reuse scoring helpers from submitOlympiadExam
-const baseSubmit = require("./submitOlympiadExam");
+import baseSubmit from "./submitOlympiadExam.js";
 
 // We cannot directly reuse the whole handler, so we copy scoring helpers pattern here by requiring same module logic.
 // To avoid duplicating a lot of code, we import the same functions by requiring this file at top-level.
@@ -409,4 +409,4 @@ async function submitMockExam(req, res) {
   }
 }
 
-module.exports = submitMockExam;
+export default submitMockExam;

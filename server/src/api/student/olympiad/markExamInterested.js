@@ -1,6 +1,6 @@
-const ExamConfig = require("../../../models/ExamConfig");
-const ExamInterest = require("../../../models/ExamInterest");
-const { resolveStudentFromRequest } = require("./listOlympiadExams");
+import ExamConfig from "../../../models/ExamConfig.js";
+import ExamInterest from "../../../models/ExamInterest.js";
+import { resolveStudentFromRequest } from "./listOlympiadExams.js";
 
 async function markExamInterested(req, res) {
   try {
@@ -54,4 +54,4 @@ async function markExamInterested(req, res) {
   }
 }
 
-module.exports = markExamInterested;
+export default markExamInterested;
