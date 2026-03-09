@@ -608,7 +608,7 @@ export default function StudentDashboard() {
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-5">
 
         {/* ── Official Socials ───────────────────────────────────────────── */}
-        <div className="sd-reveal sd-reveal-left sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "30ms" }}>
+        <div className="sd-reveal sd-reveal-right sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "30ms" }}>
           <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Connect</p>
           <h2 className="text-sm font-bold text-gray-900">Official Socials</h2>
           <p className="text-xs text-gray-500 mt-0.5">Follow @TheTrueTopper for updates & resources.</p>
@@ -653,7 +653,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* ── Available Olympiads ────────────────────────────────────────── */}
-        <div className="sd-reveal sd-reveal-left sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "140ms" }}>
+        <div className="sd-reveal sd-reveal-right sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "140ms" }}>
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">Examination</p>
@@ -716,7 +716,7 @@ export default function StudentDashboard() {
                 return (
                   <div
                     key={exam.examCode}
-                    className={`sd-reveal ${idx % 2 === 0 ? "sd-reveal-left" : "sd-reveal-right"} sd-card sd-card-hover relative h-full rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm transition-all`}
+                    className="sd-reveal sd-reveal-right sd-card sd-card-hover relative h-full rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm transition-all"
                     style={{ "--sd-delay": `${Math.min(idx * 70, 280)}ms` }}
                   >
                     {/* Accent bar */}
@@ -925,7 +925,7 @@ export default function StudentDashboard() {
                 return (
                   <div
                     key={`upcoming-${exam.examCode}`}
-                    className={`sd-reveal ${idx % 2 === 0 ? "sd-reveal-left" : "sd-reveal-right"} sd-card sd-card-hover rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm`}
+                    className="sd-reveal sd-reveal-right sd-card sd-card-hover rounded-2xl border border-[#FFE6A3] bg-white overflow-hidden shadow-sm"
                     style={{ "--sd-delay": `${Math.min(idx * 70, 280)}ms` }}
                   >
                     <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 to-indigo-600" />
@@ -1006,7 +1006,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* ── Recent Test Results ────────────────────────────────────────── */}
-        <div className="sd-reveal sd-reveal-left sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "240ms" }}>
+        <div className="sd-reveal sd-reveal-right sd-card bg-white/90 border border-[#FFE6A3] rounded-2xl shadow-sm p-5" style={{ "--sd-delay": "240ms" }}>
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <p className="text-[10px] font-bold tracking-widest uppercase text-[#B8860B] mb-0.5">History</p>

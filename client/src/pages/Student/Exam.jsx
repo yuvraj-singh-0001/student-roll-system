@@ -1429,6 +1429,44 @@ export default function Exam() {
   const availableOlympiads = (examList || []).filter((exam) => isLiveExam(exam));
   const upcomingOlympiads = (examList || []).filter((exam) => isUpcomingExam(exam));
 
+  useEffect(() => {
+    const cards = Array.from(document.querySelectorAll(".sd-reveal"));
+    if (!cards.length) return;
+
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      cards.forEach((card) => card.classList.add("is-visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.12,
+        rootMargin: "0px 0px -10% 0px",
+      },
+    );
+
+    cards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [
+    examCode,
+    pendingExamCode,
+    availableOlympiads.length,
+    upcomingOlympiads.length,
+    visibleQuestions.length,
+    current,
+  ]);
+
   if (!examCode) {
     if (pendingExamCode) {
       return (
@@ -1455,7 +1493,10 @@ export default function Exam() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 text-left">
-                <div className="rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm">
+                <div
+                  className="sd-reveal sd-reveal-right sd-card rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm"
+                  style={{ "--sd-delay": "20ms" }}
+                >
                   <div className="text-[11px] uppercase tracking-wide text-amber-700/80">
                     Section 1
                   </div>
@@ -1470,7 +1511,10 @@ export default function Exam() {
                   </ul>
                 </div>
 
-                <div className="rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm">
+                <div
+                  className="sd-reveal sd-reveal-right sd-card rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm"
+                  style={{ "--sd-delay": "70ms" }}
+                >
                   <div className="text-[11px] uppercase tracking-wide text-amber-700/80">
                     Section 2
                   </div>
@@ -1494,7 +1538,10 @@ export default function Exam() {
                   </ul>
                 </div>
 
-                <div className="rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm">
+                <div
+                  className="sd-reveal sd-reveal-right sd-card rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm"
+                  style={{ "--sd-delay": "120ms" }}
+                >
                   <div className="text-[11px] uppercase tracking-wide text-amber-700/80">
                     Section 3
                   </div>
@@ -1512,7 +1559,10 @@ export default function Exam() {
                   </ul>
                 </div>
 
-                <div className="rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm">
+                <div
+                  className="sd-reveal sd-reveal-right sd-card rounded-2xl border border-[#FFE1B5] bg-white/95 p-4 shadow-sm"
+                  style={{ "--sd-delay": "170ms" }}
+                >
                   <div className="text-[11px] uppercase tracking-wide text-amber-700/80">
                     Section 4
                   </div>
@@ -1536,7 +1586,10 @@ export default function Exam() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-[#FFE6A3] bg-white/90 p-4 shadow-sm">
+              <div
+                className="sd-reveal sd-reveal-up sd-card mt-6 rounded-2xl border border-[#FFE6A3] bg-white/90 p-4 shadow-sm"
+                style={{ "--sd-delay": "220ms" }}
+              >
                 <label className="flex items-start gap-3 text-sm text-gray-700">
                   <input
                     type="checkbox"
@@ -1620,7 +1673,10 @@ export default function Exam() {
 
         <div className="relative z-10 min-h-screen">
           <div className="max-w-5xl mx-auto px-4 py-10">
-            <div className="mb-6 rounded-2xl border border-[#FFE6A3] bg-white/90 backdrop-blur px-4 py-4 sm:px-5">
+            <div
+              className="sd-reveal sd-reveal-up sd-card mb-6 rounded-2xl border border-[#FFE6A3] bg-white/90 backdrop-blur px-4 py-4 sm:px-5"
+              style={{ "--sd-delay": "30ms" }}
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Choose Your Exam</h3>
@@ -1669,7 +1725,7 @@ export default function Exam() {
                       <div className="text-xs text-gray-500">No live olympiads right now.</div>
                     ) : (
                       <div className="grid gap-3 sm:grid-cols-2">
-                        {availableOlympiads.map((exam) => {
+                        {availableOlympiads.map((exam, idx) => {
                   const isStudentPaid = !!exam?.isStudentPaid;
                   const canStartExam = !!exam?.canStartExam;
                   const hasMocks = !!exam?.hasMocks;
@@ -1688,7 +1744,8 @@ export default function Exam() {
                   return (
                     <div
                       key={exam.examCode}
-                      className="group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm hover:shadow-md transition"
+                      className="sd-reveal sd-reveal-right sd-card sd-card-hover sd-shine group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm transition"
+                      style={{ "--sd-delay": `${40 + idx * 45}ms` }}
                     >
                       <div
                         className={`h-1 w-full bg-gradient-to-r ${
@@ -1859,7 +1916,7 @@ export default function Exam() {
                       <div className="text-xs text-gray-500">No upcoming olympiads right now.</div>
                     ) : (
                       <div className="grid gap-3 sm:grid-cols-2">
-                        {upcomingOlympiads.map((exam) => {
+                        {upcomingOlympiads.map((exam, idx) => {
                           const isStudentPaid = !!exam?.isStudentPaid;
                           const paymentRequired = exam?.paymentRequired !== false;
                           const examPrice = Number(exam?.registrationPrice) || 0;
@@ -1878,7 +1935,8 @@ export default function Exam() {
                           return (
                             <div
                               key={`upcoming-${exam.examCode}`}
-                              className="group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm"
+                              className="sd-reveal sd-reveal-right sd-card sd-card-hover group relative overflow-hidden rounded-2xl border border-[#FFE1B5] bg-white/95 shadow-sm"
+                              style={{ "--sd-delay": `${55 + idx * 45}ms` }}
                             >
                               <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-indigo-600" />
                               <div className="relative p-3 flex flex-col gap-2">
@@ -2235,7 +2293,10 @@ export default function Exam() {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Left Panel - Question & Options */}
             <div className="lg:col-span-2">
-              <div className="bg-white/95 rounded-xl shadow-lg border border-[#FFE6A3] overflow-hidden animate-fade-in-up backdrop-blur">
+              <div
+                className="sd-reveal sd-reveal-right sd-card bg-white/95 rounded-xl shadow-lg border border-[#FFE6A3] overflow-hidden backdrop-blur"
+                style={{ "--sd-delay": "40ms" }}
+              >
                 <div className="h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00]" />
 
                 <div className="p-6">
@@ -2471,7 +2532,10 @@ export default function Exam() {
             {/* Right Panel - Progress */}
             <div className="space-y-6">
               {/* Question Navigator */}
-              <div className="bg-white/95 rounded-xl shadow-lg border border-[#FFE6A3] overflow-hidden backdrop-blur">
+              <div
+                className="sd-reveal sd-reveal-right sd-card bg-white/95 rounded-xl shadow-lg border border-[#FFE6A3] overflow-hidden backdrop-blur"
+                style={{ "--sd-delay": "80ms" }}
+              >
                 <div className="h-1 bg-gradient-to-r from-[#FFCD2C] to-[#E0AC00]" />
                 <div className="p-6">
                   <h3 className="text-sm font-bold text-gray-900 mb-4">
@@ -2533,7 +2597,10 @@ export default function Exam() {
               </div>
 
               {/* Stats */}
-              <div className="bg-white/95 rounded-xl shadow-lg border border-[#FFE6A3] overflow-hidden backdrop-blur">
+              <div
+                className="sd-reveal sd-reveal-right sd-card bg-white/95 rounded-xl shadow-lg border border-[#FFE6A3] overflow-hidden backdrop-blur"
+                style={{ "--sd-delay": "120ms" }}
+              >
                 <div className="h-1 bg-gradient-to-r from-gray-800 to-gray-900" />
                 <div className="p-6">
                   <h3 className="text-sm font-bold text-gray-900 mb-4">
